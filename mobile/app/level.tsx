@@ -3,11 +3,12 @@ import { View, Text, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollVi
 import { ChevronLeft, CheckCircle2, XCircle, Trophy, ArrowRight, Home, BookOpen } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import Animated, { FadeIn, FadeOut, SlideInDown, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { learningApi } from "../services/api";
 import { MathText } from "../components/MathText";
 import { feedback } from "../lib/feedback";
+import { MascotInteraction } from '../components/MascotInteraction';
 
 const { width } = Dimensions.get('window');
 
@@ -114,6 +115,10 @@ export default function LevelScreen() {
         }
     };
 
+    const player = useVideoPlayer(lesson?.videoUrl || '', (player) => {
+        player.loop = false;
+    });
+
     if (loading) {
         return (
             <View className="flex-1 bg-white dark:bg-[#0B0D12] items-center justify-center">
@@ -147,16 +152,11 @@ export default function LevelScreen() {
                 <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
                     {lesson.videoUrl && (
                         <View className="mb-6 rounded-2xl overflow-hidden border-2 border-gray-100 dark:border-gray-800 bg-black">
-                            <Video
-                                source={{ uri: lesson.videoUrl }}
-                                rate={1.0}
-                                volume={1.0}
-                                isMuted={false}
-                                resizeMode={ResizeMode.CONTAIN}
-                                shouldPlay={false}
-                                isLooping={false}
-                                useNativeControls
+                            <VideoView
+                                player={player}
                                 style={{ width: '100%', height: 210 }}
+                                contentFit="contain"
+                                allowsFullscreen
                             />
                         </View>
                     )}
@@ -165,6 +165,12 @@ export default function LevelScreen() {
                     </View>
                     <Text className="text-2xl font-black text-gray-900 dark:text-white mb-6 leading-tight">{lesson.name}</Text>
                     <MarkdownText content={lesson.content || ''} />
+                    <View className="mt-8">
+                        <MascotInteraction 
+                            state="thinking" 
+                            message="Pay attention! I'll be testing you on this in a minute. 😉" 
+                        />
+                    </View>
                     <View className="h-20" />
                 </ScrollView>
 
@@ -256,6 +262,16 @@ export default function LevelScreen() {
                     </View>
                     <View className="w-10 h-10" />
                 </View>
+
+                {/* Provocative Mascot in Questions */}
+                {currentIndex === 0 && !showNext && (
+                    <Animated.View entering={FadeIn} className="mb-6">
+                        <MascotInteraction 
+                            state="happy" 
+                            message="Let's see if you were actually reading! 🦁" 
+                        />
+                    </Animated.View>
+                )}
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                     <MathText content={currentQuestion.text} fontSize={22} containerStyle={{ marginBottom: 32 }} />

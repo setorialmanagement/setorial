@@ -1,12 +1,13 @@
 import { SoundButton } from '../../components/SoundButton';
-import { View, Text, TouchableOpacity, ScrollView, Image, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Settings, LogOut, ChevronRight, BookOpen, Star, HelpCircle, ShieldCheck } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/authStore';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { authApi } from '../../services/api';
 import { getTierColors } from '../../utils/theme';
+import LottieView from 'lottie-react-native';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -50,7 +51,19 @@ export default function ProfileScreen() {
                 >
                     <View className="relative mr-4">
                         <View className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#1E222B] items-center justify-center overflow-hidden border border-gray-200 dark:border-[#272B36]">
-                            <Image source={{ uri: user?.avatarUrl || 'https://i.pravatar.cc/150?u=placeholder' }} className="w-full h-full" />
+                            {user?.avatarUrl ? (
+                                <Image source={{ uri: user.avatarUrl }} className="w-full h-full" />
+                            ) : (
+                                <LottieView
+                                    autoPlay
+                                    loop
+                                    source={require('../../assets/animations/happy.json')}
+                                    style={{ width: 80, height: 80 }}
+                                    renderMode="SOFTWARE"
+                                    resizeMode="contain"
+                                    cacheComposition={true}
+                                />
+                            )}
                         </View>
                         <View className={`absolute bottom-0 right-0 w-4 h-4 border-2 border-white dark:border-[#0B0D12] rounded-full ${user?.isVerified ? 'bg-blue-500' : 'bg-green-500'}`} />
                     </View>

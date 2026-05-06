@@ -1,5 +1,5 @@
 import "../global.css";
-import "./lib/i18n";
+import "../lib/i18n";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/authStore";
@@ -105,6 +105,7 @@ export default function RootLayout() {
                 <Stack.Screen name="terms" />
                 <Stack.Screen name="verification" />
                 <Stack.Screen name="mock-result" />
+                <Stack.Screen name="tutor" />
             </Stack>
 
             {/* Offline Guardian */}

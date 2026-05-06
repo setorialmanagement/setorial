@@ -1,5 +1,5 @@
 import { SoundButton } from '../components/SoundButton';
-import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicator, Alert, Image, Platform } from 'react-native';
 import { ChevronLeft, Camera } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
@@ -7,6 +7,7 @@ import { authApi } from '../services/api';
 import { useState } from 'react';
 
 import * as ImagePicker from 'expo-image-picker';
+import LottieView from 'lottie-react-native';
 
 export default function EditProfileScreen() {
     const router = useRouter();
@@ -87,7 +88,15 @@ export default function EditProfileScreen() {
                             {image || user?.avatarUrl ? (
                                 <Image source={{ uri: image || user?.avatarUrl || '' }} className="w-full h-full" />
                             ) : (
-                                <Text className="text-4xl text-black dark:text-white">{(user?.name || 'S')[0].toUpperCase()}</Text>
+                                <LottieView
+                                    autoPlay
+                                    loop
+                                    source={require('../assets/animations/happy.json')}
+                                    style={{ width: 130, height: 130 }}
+                                    renderMode="SOFTWARE"
+                                    resizeMode="contain"
+                                    cacheComposition={true}
+                                />
                             )}
                         </View>
                         <SoundButton

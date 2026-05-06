@@ -58,7 +58,6 @@ export default function HomeScreen() {
             "Mastering this leads to Gold tier! ✨",
             "Are you feeling smart today? 🧠",
             "Don't let your streak break! 🔥",
-            "Someone just overtook you on the leaderboard! 🏃‍♂️"
         ];
         setMascotMessage(messages[Math.floor(Math.random() * messages.length)]);
     }, []);

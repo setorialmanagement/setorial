@@ -34,7 +34,8 @@
           "imageWidth": 450
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-localization"
     ],
     "extra": {
       "eas": {

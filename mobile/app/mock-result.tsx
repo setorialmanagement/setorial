@@ -7,16 +7,32 @@ import { MathText } from '../components/MathText';
 import { MascotInteraction } from '../components/MascotInteraction';
 import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 
+import { playSound } from '../lib/audio';
+
 export default function MockResultScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<any>(() => {
+        if (params.data) {
+            try {
+                return JSON.parse(params.data as string);
+            } catch (e) {
+                console.error('Failed to parse result data:', e);
+                return null;
+            }
+        }
+        return null;
+    });
 
     useEffect(() => {
-        if (params.data) {
-            setResult(JSON.parse(params.data as string));
+        if (result) {
+            // Celebration logic
+            const passed = result.score >= (result.maxScore * 0.6);
+            if (passed) {
+                playSound('victory');
+            }
         }
-    }, [params.data]);
+    }, []); // Run once on mount
 
     if (!result) return null;
 
@@ -55,12 +71,12 @@ export default function MockResultScreen() {
                             <Text className="text-[#FFC800] dark:text-[#FFD900] font-black text-xl">+{result.pointsEarned} XP</Text>
                         </View>
                         <View className="h-[2px] bg-gray-200 dark:bg-[#272B36] mb-4" />
-                        <div className="flex-row justify-between items-center">
+                        <View className="flex-row justify-between items-center">
                             <Text className="text-gray-500 dark:text-gray-400 font-bold text-[15px] uppercase">Performance</Text>
                             <Text className={`${passed ? 'text-[#58CC02]' : 'text-[#FF4B4B]'} font-black text-lg`}>
                                 {Math.round((result.score / result.maxScore) * 100)}%
                             </Text>
-                        </div>
+                        </View>
                     </View>
                 </Animated.View>
 

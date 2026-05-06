@@ -1,17 +1,19 @@
 import { Audio } from 'expo-av';
 
 const SOUNDS = {
-  click: 'https://cdn.pixabay.com/audio/2022/03/15/audio_7314271813.mp3', // Soft UI click
-  success: 'https://cdn.pixabay.com/audio/2022/03/10/audio_c3e666a7b1.mp3', // Level up / Success
-  error: 'https://cdn.pixabay.com/audio/2022/03/10/audio_55a29c6691.mp3', // Subtle error
-  correct: 'https://cdn.pixabay.com/audio/2021/08/04/audio_0624a04033.mp3', // Ding for correct
-  streak: 'https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3', // Fire / streak sound
+  tap: require('../assets/sounds/tap.wav'),
+  pop: require('../assets/sounds/pop.wav'),
+  boop: require('../assets/sounds/boop.wav'),
+  correct: require('../assets/sounds/correct.mp3'),
+  incorrect: require('../assets/sounds/incorrect.mp3'),
+  victory: require('../assets/sounds/victory.mp3'),
+  complete: require('../assets/sounds/complete.mp3'),
 };
 
 export async function playSound(name: keyof typeof SOUNDS) {
   try {
     const { sound } = await Audio.Sound.createAsync(
-      { uri: SOUNDS[name] },
+      SOUNDS[name],
       { shouldPlay: true, volume: 0.5 }
     );
     
