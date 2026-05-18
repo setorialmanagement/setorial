@@ -63,21 +63,44 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         return `
         <!DOCTYPE html>
         <html>
-        <body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #f4f4f5; text-align: center;">
-            <div style="background-color: #f4f4f5; padding: 40px 20px;">
-                <div style="max-w-2xl; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); text-align: left;">
-                    <div style="background-color: #18181b; padding: 32px 40px; text-align: center;">
-                        <h1 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">SETORIAL</h1>
+        <head>
+            <title>${title}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <style>
+                body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; -webkit-font-smoothing: antialiased; }
+            </style>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; text-align: center;">
+            <div style="background-color: #f9fafb; padding: 48px 20px;">
+                <div style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); text-align: left; border: 1px solid #f3f4f6;">
+                    
+                    <!-- Header -->
+                    <div style="padding: 32px 40px 24px 40px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td style="vertical-align: middle;">
+                                    <img src="https://pub-2adf18353cc14bf899bf2827efdfec49.r2.dev/public/logo.png" alt="Setorial Logo" width="28" height="28" style="display: inline-block; vertical-align: middle; margin-right: 10px; border-radius: 6px;" />
+                                    <span style="font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -0.5px; vertical-align: middle;">setorial</span>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
-                    <div style="padding: 40px;">
-                        <h2 style="color: #18181b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 24px;">${title}</h2>
-                        <div style="color: #52525b; font-size: 16px; line-height: 1.6;">
+
+                    <!-- Divider -->
+                    <div style="margin: 0 40px; border-top: 1px solid #f3f4f6;"></div>
+
+                    <!-- Content -->
+                    <div style="padding: 32px 40px 40px 40px;">
+                        <div style="color: #374151; font-size: 15px; line-height: 1.6;">
                             ${messageHtml}
                         </div>
                     </div>
-                    <div style="background-color: #fafafa; padding: 24px 40px; border-top: 1px solid #f4f4f5; text-align: center;">
-                        <p style="color: #a1a1aa; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Setorial Platform. All rights reserved.</p>
-                    </div>
+                </div>
+
+                <!-- Footer Outside Card -->
+                <div style="max-width: 560px; margin: 24px auto 0 auto; text-align: left; color: #6b7280; font-size: 12px; line-height: 1.5;">
+                    <p style="margin: 0 0 8px 0;">If you believe you are getting this email in error or want to close your Setorial account, please visit our <a href="#" style="color: #10b981; text-decoration: none;">support site</a>.</p>
+                    <p style="margin: 0;">© ${new Date().getFullYear()} Setorial Platform. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -85,19 +108,19 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         `;
     }
     async sendOtpEmail(email, otpCode, name = 'Student') {
-        const title = 'Verify your Setorial Account';
+        const title = 'Your Setorial verification code';
+        const formattedCode = otpCode.length === 6 ? `${otpCode.slice(0, 3)} ${otpCode.slice(3)}` : otpCode;
         const content = `
-            <p>Hi ${name},</p>
-            <p>Welcome to Setorial! To complete your registration and unlock your account, please enter the following 6-digit verification code in the app:</p>
-            <div style="background-color: #f4f4f5; border-radius: 8px; padding: 20px; text-align: center; margin: 32px 0;">
-                <span style="font-size: 32px; font-weight: 800; color: #18181b; letter-spacing: 8px;">${otpCode}</span>
+            <p style="margin-top: 0; color: #374151;">Your Setorial verification code is:</p>
+            <div style="background-color: #ebfef0; border-radius: 6px; padding: 16px; text-align: center; margin: 24px 0;">
+                <span style="font-size: 32px; font-weight: 600; color: #065f46; letter-spacing: 4px;">${formattedCode}</span>
             </div>
-            <p>This code will expire in 15 minutes.</p>
+            <p style="color: #374151;">This code will expire in 15 minutes and can only be used once. Never share this code with anyone.</p>
         `;
         try {
             await this.notificationsQueue.add('email', {
                 to: email,
-                subject: 'Setorial Verification Code',
+                subject: title,
                 html: this.generateSetorialHtml(title, content)
             });
         }
@@ -107,19 +130,19 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
     }
     async sendPasswordResetEmail(email, otpCode, name = 'Student') {
         const title = 'Reset Your Password';
+        const formattedCode = otpCode.length === 6 ? `${otpCode.slice(0, 3)} ${otpCode.slice(3)}` : otpCode;
         const content = `
-            <p>Hi ${name},</p>
-            <p>We received a request to reset your Setorial password. Enter the following 6-digit code in the app to proceed:</p>
-            <div style="background-color: #f4f4f5; border-radius: 8px; padding: 20px; text-align: center; margin: 32px 0;">
-                <span style="font-size: 32px; font-weight: 800; color: #18181b; letter-spacing: 8px;">${otpCode}</span>
+            <p style="margin-top: 0; color: #374151;">Your Setorial password reset code is:</p>
+            <div style="background-color: #ebfef0; border-radius: 6px; padding: 16px; text-align: center; margin: 24px 0;">
+                <span style="font-size: 32px; font-weight: 600; color: #065f46; letter-spacing: 4px;">${formattedCode}</span>
             </div>
-            <p>If you didn't request this, you can safely ignore this email.</p>
-            <p>This code will expire in 15 minutes.</p>
+            <p style="color: #374151;">If you didn't request this, you can safely ignore this email.</p>
+            <p style="color: #374151;">This code will expire in 15 minutes and can only be used once.</p>
         `;
         try {
             await this.notificationsQueue.add('email', {
                 to: email,
-                subject: 'Setorial Password Reset',
+                subject: title,
                 html: this.generateSetorialHtml(title, content)
             });
         }
@@ -130,10 +153,11 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
     async sendWelcomeEmail(email, name) {
         const title = 'Welcome to Setorial! 🎉';
         const content = `
+            <h2 style="color: #111827; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 24px;">Welcome to Setorial! 🎉</h2>
             <p>Hey ${name},</p>
             <p>We are thrilled to have you onboard! Setorial is designed to make your learning journey profitable and engaging.</p>
             <p><b>What's next?</b></p>
-            <ul>
+            <ul style="padding-left: 20px; color: #374151;">
                 <li style="margin-bottom: 8px;">Navigate to your Learning Path to start earning Points.</li>
                 <li style="margin-bottom: 8px;">Subscribe to Silver or Gold to unlock Monetization.</li>
                 <li style="margin-bottom: 8px;">Verify your KYC to accept payouts globally.</li>
@@ -143,7 +167,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         try {
             await this.notificationsQueue.add('email', {
                 to: email,
-                subject: 'Welcome to Setorial!',
+                subject: title,
                 html: this.generateSetorialHtml(title, content)
             });
         }
@@ -154,6 +178,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
     async sendPayoutConfirmation(email, amount, month) {
         const title = 'Your Payout is on the way! 💸';
         const content = `
+            <h2 style="color: #111827; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 24px;">Your Payout is on the way! 💸</h2>
             <p>Awesome news!</p>
             <p>Your learning rewards for <b>${month}</b> have been processed. We've initiated a transfer of <b>₦${amount.toLocaleString()}</b> to your configured bank account.</p>
             <p>Keep studying and acing those mock exams to increase your rank next month!</p>

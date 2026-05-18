@@ -9,11 +9,11 @@ export declare class WalletController {
     getTransactions(req: any): Promise<{
         id: string;
         createdAt: Date;
+        region: string | null;
         userId: string;
         type: import("@prisma/client").$Enums.WalletTxType;
         amount: import("@prisma/client-runtime-utils").Decimal;
         reference: string | null;
-        region: string | null;
         exchangeRate: number | null;
     }[]>;
 }

@@ -15,8 +15,8 @@ export class AiContentService {
         @InjectQueue('ai-content') private aiQueue: Queue
     ) { }
 
-    async queueFullSyllabusGeneration(subjectId: string, numTopics: number) {
-        await this.aiQueue.add('generate-full-subject', { subjectId, numTopics }, {
+    async queueFullSyllabusGeneration(subjectId: string, numTopics: number, userRole?: string) {
+        await this.aiQueue.add('generate-full-subject', { subjectId, numTopics, userRole }, {
             removeOnComplete: true,
             attempts: 3,
             backoff: { type: 'exponential', delay: 1000 }
@@ -24,16 +24,18 @@ export class AiContentService {
         return { message: 'Wormhole opened. Generating syllabus in the background...' };
     }
 
-    async generateLevelsForTopic(subjectId: string, topicName: string, numLevels: number = 3) {
+    async generateLevelsForTopic(subjectId: string, topicName: string, numLevels: number = 3, userRole?: string) {
         const subject = await this.prisma.subject.findUnique({ where: { id: subjectId } });
         if (!subject) throw new Error('Subject not found');
+
+        const isApproved = userRole === 'TUTOR' ? false : true;
 
         let topic = await this.prisma.topic.findFirst({
             where: { name: topicName, subjectId }
         });
         if (!topic) {
             topic = await this.prisma.topic.create({
-                data: { name: topicName, subjectId }
+                data: { name: topicName, subjectId, isApproved }
             });
         }
 
@@ -56,6 +58,7 @@ Respond ONLY with a JSON object:
                     topicId: topic.id,
                     content: lessonData.content,
                     order: i + 1,
+                    isApproved,
                     questions: {
                         create: lessonData.questions.map((q: any) => ({
                             text: q.text,
@@ -95,7 +98,7 @@ Respond ONLY with valid JSON:
         return this.executeGeneration(prompt, async (data) => data);
     }
 
-    async regenerateLesson(lessonId: string) {
+    async regenerateLesson(lessonId: string, userRole?: string) {
         const lesson = await this.prisma.lesson.findUnique({
             where: { id: lessonId },
             include: { topic: { include: { subject: true } } }
@@ -108,12 +111,15 @@ Respond ONLY with valid JSON:
             lesson.name
         );
 
+        const isApproved = userRole === 'TUTOR' ? false : true;
+
         return await this.prisma.$transaction(async (tx) => {
             await tx.question.deleteMany({ where: { lessonId } });
             return tx.lesson.update({
                 where: { id: lessonId },
                 data: {
                     content: data.content,
+                    isApproved,
                     questions: {
                         create: data.questions.map((q: any) => ({
                             text: q.text,
@@ -127,9 +133,11 @@ Respond ONLY with valid JSON:
         });
     }
 
-    async generateMockExam(subjectId: string, title: string, numQuestions: number = 30) {
+    async generateMockExam(subjectId: string, title: string, numQuestions: number = 30, userRole?: string) {
         const subject = await this.prisma.subject.findUnique({ where: { id: subjectId } });
         if (!subject) throw new Error('Subject not found');
+
+        const isApproved = userRole === 'TUTOR' ? false : true;
 
         const prompt = `Create a professional standardized mock exam for the subject "${subject.name}".
 Title: "${title}".
@@ -160,6 +168,7 @@ Respond ONLY with valid JSON:
                     title: data.title,
                     description: data.description,
                     durationMinutes: data.durationMinutes,
+                    isApproved,
                     questions: {
                         create: data.questions.map((q: any) => ({
                             text: q.text,
@@ -173,7 +182,7 @@ Respond ONLY with valid JSON:
         });
     }
 
-    async generateFullSyllabus(subjectId: string, numTopics: number = 5) {
+    async generateFullSyllabus(subjectId: string, numTopics: number = 5, userRole?: string) {
         const subject = await this.prisma.subject.findUnique({ where: { id: subjectId } });
         if (!subject) throw new Error('Subject not found');
 
@@ -191,7 +200,7 @@ Respond ONLY with a JSON object:
         const results = [];
         for (const topicName of topicNames) {
             try {
-                const topicResult = await this.generateLevelsForTopic(subjectId, topicName, 3);
+                const topicResult = await this.generateLevelsForTopic(subjectId, topicName, 3, userRole);
                 results.push(topicResult);
             } catch (err) {
                 this.logger.error(`Failed to generate levels for topic ${topicName}: ${err.message}`);
@@ -200,7 +209,7 @@ Respond ONLY with a JSON object:
 
         // Step 3: Generate a Mock Exam for the subject
         try {
-            await this.generateMockExam(subjectId, `${subject.name} - Standardized Pro Mock`, 30);
+            await this.generateMockExam(subjectId, `${subject.name} - Standardized Pro Mock`, 30, userRole);
         } catch (err) {
             this.logger.error(`Failed to generate subject mock exam: ${err.message}`);
         }

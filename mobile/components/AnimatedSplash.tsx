@@ -24,7 +24,6 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     const opacity = useSharedValue(1);
     const textOpacity = useSharedValue(0);
     const animationRef = useRef<LottieView>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
 
     const finishSplash = () => {
         opacity.value = withTiming(0, { duration: 800 }, (finished) => {
@@ -39,19 +38,20 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
         textOpacity.value = withTiming(1, { duration: 1000 });
 
         // Manual play trigger — autoPlay alone can fail on mount with New Architecture
-        if (isLoaded) {
+        const playTimer = setTimeout(() => {
             animationRef.current?.play();
-        }
+        }, 150);
 
         // Fallback timeout in case Lottie onAnimationFinish doesn't fire
         const fallbackTimer = setTimeout(() => {
             finishSplash();
-        }, 5000); // Increased to 5 seconds to allow for loading
+        }, 5000); 
 
         return () => {
+            clearTimeout(playTimer);
             clearTimeout(fallbackTimer);
         };
-    }, [isLoaded]);
+    }, []);
 
     const containerStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
@@ -69,12 +69,10 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
                     ref={animationRef}
                     autoPlay
                     loop={false}
-                    source={require('../assets/animations/point_down.lottie')}
-                    style={{ width: MASCOT_SIZE, height: MASCOT_SIZE }}
-                    onLayout={() => setIsLoaded(true)}
+                    source={require('../assets/animations/point_down.lottiejson')}
+                    style={{ width: MASCOT_SIZE, height: MASCOT_SIZE, backgroundColor: 'transparent' }}
                     resizeMode="contain"
                     onAnimationFinish={finishSplash}
-                    speed={1}
                 />
                 <Animated.View style={[styles.textWrapper, textStyle]}>
                     <Text style={styles.brandText}>SETORIAL</Text>

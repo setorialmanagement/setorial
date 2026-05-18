@@ -86,8 +86,28 @@ const kycBadge = (status: string) => {
 
 /* ─── Main Dashboard ───────────────────────────────────────────────────────── */
 
+function parseJwt(token: string) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+            window.atob(base64)
+                .split('')
+                .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
+    }
+}
+
 export default function AdminDashboard() {
-    const [activeTab, setActiveTab] = useState('overview');
+    const token = localStorage.getItem('admin_token');
+    const user = token ? parseJwt(token) : null;
+    const userRole = user?.role || 'ADMIN';
+
+    const [activeTab, setActiveTab] = useState(userRole === 'TUTOR' ? 'learning' : 'overview');
     const [stats, setStats] = useState<any>(null);
     const [kycRequests, setKycRequests] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
@@ -123,6 +143,31 @@ export default function AdminDashboard() {
     const [kycFilter, setKycFilter] = useState('');
     const [flagFilter, setFlagFilter] = useState('');
     const [userSearch, setUserSearch] = useState('');
+    const [roleFilter, setRoleFilter] = useState('');
+
+    // Tutor Management Modal State
+    const [isTutorModalOpen, setIsTutorModalOpen] = useState(false);
+    const [tutorForm, setTutorForm] = useState({ name: '', email: '', password: '' });
+
+    const handleSaveTutor = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!tutorForm.name || !tutorForm.email || !tutorForm.password) {
+            alert('Please fill out all fields.');
+            return;
+        }
+        setLoading(true);
+        try {
+            await adminApi.createTutor(tutorForm);
+            setIsTutorModalOpen(false);
+            setTutorForm({ name: '', email: '', password: '' });
+            alert('Tutor account created successfully!');
+            fetchData();
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to create tutor');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Payout trigger
     const [payoutMonth, setPayoutMonth] = useState('');
@@ -209,7 +254,7 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         fetchData();
-    }, [activeTab, tierFilter, kycFilter]);
+    }, [activeTab, tierFilter, kycFilter, roleFilter]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -224,6 +269,7 @@ export default function AdminDashboard() {
                 const params: any = {};
                 if (tierFilter) params.tier = tierFilter;
                 if (kycFilter) params.kycStatus = kycFilter;
+                if (roleFilter) params.role = roleFilter;
                 const res = await adminApi.getUsers(params);
                 setUsers(res.data);
             } else if (activeTab === 'payouts') {
@@ -616,6 +662,11 @@ export default function AdminDashboard() {
     /* ─── Tab Content ──────────────────────────────────────────────────────── */
 
     const renderContent = () => {
+        if (userRole === 'TUTOR' && activeTab !== 'learning' && activeTab !== 'mocks') {
+            setTimeout(() => setActiveTab('learning'), 0);
+            return null;
+        }
+
         if (loading) return <div className="flex-1 flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
 
         switch (activeTab) {
@@ -654,11 +705,31 @@ export default function AdminDashboard() {
                                                     <BookOpen size={24} className="text-indigo-600" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-xl font-bold text-zinc-900">{subject.name}</h3>
+                                                    <div className="flex items-center space-x-2">
+                                                        <h3 className="text-xl font-bold text-zinc-900">{subject.name}</h3>
+                                                        {subject.isApproved === false ? (
+                                                            <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-0.5 text-[10px] font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pending Approval</span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Live</span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-sm text-zinc-500">{subject.topics?.length || 0} Topics Available</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center space-x-2">
+                                                {userRole === 'ADMIN' && subject.isApproved === false && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm(`Approve Subject "${subject.name}"?`)) {
+                                                                await adminApi.approveSubject(subject.id);
+                                                                fetchData();
+                                                            }
+                                                        }}
+                                                        className="btn-secondary h-9 px-4 text-xs !bg-emerald-50 !text-emerald-700 !ring-emerald-200"
+                                                    >
+                                                        Approve Live
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => {
                                                         setMockAiForm({ ...mockAiForm, subjectId: subject.id, title: `AI Mock Exam for ${subject.name}` });
@@ -696,11 +767,31 @@ export default function AdminDashboard() {
                                                                     <Layers size={16} className="text-zinc-500" />
                                                                 </div>
                                                                 <div>
-                                                                    <h4 className="font-semibold text-zinc-900 text-sm">{topic.name}</h4>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <h4 className="font-semibold text-zinc-900 text-sm">{topic.name}</h4>
+                                                                        {topic.isApproved === false ? (
+                                                                            <span className="inline-flex items-center rounded-md bg-yellow-50 px-1.5 py-0.5 text-[9px] font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/10">Pending Approval</span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10">Live</span>
+                                                                        )}
+                                                                    </div>
                                                                     <p className="text-xs text-zinc-500">{topic.lessons?.length || 0} Levels (Lessons) included</p>
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center space-x-2">
+                                                                {userRole === 'ADMIN' && topic.isApproved === false && (
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (confirm(`Approve Topic "${topic.name}"?`)) {
+                                                                                await adminApi.approveTopic(topic.id);
+                                                                                fetchData();
+                                                                            }
+                                                                        }}
+                                                                        className="h-8 px-3 flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors ring-1 ring-emerald-200 text-[11px] font-bold uppercase tracking-wider"
+                                                                    >
+                                                                        Approve
+                                                                    </button>
+                                                                )}
                                                                 <button 
                                                                     onClick={() => handleCreateLesson(topic.id)}
                                                                     className="h-8 px-3 flex items-center justify-center rounded-lg bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-indigo-600 transition-colors ring-1 ring-zinc-200 text-[11px] font-bold uppercase tracking-wider"
@@ -745,8 +836,28 @@ export default function AdminDashboard() {
                                                             <div className="bg-zinc-50 px-4 py-3 space-y-2">
                                                                 {topic.lessons.map((lesson: any) => (
                                                                     <div key={lesson.id} className="flex items-center justify-between text-sm py-1 border-b border-zinc-200 last:border-0 hover:bg-zinc-100/50 px-2 rounded-md transition-colors">
-                                                                        <span className="text-zinc-700 font-medium">Lvl {lesson.order}: {lesson.name}</span>
+                                                                        <div className="flex items-center space-x-2">
+                                                                            <span className="text-zinc-700 font-medium">Lvl {lesson.order}: {lesson.name}</span>
+                                                                            {lesson.isApproved === false ? (
+                                                                                <span className="inline-flex items-center rounded-md bg-yellow-50 px-1.5 py-0.2 text-[9px] font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/10">Pending</span>
+                                                                            ) : (
+                                                                                <span className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.2 text-[9px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10">Live</span>
+                                                                            )}
+                                                                        </div>
                                                                         <div className="flex items-center space-x-3">
+                                                                            {userRole === 'ADMIN' && lesson.isApproved === false && (
+                                                                                <button
+                                                                                    onClick={async () => {
+                                                                                        if (confirm(`Approve Lesson "${lesson.name}"?`)) {
+                                                                                            await adminApi.approveLesson(lesson.id);
+                                                                                            fetchData();
+                                                                                        }
+                                                                                    }}
+                                                                                    className="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold uppercase tracking-wider px-2 py-1 rounded-md hover:bg-emerald-50 transition-colors"
+                                                                                >
+                                                                                    Approve
+                                                                                </button>
+                                                                            )}
                                                                             <button 
                                                                                 onClick={() => handleRegenerateLesson(lesson.id, lesson.name)}
                                                                                 className="text-[10px] text-purple-600 hover:text-purple-800 font-bold uppercase tracking-wider px-2 py-1 rounded-md hover:bg-purple-50 transition-colors flex items-center"
@@ -896,10 +1007,20 @@ export default function AdminDashboard() {
                     <div className="space-y-10">
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
-                                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Student Directory</h2>
-                                <p className="text-sm text-zinc-500 mt-1">Manage all platform users and their monetization levels.</p>
+                                <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Platform Directory</h2>
+                                <p className="text-sm text-zinc-500 mt-1">Manage platform users, tutors, and roles.</p>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 items-center">
+                                <select
+                                    value={roleFilter}
+                                    onChange={(e) => setRoleFilter(e.target.value)}
+                                    className="input-field w-32 h-10 py-0 text-xs font-medium cursor-pointer"
+                                >
+                                    <option value="">All Roles</option>
+                                    <option value="STUDENT">Students</option>
+                                    <option value="TUTOR">Tutors</option>
+                                    <option value="ADMIN">Admins</option>
+                                </select>
                                 <select
                                     value={tierFilter}
                                     onChange={(e) => setTierFilter(e.target.value)}
@@ -931,16 +1052,23 @@ export default function AdminDashboard() {
                                     <option value="FLAGGED">Flagged</option>
                                     <option value="HEALTHY">Healthy</option>
                                 </select>
-                                <div className="relative w-64">
+                                <div className="relative w-48">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
                                     <input
                                         type="text"
-                                        placeholder="Search by name or email..."
+                                        placeholder="Search..."
                                         className="input-field pl-10 h-10 py-0 text-xs"
                                         value={userSearch}
                                         onChange={(e) => setUserSearch(e.target.value)}
                                     />
                                 </div>
+                                <button
+                                    onClick={() => setIsTutorModalOpen(true)}
+                                    className="btn-primary h-10 px-4 text-xs flex items-center space-x-2"
+                                >
+                                    <Plus size={16} />
+                                    <span>Create Tutor</span>
+                                </button>
                             </div>
                         </div>
 
@@ -948,7 +1076,8 @@ export default function AdminDashboard() {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-zinc-50 border-b border-zinc-100">
                                     <tr>
-                                        <th className="px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Student</th>
+                                        <th className="px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">User / Tutor</th>
+                                        <th className="px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-center">Role</th>
                                         <th className="px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-center">Tier</th>
                                         <th className="px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-center">KYC Status</th>
                                         <th className="px-6 py-3 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-center">Status</th>
@@ -963,17 +1092,26 @@ export default function AdminDashboard() {
                                         .map((u: any) => (
                                             <tr key={u.id} className="hover:bg-zinc-50/50 transition-colors">
                                                 <td className="px-6 py-4">
-                                                    <div className="font-semibold text-zinc-900">{u.name || 'Setorial Student'}</div>
+                                                    <div className="font-semibold text-zinc-900">{u.name || 'Setorial User'}</div>
                                                     <div className="text-xs text-zinc-500">{u.email}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-center">{tierBadge(u.tier)}</td>
-                                                <td className="px-6 py-4 text-center">{kycBadge(u.kycStatus)}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {u.role === 'ADMIN' ? (
+                                                        <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-[10px] font-medium text-purple-700 ring-1 ring-inset ring-purple-600/10">ADMIN</span>
+                                                    ) : u.role === 'TUTOR' ? (
+                                                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-600/10">TUTOR</span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center rounded-md bg-zinc-50 px-2 py-1 text-[10px] font-medium text-zinc-600 ring-1 ring-inset ring-zinc-500/10">STUDENT</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">{u.role === 'STUDENT' ? tierBadge(u.tier) : '-'}</td>
+                                                <td className="px-6 py-4 text-center">{u.role === 'STUDENT' ? kycBadge(u.kycStatus) : '-'}</td>
                                                 <td className="px-6 py-4 text-center space-y-1">
                                                     {u.isFrozen && <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-[10px] font-medium text-red-700 ring-1 ring-inset ring-red-600/10">FROZEN</span>}
                                                     {u.isFlagged && <span className="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-[10px] font-medium text-orange-700 ring-1 ring-inset ring-orange-600/10">FLAGGED</span>}
                                                     {!u.isFrozen && !u.isFlagged && <span className="inline-flex items-center rounded-md bg-zinc-50 px-2 py-1 text-[10px] font-medium text-zinc-700 ring-1 ring-inset ring-zinc-500/10">HEALTHY</span>}
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-medium text-zinc-900">{(u.points ?? 0).toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-right font-medium text-zinc-900">{u.role === 'STUDENT' ? (u.points ?? 0).toLocaleString() : '-'}</td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex justify-end space-x-2">
                                                         <button
@@ -1249,11 +1387,31 @@ export default function AdminDashboard() {
                                             <Ticket size={24} className="text-amber-600" />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-zinc-900">{mock.title}</h4>
+                                            <div className="flex items-center space-x-2">
+                                                <h4 className="font-bold text-zinc-900">{mock.title}</h4>
+                                                {mock.isApproved === false ? (
+                                                    <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-0.5 text-[10px] font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pending Approval</span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Live</span>
+                                                )}
+                                            </div>
                                             <p className="text-sm text-zinc-500">{mock.durationMinutes} mins • ₦{Number(mock.price).toLocaleString()} • {mock._count?.questions ?? 0} Questions</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-3">
+                                        {userRole === 'ADMIN' && mock.isApproved === false && (
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm(`Approve Mock Exam "${mock.title}"?`)) {
+                                                        await adminApi.approveMock(mock.id);
+                                                        fetchData();
+                                                    }
+                                                }}
+                                                className="h-9 px-4 flex items-center justify-center rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors ring-1 ring-emerald-200 text-xs font-bold uppercase tracking-wider"
+                                            >
+                                                Approve
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => {
                                                 setEditingMock(mock);
@@ -1511,18 +1669,26 @@ export default function AdminDashboard() {
                 </div>
 
                 <nav className="flex-1 space-y-1">
-                    <SidebarItem icon={LayoutDashboard} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-                    <SidebarItem icon={ShieldCheck} label="KYC Review" active={activeTab === 'kyc'} onClick={() => setActiveTab('kyc')} badge={stats?.pendingKycCount} />
-                    <SidebarItem icon={Users} label="Students" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+                    {userRole !== 'TUTOR' && (
+                        <>
+                            <SidebarItem icon={LayoutDashboard} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
+                            <SidebarItem icon={ShieldCheck} label="KYC Review" active={activeTab === 'kyc'} onClick={() => setActiveTab('kyc')} badge={stats?.pendingKycCount} />
+                            <SidebarItem icon={Users} label="Students" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
+                        </>
+                    )}
                     <SidebarItem icon={BookOpen} label="Learning" active={activeTab === 'learning'} onClick={() => setActiveTab('learning')} />
                     <SidebarItem icon={Ticket} label="Mock Exams" active={activeTab === 'mocks'} onClick={() => setActiveTab('mocks')} />
-                    <SidebarItem icon={Percent} label="Discounts" active={activeTab === 'discounts'} onClick={() => setActiveTab('discounts')} />
-                    <SidebarItem icon={Bell} label="Notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
-                    <SidebarItem icon={Globe} label="Geo-Pricing" active={activeTab === 'pricing'} onClick={() => setActiveTab('pricing')} />
-                    <SidebarItem icon={Map} label="Region Pools" active={activeTab === 'regions'} onClick={() => setActiveTab('regions')} />
-                    <SidebarItem icon={CreditCard} label="Payouts" active={activeTab === 'payouts'} onClick={() => setActiveTab('payouts')} />
-                    <SidebarItem icon={RefreshCcw} label="Config" active={activeTab === 'configs'} onClick={() => setActiveTab('configs')} />
-                    <SidebarItem icon={LifeBuoy} label="Support" active={activeTab === 'support'} onClick={() => setActiveTab('support')} badge={supportMessages.filter((m: any) => m.status === 'OPEN').length} />
+                    {userRole !== 'TUTOR' && (
+                        <>
+                            <SidebarItem icon={Percent} label="Discounts" active={activeTab === 'discounts'} onClick={() => setActiveTab('discounts')} />
+                            <SidebarItem icon={Bell} label="Notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
+                            <SidebarItem icon={Globe} label="Geo-Pricing" active={activeTab === 'pricing'} onClick={() => setActiveTab('pricing')} />
+                            <SidebarItem icon={Map} label="Region Pools" active={activeTab === 'regions'} onClick={() => setActiveTab('regions')} />
+                            <SidebarItem icon={CreditCard} label="Payouts" active={activeTab === 'payouts'} onClick={() => setActiveTab('payouts')} />
+                            <SidebarItem icon={RefreshCcw} label="Config" active={activeTab === 'configs'} onClick={() => setActiveTab('configs')} />
+                            <SidebarItem icon={LifeBuoy} label="Support" active={activeTab === 'support'} onClick={() => setActiveTab('support')} badge={supportMessages.filter((m: any) => m.status === 'OPEN').length} />
+                        </>
+                    )}
                 </nav>
 
                 <button onClick={() => { localStorage.removeItem('admin_token'); window.location.reload(); }} className="mt-auto w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all">
@@ -1946,6 +2112,70 @@ export default function AdminDashboard() {
                                 <button type="button" onClick={() => setIsMockModalOpen(false)} className="btn-secondary h-12 px-8 text-sm font-bold uppercase tracking-widest">Cancel</button>
                                 <button type="submit" className="btn-primary h-12 px-12 text-sm font-bold uppercase tracking-[0.2em] shadow-xl shadow-zinc-900/10" disabled={loading}>
                                     {loading ? 'Saving...' : 'Publish Mock Exam'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {isTutorModalOpen && (
+                <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150">
+                        <div className="px-8 py-6 border-b border-zinc-100 bg-zinc-50/50">
+                            <h3 className="text-lg font-bold text-zinc-900">Create Tutor Account</h3>
+                            <p className="text-xs text-zinc-500 mt-1">Specify tutor profile information. They will be registered directly with full syllabus creation permissions.</p>
+                        </div>
+                        <form onSubmit={handleSaveTutor} className="p-8 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Full Name</label>
+                                <input
+                                    type="text"
+                                    className="input-field h-12"
+                                    value={tutorForm.name}
+                                    onChange={(e) => setTutorForm({ ...tutorForm, name: e.target.value })}
+                                    placeholder="e.g. Dr. John Doe"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Email Address</label>
+                                <input
+                                    type="email"
+                                    className="input-field h-12"
+                                    value={tutorForm.email}
+                                    onChange={(e) => setTutorForm({ ...tutorForm, email: e.target.value })}
+                                    placeholder="tutor@setorial.com"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Password</label>
+                                <input
+                                    type="password"
+                                    className="input-field h-12"
+                                    value={tutorForm.password}
+                                    onChange={(e) => setTutorForm({ ...tutorForm, password: e.target.value })}
+                                    placeholder="••••••••"
+                                    required
+                                />
+                            </div>
+                            <div className="pt-4 flex justify-end space-x-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsTutorModalOpen(false);
+                                        setTutorForm({ name: '', email: '', password: '' });
+                                    }}
+                                    className="btn-secondary h-10 px-4 text-xs font-bold uppercase"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn-primary h-10 px-6 text-xs font-bold uppercase tracking-wider"
+                                >
+                                    Create Account
                                 </button>
                             </div>
                         </form>

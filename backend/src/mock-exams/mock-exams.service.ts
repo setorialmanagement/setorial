@@ -11,23 +11,29 @@ export class MockExamsService {
         private gamificationService: GamificationService
     ) { }
 
-    async getAvailableMocks(userId: string) {
+    async getAvailableMocks(userId: string, role?: string) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         const isPremium = user && (user.tier === 'SILVER' || user.tier === 'GOLD');
 
+        const isStaff = role === 'ADMIN' || role === 'TUTOR';
+        const whereClause = isStaff ? {} : { isActive: true, isApproved: true };
+
         const mocks = await this.prisma.mockExam.findMany({
-            where: { isActive: true },
+            where: whereClause,
             select: {
                 id: true,
                 title: true,
                 description: true,
                 durationMinutes: true,
                 price: true,
-                _count: { select: { questions: true } }
+                isActive: true,
+                isApproved: true,
+                _count: { select: { questions: true } },
+                ...(isStaff && { questions: true })
             }
         });
 
-        if (isPremium) {
+        if (!isStaff && isPremium) {
             return mocks.map(m => ({ ...m, price: 0 }));
         }
 

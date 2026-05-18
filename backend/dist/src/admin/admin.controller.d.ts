@@ -31,8 +31,8 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.PayoutStatus;
             region: string | null;
+            status: import("@prisma/client").$Enums.PayoutStatus;
             exchangeRate: number | null;
             month: string;
             totalLiability: import("@prisma/client-runtime-utils").Decimal;
@@ -60,15 +60,25 @@ export declare class AdminController {
         userId: string;
         reason: string;
     }>;
-    getAllUsers(tier?: string, kycStatus?: string): Promise<{
+    getAllUsers(tier?: string, kycStatus?: string, role?: string): Promise<{
         id: string;
         name: string | null;
         createdAt: Date;
         email: string;
+        role: import("@prisma/client").$Enums.Role;
         tier: import("@prisma/client").$Enums.Tier;
         isVerified: boolean;
         kycStatus: import("@prisma/client").$Enums.KycStatus;
+        isFrozen: boolean;
+        isFlagged: boolean;
     }[]>;
+    createTutor(data: any): Promise<{
+        id: string;
+        name: string | null;
+        createdAt: Date;
+        email: string;
+        role: import("@prisma/client").$Enums.Role;
+    }>;
     freezeUser(userId: string, isFrozen: boolean): Promise<{
         id: string;
         email: string;
@@ -135,8 +145,8 @@ export declare class AdminController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        status: import("@prisma/client").$Enums.PayoutStatus;
         region: string | null;
+        status: import("@prisma/client").$Enums.PayoutStatus;
         exchangeRate: number | null;
         month: string;
         totalLiability: import("@prisma/client-runtime-utils").Decimal;
@@ -179,7 +189,7 @@ export declare class AdminController {
             simulatedPayouts: any;
         }[];
     }>;
-    createMock(data: any): Promise<{
+    createMock(data: any, req: any): Promise<{
         questions: {
             id: string;
             createdAt: Date;
@@ -189,9 +199,11 @@ export declare class AdminController {
             options: import("@prisma/client/runtime/client").JsonValue;
             text: string;
             correctOption: number;
+            explanation: string | null;
         }[];
     } & {
         id: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
@@ -200,8 +212,21 @@ export declare class AdminController {
         title: string;
         durationMinutes: number;
     }>;
-    deleteMock(id: string): Promise<{
+    legacyUpdateMock(id: string, data: any, req: any): Promise<{
+        questions: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            mockExamId: string | null;
+            lessonId: string | null;
+            options: import("@prisma/client/runtime/client").JsonValue;
+            text: string;
+            correctOption: number;
+            explanation: string | null;
+        }[];
+    } & {
         id: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
@@ -209,6 +234,106 @@ export declare class AdminController {
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
+    }>;
+    getMock(id: string): Promise<({
+        questions: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            mockExamId: string | null;
+            lessonId: string | null;
+            options: import("@prisma/client/runtime/client").JsonValue;
+            text: string;
+            correctOption: number;
+            explanation: string | null;
+        }[];
+    } & {
+        id: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        description: string | null;
+        price: import("@prisma/client-runtime-utils").Decimal;
+        title: string;
+        durationMinutes: number;
+    }) | null>;
+    deleteMock(id: string): Promise<{
+        id: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        description: string | null;
+        price: import("@prisma/client-runtime-utils").Decimal;
+        title: string;
+        durationMinutes: number;
+    }>;
+    patchMock(id: string, data: any, req: any): Promise<{
+        questions: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            mockExamId: string | null;
+            lessonId: string | null;
+            options: import("@prisma/client/runtime/client").JsonValue;
+            text: string;
+            correctOption: number;
+            explanation: string | null;
+        }[];
+    } & {
+        id: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        description: string | null;
+        price: import("@prisma/client-runtime-utils").Decimal;
+        title: string;
+        durationMinutes: number;
+    }>;
+    approveMock(id: string): Promise<{
+        id: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        isActive: boolean;
+        description: string | null;
+        price: import("@prisma/client-runtime-utils").Decimal;
+        title: string;
+        durationMinutes: number;
+    }>;
+    getSupportMessages(): Promise<({
+        user: {
+            name: string | null;
+            email: string;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        subject: string;
+        userId: string;
+        status: import("@prisma/client").$Enums.SupportStatus;
+        message: string;
+        adminReply: string | null;
+        repliedAt: Date | null;
+        repliedBy: string | null;
+    })[]>;
+    replyToSupport(id: string, data: {
+        reply: string;
+        adminName: string;
+    }): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        subject: string;
+        userId: string;
+        status: import("@prisma/client").$Enums.SupportStatus;
+        message: string;
+        adminReply: string | null;
+        repliedAt: Date | null;
+        repliedBy: string | null;
     }>;
     sendNotification(data: {
         userId?: string;

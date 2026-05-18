@@ -9,21 +9,32 @@ export declare class LearningService {
     private storeService;
     private uploadService;
     constructor(prisma: PrismaService, gamificationService: GamificationService, storeService: StoreService, uploadService: UploadService);
-    createSubject(dto: CreateSubjectDto): Promise<{
+    createSubject(dto: CreateSubjectDto, user?: any): Promise<{
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
     deleteSubject(id: string): Promise<{
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
-    createTopic(dto: CreateTopicDto): Promise<{
+    createTopic(dto: CreateTopicDto, user?: any): Promise<{
         id: string;
         name: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        subjectId: string;
+    }>;
+    updateTopic(id: string, data: any, user?: any): Promise<{
+        id: string;
+        name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         subjectId: string;
@@ -31,11 +42,12 @@ export declare class LearningService {
     deleteTopic(id: string): Promise<{
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         subjectId: string;
     }>;
-    createLesson(dto: CreateLessonDto): Promise<{
+    createLesson(dto: CreateLessonDto, user?: any): Promise<{
         questions: {
             id: string;
             createdAt: Date;
@@ -45,10 +57,12 @@ export declare class LearningService {
             options: import("@prisma/client/runtime/client").JsonValue;
             text: string;
             correctOption: number;
+            explanation: string | null;
         }[];
     } & {
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         content: string | null;
@@ -57,7 +71,7 @@ export declare class LearningService {
         rewardPoints: number;
         topicId: string;
     }>;
-    updateLesson(id: string, dto: Partial<CreateLessonDto>): Promise<{
+    updateLesson(id: string, dto: Partial<CreateLessonDto>, user?: any): Promise<{
         questions: {
             id: string;
             createdAt: Date;
@@ -67,10 +81,12 @@ export declare class LearningService {
             options: import("@prisma/client/runtime/client").JsonValue;
             text: string;
             correctOption: number;
+            explanation: string | null;
         }[];
     } & {
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         content: string | null;
@@ -79,11 +95,12 @@ export declare class LearningService {
         rewardPoints: number;
         topicId: string;
     }>;
-    getSubjects(): Promise<({
+    getSubjects(role?: string): Promise<({
         topics: ({
             lessons: {
                 id: string;
                 name: string;
+                isApproved: boolean;
                 createdAt: Date;
                 updatedAt: Date;
                 content: string | null;
@@ -95,6 +112,7 @@ export declare class LearningService {
         } & {
             id: string;
             name: string;
+            isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
             subjectId: string;
@@ -102,10 +120,11 @@ export declare class LearningService {
     } & {
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
     })[]>;
-    getSubjectPathway(id: string, userId: string): Promise<{
+    getSubjectPathway(id: string, userId: string, role?: string): Promise<{
         topics: {
             lessons: {
                 status: string;
@@ -115,6 +134,7 @@ export declare class LearningService {
                 };
                 id: string;
                 name: string;
+                isApproved: boolean;
                 createdAt: Date;
                 updatedAt: Date;
                 content: string | null;
@@ -125,17 +145,19 @@ export declare class LearningService {
             }[];
             id: string;
             name: string;
+            isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
             subjectId: string;
         }[];
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;
-    getLesson(id: string): Promise<any>;
-    updateLessonWithVideo(id: string, dto: any, video?: Express.Multer.File): Promise<{
+    getLesson(id: string, role?: string): Promise<any>;
+    updateLessonWithVideo(id: string, dto: any, user?: any, video?: Express.Multer.File): Promise<{
         questions: {
             id: string;
             createdAt: Date;
@@ -145,10 +167,12 @@ export declare class LearningService {
             options: import("@prisma/client/runtime/client").JsonValue;
             text: string;
             correctOption: number;
+            explanation: string | null;
         }[];
     } & {
         id: string;
         name: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         content: string | null;
@@ -164,5 +188,46 @@ export declare class LearningService {
         pointsEarned: number;
         passed: boolean;
         isFirstCompletion: boolean;
+    }>;
+    searchSubjects(query: string): Promise<({
+        topics: {
+            name: string;
+            lessons: {
+                name: string;
+            }[];
+        }[];
+    } & {
+        id: string;
+        name: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    })[]>;
+    approveSubject(id: string): Promise<{
+        id: string;
+        name: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    approveTopic(id: string): Promise<{
+        id: string;
+        name: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        subjectId: string;
+    }>;
+    approveLesson(id: string): Promise<{
+        id: string;
+        name: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        content: string | null;
+        videoUrl: string | null;
+        order: number;
+        rewardPoints: number;
+        topicId: string;
     }>;
 }

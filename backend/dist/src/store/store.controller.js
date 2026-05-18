@@ -27,8 +27,11 @@ let StoreController = class StoreController {
     getMyPowerUps(req) {
         return this.storeService.getMyPowerUps(req.user.userId);
     }
-    purchasePowerUp(req, type) {
-        return this.storeService.purchasePowerUp(req.user.userId, type);
+    initializePurchase(req, type) {
+        return this.storeService.initializePurchase(req.user.userId, type);
+    }
+    verifyPurchase(reference) {
+        return this.storeService.verifyPurchase(reference);
     }
 };
 exports.StoreController = StoreController;
@@ -52,7 +55,14 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
-], StoreController.prototype, "purchasePowerUp", null);
+], StoreController.prototype, "initializePurchase", null);
+__decorate([
+    (0, common_1.Get)('verify/:reference'),
+    __param(0, (0, common_1.Param)('reference')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], StoreController.prototype, "verifyPurchase", null);
 exports.StoreController = StoreController = __decorate([
     (0, common_1.Controller)('store'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

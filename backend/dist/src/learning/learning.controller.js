@@ -14,7 +14,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LearningController = void 0;
 const common_1 = require("@nestjs/common");
-const cache_manager_1 = require("@nestjs/cache-manager");
 const learning_service_1 = require("./learning.service");
 const ai_content_service_1 = require("./ai-content.service");
 const learning_dto_1 = require("./dto/learning.dto");
@@ -30,76 +29,116 @@ let LearningController = class LearningController {
         this.learningService = learningService;
         this.aiContentService = aiContentService;
     }
-    async generateAiLevels(dto) {
-        return this.aiContentService.generateLevelsForTopic(dto.subjectId, dto.topicName, dto.numLevels);
+    async generateAiLevels(dto, req) {
+        return this.aiContentService.generateLevelsForTopic(dto.subjectId, dto.topicName, dto.numLevels, req.user.role);
     }
-    async generateAiMock(dto) {
-        return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions);
+    async generateFullSubject(dto, req) {
+        return this.aiContentService.queueFullSyllabusGeneration(dto.subjectId, dto.numTopics, req.user.role);
     }
-    async regenerateLesson(id) {
-        return this.aiContentService.regenerateLesson(id);
+    async generateAiMock(dto, req) {
+        return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions, req.user.role);
     }
-    async createSubject(dto) {
-        return this.learningService.createSubject(dto);
+    async regenerateLesson(id, req) {
+        return this.aiContentService.regenerateLesson(id, req.user.role);
+    }
+    async createSubject(dto, req) {
+        return this.learningService.createSubject(dto, req.user);
     }
     async deleteSubject(id) {
         return this.learningService.deleteSubject(id);
     }
-    async getSubjects() {
-        return this.learningService.getSubjects();
+    async createTopic(dto, req) {
+        return this.learningService.createTopic(dto, req.user);
+    }
+    async updateTopic(id, dto) {
+        return this.learningService.updateTopic(id, dto);
+    }
+    async deleteTopic(id) {
+        return this.learningService.deleteTopic(id);
+    }
+    async search(query) {
+        return this.learningService.searchSubjects(query);
+    }
+    async getSubjects(req) {
+        return this.learningService.getSubjects(req.user.role);
     }
     async getSubject(id, req) {
-        return this.learningService.getSubjectPathway(id, req.user.userId);
+        return this.learningService.getSubjectPathway(id, req.user.userId, req.user.role);
     }
-    async getLesson(id) {
-        return this.learningService.getLesson(id);
+    async getLesson(id, req) {
+        return this.learningService.getLesson(id, req.user.role);
+    }
+    async createLesson(dto, req) {
+        return this.learningService.createLesson(dto, req.user);
     }
     async submitLesson(req, dto) {
         return this.learningService.submitLesson(req.user.userId, dto);
     }
-    async updateLesson(id, dto, video) {
+    async updateLesson(id, dto, req, video) {
         const updateData = { ...dto };
         if (typeof updateData.questions === 'string') {
             updateData.questions = JSON.parse(updateData.questions);
         }
-        return this.learningService.updateLessonWithVideo(id, updateData, video);
+        return this.learningService.updateLessonWithVideo(id, updateData, req.user, video);
+    }
+    async approveSubject(id) {
+        return this.learningService.approveSubject(id);
+    }
+    async approveTopic(id) {
+        return this.learningService.approveTopic(id);
+    }
+    async approveLesson(id) {
+        return this.learningService.approveLesson(id);
     }
 };
 exports.LearningController = LearningController;
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
     (0, common_1.Post)('ai/generate-levels'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [learning_dto_1.GenerateAiLevelsDto]),
+    __metadata("design:paramtypes", [learning_dto_1.GenerateAiLevelsDto, Object]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "generateAiLevels", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, common_1.Post)('ai/generate-full-subject'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "generateFullSubject", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
     (0, common_1.Post)('ai/generate-mock'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "generateAiMock", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
     (0, common_1.Post)('lessons/:id/regenerate'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "regenerateLesson", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
     (0, common_1.Post)('subjects'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [learning_dto_1.CreateSubjectDto]),
+    __metadata("design:paramtypes", [learning_dto_1.CreateSubjectDto, Object]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "createSubject", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
     (0, common_1.Delete)('subjects/:id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -107,9 +146,43 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "deleteSubject", null);
 __decorate([
-    (0, common_1.Get)('subjects'),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, common_1.Post)('topics'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [learning_dto_1.CreateTopicDto, Object]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "createTopic", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, common_1.Post)('topics/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "updateTopic", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, common_1.Delete)('topics/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "deleteTopic", null);
+__decorate([
+    (0, common_1.Get)('search'),
+    __param(0, (0, common_1.Query)('q')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "search", null);
+__decorate([
+    (0, common_1.Get)('subjects'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "getSubjects", null);
 __decorate([
@@ -123,10 +196,20 @@ __decorate([
 __decorate([
     (0, common_1.Get)('lessons/:id'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "getLesson", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, common_1.Post)('lessons'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [learning_dto_1.CreateLessonDto, Object]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "createLesson", null);
 __decorate([
     (0, common_1.Post)('lessons/submit'),
     __param(0, (0, common_1.Request)()),
@@ -136,20 +219,44 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "submitLesson", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
     (0, common_1.Post)('lessons/:id'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('video')),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.UploadedFile)()),
+    __param(2, (0, common_1.Request)()),
+    __param(3, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "updateLesson", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, common_1.Post)('subjects/:id/approve'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "approveSubject", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, common_1.Post)('topics/:id/approve'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "approveTopic", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    (0, common_1.Post)('lessons/:id/approve'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "approveLesson", null);
 exports.LearningController = LearningController = __decorate([
     (0, common_1.Controller)('learning'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, common_1.UseInterceptors)(cache_manager_1.CacheInterceptor),
     __metadata("design:paramtypes", [learning_service_1.LearningService,
         ai_content_service_1.AiContentService])
 ], LearningController);

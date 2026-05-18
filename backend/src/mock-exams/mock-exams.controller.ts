@@ -10,7 +10,7 @@ export class MockExamsController {
 
     @Get()
     getAvailableMocks(@Request() req: any) {
-        return this.mockService.getAvailableMocks(req.user.userId);
+        return this.mockService.getAvailableMocks(req.user.userId, req.user.role);
     }
 
     @Get(':id')

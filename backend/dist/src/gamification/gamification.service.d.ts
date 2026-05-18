@@ -28,5 +28,10 @@ export declare class GamificationService implements OnModuleDestroy, OnModuleIni
         icon: string;
         color: string;
     }[]>;
-    getLeaderboard(limit?: number, subjectId?: string): Promise<string[]>;
+    getLeaderboard(limit?: number, subjectId?: string): Promise<{
+        id: string;
+        points: any;
+        name: string;
+        avatarUrl: string | null;
+    }[]>;
 }

@@ -9,6 +9,7 @@ datasource db {
 enum Role {
   STUDENT
   ADMIN
+  TUTOR
 }
 
 enum Tier {
@@ -106,21 +107,23 @@ model UserBadge {
 }
 
 model Subject {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  topics    Topic[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String   @unique
+  topics     Topic[]
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Topic {
-  id        String   @id @default(uuid())
-  name      String
-  subjectId String
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  lessons   Lesson[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String
+  subjectId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  lessons    Lesson[]
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([subjectId])
 }
@@ -136,6 +139,7 @@ model Lesson {
   topic        Topic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
   questions    Question[]
   userProgress UserProgress[]
+  isApproved   Boolean        @default(true)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -181,6 +185,7 @@ model MockExam {
   durationMinutes Int
   price           Decimal       @default(100.0) // NGN
   isActive        Boolean       @default(true)
+  isApproved      Boolean       @default(true)
   questions       Question[]
   attempts        MockAttempt[]
   createdAt       DateTime      @default(now())

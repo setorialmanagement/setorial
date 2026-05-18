@@ -12,15 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StoreService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
-const wallet_service_1 = require("../wallet/wallet.service");
 const gamification_service_1 = require("../gamification/gamification.service");
 let StoreService = class StoreService {
     prisma;
-    wallet;
     gamification;
-    constructor(prisma, wallet, gamification) {
+    constructor(prisma, gamification) {
         this.prisma = prisma;
-        this.wallet = wallet;
         this.gamification = gamification;
     }
     async seedPowerUps() {
@@ -54,33 +51,79 @@ let StoreService = class StoreService {
         await this.seedPowerUps();
         return this.prisma.powerUp.findMany();
     }
-    async purchasePowerUp(userId, powerUpType) {
+    async initializePurchase(userId, powerUpType) {
         await this.seedPowerUps();
+        const secret = process.env.PAYSTACK_SECRET_KEY;
+        if (!secret)
+            throw new common_1.BadRequestException('Paystack not configured');
         const powerUp = await this.prisma.powerUp.findUnique({
             where: { type: powerUpType },
         });
         if (!powerUp)
             throw new common_1.NotFoundException('Power-up not found');
-        const price = Number(powerUp.price);
-        const success = await this.wallet.deductBalance(userId, price, `Power-up: ${powerUp.name}`);
-        if (!success) {
-            throw new common_1.BadRequestException('Insufficient wallet balance');
-        }
-        const expiresAt = powerUp.durationDays
-            ? new Date(Date.now() + powerUp.durationDays * 24 * 60 * 60 * 1000)
-            : null;
-        const userPowerUp = await this.prisma.userPowerUp.create({
-            data: {
-                userId,
-                powerUpId: powerUp.id,
-                expiresAt,
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new common_1.BadRequestException('User not found');
+        const amount = Math.round(Number(powerUp.price) * 100);
+        const response = await fetch('https://api.paystack.co/transaction/initialize', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${secret}`,
+                'Content-Type': 'application/json',
             },
-            include: { powerUp: true },
+            body: JSON.stringify({
+                email: user.email,
+                amount,
+                metadata: {
+                    userId: user.id,
+                    powerUpType: powerUp.type,
+                    purchaseType: 'POWERUP',
+                },
+                callback_url: `setorial://payment-callback`,
+            }),
         });
-        if (powerUp.type === 'STREAK_FREEZE') {
-            await this.gamification.applyStreakFreeze(userId);
+        const data = await response.json();
+        if (!data.status)
+            throw new common_1.BadRequestException(data.message || 'Payment initialization failed');
+        return {
+            authorization_url: data.data.authorization_url,
+            access_code: data.data.access_code,
+            reference: data.data.reference,
+        };
+    }
+    async verifyPurchase(reference) {
+        const secret = process.env.PAYSTACK_SECRET_KEY;
+        if (!secret)
+            throw new common_1.BadRequestException('Paystack not configured');
+        const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+            headers: { 'Authorization': `Bearer ${secret}` },
+        });
+        const data = await response.json();
+        if (!data.status || data.data.status !== 'success') {
+            return { status: 'failed', message: 'Payment not verified' };
         }
-        return userPowerUp;
+        const metadata = data.data.metadata;
+        if (metadata?.purchaseType === 'POWERUP' && metadata?.userId && metadata?.powerUpType) {
+            const powerUp = await this.prisma.powerUp.findUnique({
+                where: { type: metadata.powerUpType },
+            });
+            if (powerUp) {
+                const expiresAt = powerUp.durationDays
+                    ? new Date(Date.now() + powerUp.durationDays * 24 * 60 * 60 * 1000)
+                    : null;
+                await this.prisma.userPowerUp.create({
+                    data: {
+                        userId: metadata.userId,
+                        powerUpId: powerUp.id,
+                        expiresAt,
+                    },
+                });
+                if (powerUp.type === 'STREAK_FREEZE') {
+                    await this.gamification.applyStreakFreeze(metadata.userId);
+                }
+            }
+        }
+        return { status: 'success', powerUpType: metadata?.powerUpType };
     }
     async getMyPowerUps(userId) {
         return this.prisma.userPowerUp.findMany({
@@ -112,7 +155,6 @@ exports.StoreService = StoreService;
 exports.StoreService = StoreService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        wallet_service_1.WalletService,
         gamification_service_1.GamificationService])
 ], StoreService);
 //# sourceMappingURL=store.service.js.map

@@ -34,6 +34,7 @@ export const adminApi = {
     getUsers: (params: any) => api.get('/admin/users', { params }),
     freezeUser: (id: string, isFrozen: boolean) => api.post(`/admin/users/${id}/freeze`, { isFrozen }),
     flagUser: (id: string, isFlagged: boolean) => api.post(`/admin/users/${id}/flag`, { isFlagged }),
+    createTutor: (data: any) => api.post('/admin/users/tutor', data),
     // Payouts
     getPayoutBatches: () => api.get('/admin/payout-batches'),
     triggerPayout: (month: string, revenue: number) =>
@@ -93,6 +94,12 @@ export const adminApi = {
         api.post('/admin/notifications/send', data),
     sendEmailBroadcast: (data: { subject: string, body: string }) => 
         api.post('/admin/notifications/email', data),
+
+    // Approvals
+    approveSubject: (id: string) => api.post(`/learning/subjects/${id}/approve`),
+    approveTopic: (id: string) => api.post(`/learning/topics/${id}/approve`),
+    approveLesson: (id: string) => api.post(`/learning/lessons/${id}/approve`),
+    approveMock: (id: string) => api.post(`/admin/mocks/${id}/approve`),
 };
 
 export default api;

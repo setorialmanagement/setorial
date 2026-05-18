@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Query, UseGuards, ParseFloatPipe, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, UseGuards, ParseFloatPipe, Body, Request, BadRequestException } from '@nestjs/common';
 import { PayoutsService } from '../payouts/payouts.service';
 import { PrismaService } from '../prisma.service';
 import { MockExamsService } from '../mock-exams/mock-exams.service';
@@ -6,6 +6,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -172,14 +174,50 @@ export class AdminController {
     async getAllUsers(
         @Query('tier') tier?: string,
         @Query('kycStatus') kycStatus?: string,
+        @Query('role') role?: string,
     ) {
-        const where: any = { role: 'STUDENT' };
+        const where: any = {};
+        if (role) {
+            where.role = role.toUpperCase() as any;
+        } else {
+            where.role = { in: ['STUDENT', 'TUTOR'] };
+        }
         if (tier) where.tier = tier.toUpperCase();
         if (kycStatus) where.kycStatus = kycStatus.toUpperCase();
         return this.prisma.user.findMany({
             where,
-            select: { id: true, name: true, email: true, tier: true, kycStatus: true, isVerified: true, createdAt: true },
+            select: { id: true, name: true, email: true, tier: true, kycStatus: true, isVerified: true, role: true, isFrozen: true, isFlagged: true, createdAt: true },
             orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    @Post('users/tutor')
+    async createTutor(@Body() data: any) {
+        const { email, password, name } = data;
+        if (!email || !password || !name) {
+            throw new BadRequestException('Missing required fields: email, password, name');
+        }
+        const existing = await this.prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            throw new BadRequestException('Email already in use');
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        return this.prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                name,
+                role: 'TUTOR',
+                isEmailVerified: true,
+                kycStatus: 'APPROVED'
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                createdAt: true
+            }
         });
     }
 
@@ -265,8 +303,10 @@ export class AdminController {
 
     // ─── Mock Exams (Admin) ─────────────────────────────────────────────────
 
+    @Roles(Role.ADMIN, Role.TUTOR)
     @Post('mocks')
-    async createMock(@Body() data: any) {
+    async createMock(@Body() data: any, @Request() req: any) {
+        const isApproved = req.user.role === 'TUTOR' ? false : true;
         // Simple creation via prisma for now, expects questions array
         return this.prisma.mockExam.create({
             data: {
@@ -275,6 +315,7 @@ export class AdminController {
                 durationMinutes: data.durationMinutes,
                 price: data.price,
                 isActive: data.isActive ?? true,
+                isApproved,
                 questions: {
                     create: data.questions.map((q: any) => ({
                         text: q.text,
@@ -288,11 +329,13 @@ export class AdminController {
         });
     }
 
+    @Roles(Role.ADMIN, Role.TUTOR)
     @Post('mocks/:id') // Using POST for some older axios setups, but PATCH is better
-    async legacyUpdateMock(@Param('id') id: string, @Body() data: any) {
-        return this.patchMock(id, data);
+    async legacyUpdateMock(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+        return this.patchMock(id, data, req);
     }
 
+    @Roles(Role.ADMIN, Role.TUTOR)
     @Get('mocks/:id')
     async getMock(@Param('id') id: string) {
         return this.prisma.mockExam.findUnique({
@@ -301,14 +344,17 @@ export class AdminController {
         });
     }
 
+    @Roles(Role.ADMIN, Role.TUTOR)
     @Delete('mocks/:id')
     async deleteMock(@Param('id') id: string) {
         // Delete questions first if necessary, but schema has onDelete: Cascade
         return this.prisma.mockExam.delete({ where: { id } });
     }
 
+    @Roles(Role.ADMIN, Role.TUTOR)
     @Patch('mocks/:id')
-    async patchMock(@Param('id') id: string, @Body() data: any) {
+    async patchMock(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+        const isApproved = req.user.role === 'TUTOR' ? false : true;
         // Delete existing questions and recreate
         await this.prisma.question.deleteMany({ where: { mockExamId: id } });
         
@@ -320,6 +366,7 @@ export class AdminController {
                 durationMinutes: data.durationMinutes,
                 price: data.price,
                 isActive: data.isActive ?? true,
+                isApproved,
                 questions: {
                     create: data.questions.map((q: any) => ({
                         text: q.text,
@@ -330,6 +377,15 @@ export class AdminController {
                 },
             },
             include: { questions: true },
+        });
+    }
+
+    @Roles(Role.ADMIN)
+    @Post('mocks/:id/approve')
+    async approveMock(@Param('id') id: string) {
+        return this.prisma.mockExam.update({
+            where: { id },
+            data: { isApproved: true }
         });
     }
 

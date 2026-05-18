@@ -16,10 +16,10 @@ export class AiContentProcessor extends WorkerHost {
 
         switch (job.name) {
             case 'generate-full-subject':
-                const { subjectId, numTopics } = job.data;
+                const { subjectId, numTopics, userRole } = job.data;
                 this.logger.log(`Wormhole Active: Building syllabus for subject ${subjectId} (${numTopics} topics)`);
                 try {
-                    const result = await this.aiService.generateFullSyllabus(subjectId, numTopics);
+                    const result = await this.aiService.generateFullSyllabus(subjectId, numTopics, userRole);
                     this.logger.log(`Wormhole Complete: Syllabus created for subject ${subjectId}`);
                     return result;
                 } catch (err) {

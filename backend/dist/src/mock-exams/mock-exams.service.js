@@ -23,18 +23,29 @@ let MockExamsService = class MockExamsService {
         this.walletService = walletService;
         this.gamificationService = gamificationService;
     }
-    async getAvailableMocks() {
-        return this.prisma.mockExam.findMany({
-            where: { isActive: true },
+    async getAvailableMocks(userId, role) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        const isPremium = user && (user.tier === 'SILVER' || user.tier === 'GOLD');
+        const isStaff = role === 'ADMIN' || role === 'TUTOR';
+        const whereClause = isStaff ? {} : { isActive: true, isApproved: true };
+        const mocks = await this.prisma.mockExam.findMany({
+            where: whereClause,
             select: {
                 id: true,
                 title: true,
                 description: true,
                 durationMinutes: true,
                 price: true,
-                _count: { select: { questions: true } }
+                isActive: true,
+                isApproved: true,
+                _count: { select: { questions: true } },
+                ...(isStaff && { questions: true })
             }
         });
+        if (!isStaff && isPremium) {
+            return mocks.map(m => ({ ...m, price: 0 }));
+        }
+        return mocks;
     }
     async getMockDetails(mockId) {
         return this.prisma.mockExam.findUnique({
@@ -52,7 +63,12 @@ let MockExamsService = class MockExamsService {
         if (existingAttempt) {
             return { attemptId: existingAttempt.id, resumed: true };
         }
-        const price = Number(mock.price);
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        const isPremium = user && (user.tier === 'SILVER' || user.tier === 'GOLD');
+        let price = Number(mock.price);
+        if (isPremium) {
+            price = 0;
+        }
         if (price > 0) {
             const hasSufficientBalance = await this.walletService.deductBalance(userId, price, 'Mock Exam Access');
             if (!hasSufficientBalance) {
@@ -105,7 +121,14 @@ let MockExamsService = class MockExamsService {
         if (pointsEarned > 0) {
             await this.gamificationService.awardPoints(userId, pointsEarned, 'Mock Exam Completion');
         }
-        return { score, maxScore: questions.length, pointsEarned, status: updatedAttempt.status };
+        const corrections = questions.map((q, index) => ({
+            text: q.text,
+            options: q.options,
+            userOption: answers[index],
+            correctOption: q.correctOption,
+            explanation: q.explanation,
+        }));
+        return { score, maxScore: questions.length, pointsEarned, status: updatedAttempt.status, corrections };
     }
 };
 exports.MockExamsService = MockExamsService;

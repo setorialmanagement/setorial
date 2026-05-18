@@ -10,27 +10,26 @@ interface MascotInteractionProps {
 }
 
 const MASCOT_ANIMATIONS: Record<string, any> = {
-    happy: require('../assets/animations/happy.lottie'),
-    sad: require('../assets/animations/crying.lottie'),
-    thinking: require('../assets/animations/happy.lottie'),
-    pointing_down: require('../assets/animations/point_down.lottie'),
-    pointing_up: require('../assets/animations/point_up.lottie'),
-    pointing_left: require('../assets/animations/point_left.lottie'),
-    pointing_right: require('../assets/animations/point_left.lottie'),
+    happy: require('../assets/animations/happy.lottiejson'),
+    sad: require('../assets/animations/crying.lottiejson'),
+    thinking: require('../assets/animations/happy.lottiejson'),
+    pointing_down: require('../assets/animations/point_down.lottiejson'),
+    pointing_up: require('../assets/animations/point_up.lottiejson'),
+    pointing_left: require('../assets/animations/point_left.lottiejson'),
+    pointing_right: require('../assets/animations/point_left.lottiejson'),
 };
 
 export const MascotInteraction: React.FC<MascotInteractionProps> = ({ message, state = 'happy', size = 120 }) => {
     const isRight = state === 'pointing_right';
     const animationRef = useRef<LottieView>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
 
-    // Manual play trigger — autoPlay alone can fail on mount with New Architecture
+    // This delay ensures the native view is ready before we start playback
     useEffect(() => {
-        if (isLoaded) {
-            animationRef.current?.reset();
+        const timer = setTimeout(() => {
             animationRef.current?.play();
-        }
-    }, [state, isLoaded]);
+        }, 150);
+        return () => clearTimeout(timer);
+    }, [state]);
 
     const source = MASCOT_ANIMATIONS[state] || MASCOT_ANIMATIONS.happy;
 
@@ -39,19 +38,21 @@ export const MascotInteraction: React.FC<MascotInteractionProps> = ({ message, s
             {/* Mascot Lottie Animation */}
             <View 
                 style={[
-                    { width: size, height: size, marginBottom: -8 },
+                    { width: size, height: size, marginBottom: -8, backgroundColor: 'transparent' },
                     { transform: [{ scaleX: isRight ? -1 : 1 }] }
                 ]}
             >
                 <LottieView
                     ref={animationRef}
-                    autoPlay
-                    loop
                     source={source}
-                    style={{ width: '100%', height: '100%' }}
-                    onLayout={() => setIsLoaded(true)}
+                    autoPlay={false}
+                    loop
+                    style={{ 
+                        width: size, 
+                        height: size, 
+                        backgroundColor: 'transparent' 
+                    }}
                     resizeMode="contain"
-                    speed={1}
                 />
             </View>
 

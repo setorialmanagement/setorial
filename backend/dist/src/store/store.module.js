@@ -11,14 +11,13 @@ const common_1 = require("@nestjs/common");
 const store_service_1 = require("./store.service");
 const store_controller_1 = require("./store.controller");
 const prisma_service_1 = require("../prisma.service");
-const wallet_module_1 = require("../wallet/wallet.module");
 const gamification_module_1 = require("../gamification/gamification.module");
 let StoreModule = class StoreModule {
 };
 exports.StoreModule = StoreModule;
 exports.StoreModule = StoreModule = __decorate([
     (0, common_1.Module)({
-        imports: [wallet_module_1.WalletModule, gamification_module_1.GamificationModule],
+        imports: [gamification_module_1.GamificationModule],
         providers: [store_service_1.StoreService, prisma_service_1.PrismaService],
         controllers: [store_controller_1.StoreController],
         exports: [store_service_1.StoreService],

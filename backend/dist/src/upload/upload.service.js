@@ -55,14 +55,21 @@ let UploadService = UploadService_1 = class UploadService {
     bucketName = process.env.AWS_BUCKET;
     publicUrl = process.env.AWS_URL;
     constructor() {
+        const endpoint = process.env.AWS_ENDPOINT;
+        const bucket = process.env.AWS_BUCKET;
+        const region = process.env.AWS_REGION;
+        this.logger.log(`R2 Config — endpoint: "${endpoint}", bucket: "${bucket}", region: "${region}"`);
+        if (!endpoint) {
+            this.logger.error('AWS_ENDPOINT is NOT defined! Uploads will fail.');
+        }
         this.s3Client = new client_s3_1.S3Client({
-            region: process.env.AWS_REGION || 'auto',
-            endpoint: process.env.AWS_ENDPOINT,
+            region: region || 'auto',
+            endpoint: endpoint,
             credentials: {
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID,
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
             },
-            forcePathStyle: process.env.AWS_USE_PATH_STYLE_ENDPOINT === 'true',
+            forcePathStyle: true,
         });
     }
     async uploadFile(file, folder = 'avatars') {

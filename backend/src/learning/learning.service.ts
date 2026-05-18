@@ -14,9 +14,15 @@ export class LearningService {
         private uploadService: UploadService,
     ) { }
 
-    async createSubject(dto: CreateSubjectDto) {
+    async createSubject(dto: CreateSubjectDto, user?: any) {
         try {
-            return await this.prisma.subject.create({ data: dto });
+            const isApproved = user?.role === 'TUTOR' ? false : true;
+            return await this.prisma.subject.create({
+                data: {
+                    ...dto,
+                    isApproved,
+                }
+            });
         } catch (error) {
             if (error.code === 'P2002') {
                 throw new ConflictException(`A subject with the name "${dto.name}" already exists.`);
@@ -35,9 +41,15 @@ export class LearningService {
         });
     }
 
-    async createTopic(dto: CreateTopicDto) {
+    async createTopic(dto: CreateTopicDto, user?: any) {
         try {
-            return await this.prisma.topic.create({ data: dto });
+            const isApproved = user?.role === 'TUTOR' ? false : true;
+            return await this.prisma.topic.create({
+                data: {
+                    ...dto,
+                    isApproved,
+                }
+            });
         } catch (error) {
             if (error.code === 'P2002') {
                 throw new ConflictException(`A topic with the name "${dto.name}" already exists in this subject.`);
@@ -46,11 +58,15 @@ export class LearningService {
         }
     }
 
-    async updateTopic(id: string, data: any) {
+    async updateTopic(id: string, data: any, user?: any) {
         try {
+            const isApproved = user?.role === 'TUTOR' ? false : true;
             return await this.prisma.topic.update({
                 where: { id },
-                data
+                data: {
+                    ...data,
+                    isApproved,
+                }
             });
         } catch (error) {
             if (error.code === 'P2002') {
@@ -66,8 +82,9 @@ export class LearningService {
         return this.prisma.topic.delete({ where: { id } });
     }
 
-    async createLesson(dto: CreateLessonDto) {
+    async createLesson(dto: CreateLessonDto, user?: any) {
         try {
+            const isApproved = user?.role === 'TUTOR' ? false : true;
             return await this.prisma.lesson.create({
                 data: {
                     name: dto.name,
@@ -75,6 +92,7 @@ export class LearningService {
                     content: dto.content,
                     order: dto.order ?? 1,
                     rewardPoints: dto.rewardPoints ?? 10,
+                    isApproved,
                     questions: {
                         create: dto.questions.map(q => ({
                             text: q.text,
@@ -93,18 +111,21 @@ export class LearningService {
         }
     }
 
-    async updateLesson(id: string, dto: Partial<CreateLessonDto>) {
+    async updateLesson(id: string, dto: Partial<CreateLessonDto>, user?: any) {
         return this.prisma.$transaction(async (tx) => {
             if (dto.questions) {
                 await tx.question.deleteMany({ where: { lessonId: id } });
             }
             
+            const isApproved = user?.role === 'TUTOR' ? false : true;
+
             return tx.lesson.update({
                 where: { id },
                 data: {
                     ...(dto.name && { name: dto.name }),
                     ...(dto.content && { content: dto.content }),
                     ...(dto.rewardPoints && { rewardPoints: dto.rewardPoints }),
+                    isApproved,
                     ...(dto.questions && {
                         questions: {
                             create: dto.questions.map(q => ({
@@ -120,12 +141,18 @@ export class LearningService {
         });
     }
 
-    async getSubjects() {
+    async getSubjects(role?: string) {
+        const isStaff = role === 'ADMIN' || role === 'TUTOR';
+        const filter = isStaff ? {} : { isApproved: true };
+
         return this.prisma.subject.findMany({ 
+            where: filter,
             include: { 
                 topics: {
+                    where: filter,
                     include: {
                         lessons: {
+                            where: filter,
                             orderBy: { order: 'asc' }
                         }
                     }
@@ -134,13 +161,18 @@ export class LearningService {
         });
     }
 
-    async getSubjectPathway(id: string, userId: string) {
+    async getSubjectPathway(id: string, userId: string, role?: string) {
+        const isStaff = role === 'ADMIN' || role === 'TUTOR';
+        const filter = isStaff ? {} : { isApproved: true };
+
         const subject = await this.prisma.subject.findUnique({
             where: { id },
             include: {
                 topics: {
+                    where: filter,
                     include: {
                         lessons: {
+                            where: filter,
                             orderBy: { order: 'asc' },
                             include: {
                                 _count: { select: { questions: true } },
@@ -155,8 +187,8 @@ export class LearningService {
         });
 
         if (!subject) throw new NotFoundException('Subject not found');
-        
-        // Optimize pathway annotation - removed redundant synchronous Promise.all
+        if (!isStaff && !subject.isApproved) throw new NotFoundException('Subject not found');
+
         let globalFoundCurrent = false;
         
         const annotatedTopics = subject.topics.map((topic) => {
@@ -181,21 +213,30 @@ export class LearningService {
         return { ...subject, topics: annotatedTopics };
     }
 
-    async getLesson(id: string) {
+    async getLesson(id: string, role?: string) {
         const lesson = await this.prisma.lesson.findUnique({
             where: { id },
-            include: { questions: { select: { id: true, text: true, options: true, correctOption: true } } },
+            include: { 
+                questions: { select: { id: true, text: true, options: true, correctOption: true } },
+                topic: { include: { subject: true } }
+            },
         }) as any;
         if (!lesson) throw new NotFoundException('Lesson not found');
+
+        const isStaff = role === 'ADMIN' || role === 'TUTOR';
+        if (!isStaff && (!lesson.isApproved || !lesson.topic.isApproved || !lesson.topic.subject.isApproved)) {
+            throw new NotFoundException('Lesson not found');
+        }
 
         if (lesson.videoUrl) {
             lesson.videoUrl = await this.uploadService.getPresignedUrl(lesson.videoUrl, 3600);
         }
 
-        return lesson;
+        const { topic, ...lessonData } = lesson;
+        return lessonData;
     }
 
-    async updateLessonWithVideo(id: string, dto: any, video?: Express.Multer.File) {
+    async updateLessonWithVideo(id: string, dto: any, user?: any, video?: Express.Multer.File) {
         return this.prisma.$transaction(async (tx) => {
             let videoUrl = dto.videoUrl;
 
@@ -207,6 +248,8 @@ export class LearningService {
                 await tx.question.deleteMany({ where: { lessonId: id } });
             }
 
+            const isApproved = user?.role === 'TUTOR' ? false : true;
+
             return tx.lesson.update({
                 where: { id },
                 data: {
@@ -214,9 +257,10 @@ export class LearningService {
                     ...(dto.content && { content: dto.content }),
                     ...(dto.rewardPoints && { rewardPoints: Number(dto.rewardPoints) }),
                     videoUrl,
+                    isApproved,
                     ...(dto.questions && {
                         questions: {
-                            create: dto.questions.map((q: any, index: number) => ({
+                            create: dto.questions.map((q: any) => ({
                                 text: q.text,
                                 options: q.options,
                                 correctOption: Number(q.correctOption),
@@ -303,10 +347,11 @@ export class LearningService {
         // Deep search across Subject, Topic, and Lesson names
         return this.prisma.subject.findMany({
             where: {
+                isApproved: true,
                 OR: [
                     { name: { contains: query, mode: 'insensitive' } },
-                    { topics: { some: { name: { contains: query, mode: 'insensitive' } } } },
-                    { topics: { some: { lessons: { some: { name: { contains: query, mode: 'insensitive' } } } } } }
+                    { topics: { some: { isApproved: true, name: { contains: query, mode: 'insensitive' } } } },
+                    { topics: { some: { isApproved: true, lessons: { some: { isApproved: true, name: { contains: query, mode: 'insensitive' } } } } } }
                 ]
             },
             include: {
@@ -314,18 +359,42 @@ export class LearningService {
                     select: {
                         name: true,
                         lessons: {
-                            where: { name: { contains: query, mode: 'insensitive' } },
+                            where: { isApproved: true, name: { contains: query, mode: 'insensitive' } },
                             select: { name: true }
                         }
                     },
                     where: {
+                        isApproved: true,
                         OR: [
                             { name: { contains: query, mode: 'insensitive' } },
-                            { lessons: { some: { name: { contains: query, mode: 'insensitive' } } } }
+                            { lessons: { some: { isApproved: true, name: { contains: query, mode: 'insensitive' } } } }
                         ]
                     }
                 }
             }
+        });
+    }
+
+    // ─── Approval Operations (Admin Only) ───────────────────────────────────
+
+    async approveSubject(id: string) {
+        return this.prisma.subject.update({
+            where: { id },
+            data: { isApproved: true }
+        });
+    }
+
+    async approveTopic(id: string) {
+        return this.prisma.topic.update({
+            where: { id },
+            data: { isApproved: true }
+        });
+    }
+
+    async approveLesson(id: string) {
+        return this.prisma.lesson.update({
+            where: { id },
+            data: { isApproved: true }
         });
     }
 }

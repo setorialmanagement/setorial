@@ -6,13 +6,48 @@ export declare class MockExamsService {
     private walletService;
     private gamificationService;
     constructor(prisma: PrismaService, walletService: WalletService, gamificationService: GamificationService);
-    getAvailableMocks(): Promise<{
+    getAvailableMocks(userId: string, role?: string): Promise<{
         id: string;
+        isApproved: boolean;
         _count: {
             questions: number;
         };
+        isActive: boolean;
+        questions: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            mockExamId: string | null;
+            lessonId: string | null;
+            options: import("@prisma/client/runtime/client").JsonValue;
+            text: string;
+            correctOption: number;
+            explanation: string | null;
+        }[];
         description: string | null;
         price: import("@prisma/client-runtime-utils").Decimal;
+        title: string;
+        durationMinutes: number;
+    }[] | {
+        price: number;
+        id: string;
+        isApproved: boolean;
+        _count: {
+            questions: number;
+        };
+        isActive: boolean;
+        questions: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            mockExamId: string | null;
+            lessonId: string | null;
+            options: import("@prisma/client/runtime/client").JsonValue;
+            text: string;
+            correctOption: number;
+            explanation: string | null;
+        }[];
+        description: string | null;
         title: string;
         durationMinutes: number;
     }[]>;
@@ -24,6 +59,7 @@ export declare class MockExamsService {
         }[];
     } & {
         id: string;
+        isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
         isActive: boolean;
@@ -41,5 +77,12 @@ export declare class MockExamsService {
         maxScore: number;
         pointsEarned: number;
         status: import("@prisma/client").$Enums.MockStatus;
+        corrections: {
+            text: string;
+            options: import("@prisma/client/runtime/client").JsonValue;
+            userOption: number;
+            correctOption: number;
+            explanation: string | null;
+        }[];
     }>;
 }

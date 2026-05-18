@@ -129,7 +129,30 @@ let GamificationService = class GamificationService {
     }
     async getLeaderboard(limit = 10, subjectId) {
         const key = subjectId ? `leaderboard:subject:${subjectId}` : 'leaderboard:global';
-        return this.redis.zrevrange(key, 0, limit - 1, 'WITHSCORES');
+        const rawData = await this.redis.zrevrange(key, 0, limit - 1, 'WITHSCORES');
+        const userIds = [];
+        const scoresMap = new Map();
+        for (let i = 0; i < rawData.length; i += 2) {
+            const userId = rawData[i];
+            const score = parseInt(rawData[i + 1], 10);
+            userIds.push(userId);
+            scoresMap.set(userId, score);
+        }
+        if (userIds.length === 0)
+            return [];
+        const users = await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true, avatarUrl: true }
+        });
+        return userIds.map(id => {
+            const user = users.find(u => u.id === id);
+            return {
+                id,
+                points: scoresMap.get(id),
+                name: user?.name || 'Student',
+                avatarUrl: user?.avatarUrl || null
+            };
+        });
     }
 };
 exports.GamificationService = GamificationService;

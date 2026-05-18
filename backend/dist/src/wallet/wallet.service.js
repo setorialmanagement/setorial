@@ -19,7 +19,10 @@ let WalletService = class WalletService {
     }
     async getBalanceData(userId) {
         const result = await this.prisma.walletLedger.aggregate({
-            where: { userId },
+            where: {
+                userId,
+                type: { not: 'EARN' }
+            },
             _sum: { amount: true },
         });
         const balance = result._sum.amount ? Number(result._sum.amount) : 0;
@@ -54,7 +57,10 @@ let WalletService = class WalletService {
             });
             if (type === 'PAYOUT') {
                 const result = await tx.walletLedger.aggregate({
-                    where: { userId },
+                    where: {
+                        userId,
+                        type: { not: 'EARN' }
+                    },
                     _sum: { amount: true },
                 });
                 const currentBalance = result._sum.amount ? Number(result._sum.amount) : 0;
@@ -67,7 +73,10 @@ let WalletService = class WalletService {
     }
     async getTransactions(userId) {
         return this.prisma.walletLedger.findMany({
-            where: { userId },
+            where: {
+                userId,
+                type: { not: 'EARN' }
+            },
             orderBy: { createdAt: 'desc' },
             take: 20,
         });
@@ -75,7 +84,10 @@ let WalletService = class WalletService {
     async deductBalance(userId, amount, reference) {
         return this.prisma.$transaction(async (tx) => {
             const result = await tx.walletLedger.aggregate({
-                where: { userId },
+                where: {
+                    userId,
+                    type: { not: 'EARN' }
+                },
                 _sum: { amount: true },
             });
             const currentBalance = result._sum.amount ? Number(result._sum.amount) : 0;
