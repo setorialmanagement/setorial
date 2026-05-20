@@ -95,8 +95,7 @@ export default function TutorScreen() {
                                         <LottieView
                                             autoPlay
                                             loop
-                                            source={require('../assets/animations/happy.lottie')}
-                                            renderMode="SOFTWARE"
+                                            source={require('../assets/animations/happy.json')}
                                             style={{ width: 44, height: 44, backgroundColor: 'transparent' }}
                                             resizeMode="contain"
                                         />

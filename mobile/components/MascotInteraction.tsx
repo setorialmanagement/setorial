@@ -10,16 +10,16 @@ interface MascotInteractionProps {
 }
 
 const MASCOT_ANIMATIONS: Record<string, any> = {
-    happy: require('../assets/animations/happy.lottiejson'),
-    sad: require('../assets/animations/crying.lottiejson'),
-    thinking: require('../assets/animations/happy.lottiejson'),
-    pointing_down: require('../assets/animations/point_down.lottiejson'),
-    pointing_up: require('../assets/animations/point_up.lottiejson'),
-    pointing_left: require('../assets/animations/point_left.lottiejson'),
-    pointing_right: require('../assets/animations/point_left.lottiejson'),
+    happy: require('../assets/animations/happy.json'),
+    sad: require('../assets/animations/crying.json'),
+    thinking: require('../assets/animations/happy.json'),
+    pointing_down: require('../assets/animations/point_down.json'),
+    pointing_up: require('../assets/animations/point_up.json'),
+    pointing_left: require('../assets/animations/point_left.json'),
+    pointing_right: require('../assets/animations/point_left.json'),
 };
 
-export const MascotInteraction: React.FC<MascotInteractionProps> = ({ message, state = 'happy', size = 120 }) => {
+export const MascotInteraction: React.FC<MascotInteractionProps> = ({ message, state = 'happy', size = 160 }) => {
     const isRight = state === 'pointing_right';
     const animationRef = useRef<LottieView>(null);
 
@@ -45,7 +45,7 @@ export const MascotInteraction: React.FC<MascotInteractionProps> = ({ message, s
                 <LottieView
                     ref={animationRef}
                     source={source}
-                    autoPlay={false}
+                    autoPlay={true}
                     loop
                     style={{ 
                         width: size, 

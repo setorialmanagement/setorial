@@ -69,7 +69,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
                     ref={animationRef}
                     autoPlay
                     loop={false}
-                    source={require('../assets/animations/point_down.lottiejson')}
+                    source={require('../assets/animations/point_down.json')}
                     style={{ width: MASCOT_SIZE, height: MASCOT_SIZE, backgroundColor: 'transparent' }}
                     resizeMode="contain"
                     onAnimationFinish={finishSplash}

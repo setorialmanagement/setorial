@@ -4,7 +4,7 @@ import { ChevronLeft, CheckCircle2, XCircle, Trophy, ArrowRight, Home, BookOpen 
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
 import { useVideoPlayer, VideoView } from 'expo-video';
-import Animated, { FadeIn, FadeOut, SlideInDown, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, SlideInDown, SlideInRight, SlideOutLeft, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import { learningApi } from "../services/api";
 import { MathText } from "../components/MathText";
 import { feedback } from "../lib/feedback";
@@ -40,6 +40,20 @@ export default function LevelScreen() {
     const buttonStyle = useAnimatedStyle(() => ({
         transform: [{ scale: checkScale.value }]
     }));
+
+    const progress = useSharedValue(0);
+    const progressStyle = useAnimatedStyle(() => ({
+        width: `${progress.value * 100}%`
+    }));
+
+    useEffect(() => {
+        if (lesson?.questions?.length > 0) {
+            progress.value = withSpring(currentIndex / lesson.questions.length, {
+                damping: 15,
+                stiffness: 90
+            });
+        }
+    }, [currentIndex, lesson]);
 
     useEffect(() => {
         if (id) fetchLesson();
@@ -253,12 +267,12 @@ export default function LevelScreen() {
                         <XCircle size={28} color="#AFAFAF" />
                     </SoundButton>
                     <View className="h-4 bg-[#E5E5E5] dark:bg-[#272B36] rounded-full flex-1 mx-4 overflow-hidden relative">
-                        <View
-                            style={{ width: `${progressPercent}%` }}
-                            className="h-full bg-[#F59E0B] rounded-full absolute left-0 top-0 transition-all duration-300 ease-out"
+                        <Animated.View
+                            style={[progressStyle, { position: 'absolute', left: 0, top: 0 }]}
+                            className="h-full bg-[#F59E0B] rounded-full"
                         >
                             <View className="absolute top-1 left-2 right-2 h-[4px] bg-white dark:bg-zinc-950/30 rounded-full" />
-                        </View>
+                        </Animated.View>
                     </View>
                     <View className="w-10 h-10" />
                 </View>
@@ -273,65 +287,72 @@ export default function LevelScreen() {
                     </Animated.View>
                 )}
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                    <MathText content={currentQuestion.text} fontSize={22} containerStyle={{ marginBottom: 32 }} />
+                <Animated.View
+                    key={currentIndex}
+                    entering={SlideInRight.springify().damping(16).stiffness(100)}
+                    exiting={SlideOutLeft.duration(180)}
+                    className="flex-1"
+                >
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+                        <MathText content={currentQuestion.text} fontSize={22} containerStyle={{ marginBottom: 32 }} />
 
-                    {currentQuestion.options.map((option: string, index: number) => {
-                        const isSelected = selectedOption === index;
-                        const isWrong = isSelected && isCorrect === false;
-                        const isRight = (isSelected && isCorrect === true) || (isCorrect !== null && index === currentQuestion.correctOption);
+                        {currentQuestion.options.map((option: string, index: number) => {
+                            const isSelected = selectedOption === index;
+                            const isWrong = isSelected && isCorrect === false;
+                            const isRight = (isSelected && isCorrect === true) || (isCorrect !== null && index === currentQuestion.correctOption);
 
-                        let borderColor = isDark ? '#272B36' : '#E5E5E5';
-                        let bgColor = isDark ? '#1E222B' : 'white';
-                        let textColor = isDark ? 'white' : '#4B4B4B';
-                        let shadowColor = isDark ? '#1E222B' : '#E5E5E5';
+                            let borderColor = isDark ? '#272B36' : '#E5E5E5';
+                            let bgColor = isDark ? '#1E222B' : 'white';
+                            let textColor = isDark ? 'white' : '#4B4B4B';
+                            let shadowColor = isDark ? '#1E222B' : '#E5E5E5';
 
-                        if (isSelected && isCorrect === null) {
-                            borderColor = '#1899D6';
-                            bgColor = isDark ? '#1CB0F625' : '#DDF4FF';
-                            textColor = '#1899D6';
-                            shadowColor = '#1899D6';
-                        } else if (isRight) {
-                            borderColor = '#58CC02';
-                            bgColor = isDark ? '#58CC0225' : '#D7FFB8';
-                            textColor = '#58CC02';
-                            shadowColor = '#58CC02';
-                        } else if (isWrong) {
-                            borderColor = '#FF4B4B';
-                            bgColor = isDark ? '#FF4B4B25' : '#FFDCDC';
-                            textColor = '#FF4B4B';
-                            shadowColor = '#FF4B4B';
-                        }
+                            if (isSelected && isCorrect === null) {
+                                borderColor = '#1899D6';
+                                bgColor = isDark ? '#1CB0F625' : '#DDF4FF';
+                                textColor = '#1899D6';
+                                shadowColor = '#1899D6';
+                            } else if (isRight) {
+                                borderColor = '#58CC02';
+                                bgColor = isDark ? '#58CC0225' : '#D7FFB8';
+                                textColor = '#58CC02';
+                                shadowColor = '#58CC02';
+                            } else if (isWrong) {
+                                borderColor = '#FF4B4B';
+                                bgColor = isDark ? '#FF4B4B25' : '#FFDCDC';
+                                textColor = '#FF4B4B';
+                                shadowColor = '#FF4B4B';
+                            }
 
-                        return (
-                            <Animated.View key={index} className="mb-4">
-                                <SoundButton
-                                    activeOpacity={0.8}
-                                    onPress={() => handleOptionSelect(index)}
-                                    disabled={showNext}
-                                    style={{
-                                        borderColor,
-                                        backgroundColor: bgColor,
-                                        borderBottomWidth: 4,
-                                        borderBottomColor: shadowColor
-                                    }}
-                                    className="flex-row items-center p-5 rounded-2xl border-2"
-                                >
-                                    <View style={{ borderColor: isSelected || isRight || isWrong ? 'transparent' : (isDark ? '#272B36' : '#E5E5E5'), backgroundColor: isSelected || isRight || isWrong ? textColor : 'transparent' }} className="w-8 h-8 rounded-full border-2 items-center justify-center mr-4">
-                                        {(isSelected || isRight || isWrong) ? (
-                                            <View className="w-2 h-2 bg-white rounded-full" />
-                                        ) : (
-                                            <Text className="text-[#AFAFAF] font-bold text-sm">{index + 1}</Text>
-                                        )}
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <MathText content={option} color={textColor} fontSize={17} />
-                                    </View>
-                                </SoundButton>
-                            </Animated.View>
-                        );
-                    })}
-                </ScrollView>
+                            return (
+                                <Animated.View key={index} className="mb-4">
+                                    <SoundButton
+                                        activeOpacity={0.8}
+                                        onPress={() => handleOptionSelect(index)}
+                                        disabled={showNext}
+                                        style={{
+                                            borderColor,
+                                            backgroundColor: bgColor,
+                                            borderBottomWidth: 4,
+                                            borderBottomColor: shadowColor
+                                        }}
+                                        className="flex-row items-center p-5 rounded-2xl border-2"
+                                    >
+                                        <View style={{ borderColor: isSelected || isRight || isWrong ? 'transparent' : (isDark ? '#272B36' : '#E5E5E5'), backgroundColor: isSelected || isRight || isWrong ? textColor : 'transparent' }} className="w-8 h-8 rounded-full border-2 items-center justify-center mr-4">
+                                            {(isSelected || isRight || isWrong) ? (
+                                                <View className="w-2 h-2 bg-white rounded-full" />
+                                            ) : (
+                                                <Text className="text-[#AFAFAF] font-bold text-sm">{index + 1}</Text>
+                                            )}
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <MathText content={option} color={textColor} fontSize={17} />
+                                        </View>
+                                    </SoundButton>
+                                </Animated.View>
+                            );
+                        })}
+                    </ScrollView>
+                </Animated.View>
             </View>
 
             <View className={`pt-4 px-5 pb-8 border-t-2 border-gray-100 dark:border-gray-800 ${isCorrect === true ? 'bg-[#D7FFB8] dark:bg-[#1A2E1A]' : isCorrect === false ? 'bg-[#FFDCDC] dark:bg-[#2E1A1A]' : 'bg-white dark:bg-[#0B0D12]'}`}>
