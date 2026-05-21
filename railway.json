@@ -11,14 +11,7 @@
     {
       "name": "backend",
       "path": "./backend",
-      "buildCommand": "npm install --legacy-peer-deps && npm run build",
-      "startCommand": "npm run start:prod"
-    },
-    {
-      "name": "backend-worker",
-      "path": "./backend",
-      "buildCommand": "npm install --legacy-peer-deps && npm run build",
-      "startCommand": "npm run start:worker"
+      "buildCommand": "npm install --legacy-peer-deps && npm run build"
     }
   ]
 }
