@@ -34,7 +34,10 @@ export class AuthService {
             isEmailVerified: false,
         });
 
-        await this.notificationsService.sendOtpEmail(registerDto.email, otp, registerDto.name || 'Student');
+        // Fire-and-forget: queue email sending without waiting
+        this.notificationsService.sendOtpEmail(registerDto.email, otp, registerDto.name || 'Student').catch(err =>
+            this.logger.warn(`Failed to queue OTP email in register: ${err.message}`)
+        );
 
         return {
             message: 'Registration successful. Please check your email for the verification code.',
@@ -67,7 +70,10 @@ export class AuthService {
             }
         });
 
-        await this.notificationsService.sendWelcomeEmail(updatedUser.email, updatedUser.name || 'Student');
+        // Fire-and-forget: queue welcome email without waiting
+        this.notificationsService.sendWelcomeEmail(updatedUser.email, updatedUser.name || 'Student').catch(err =>
+            this.logger.warn(`Failed to queue welcome email in verifyOtp: ${err.message}`)
+        );
 
         return this.generateAuthResponse(updatedUser);
     }
@@ -139,7 +145,10 @@ export class AuthService {
             }
         });
 
-        await this.notificationsService.sendPasswordResetEmail(user.email, otp, user.name || 'Student');
+        // Fire-and-forget: queue password reset email without waiting
+        this.notificationsService.sendPasswordResetEmail(user.email, otp, user.name || 'Student').catch(err =>
+            this.logger.warn(`Failed to queue password reset email: ${err.message}`)
+        );
 
         return { message: 'If an account with that email exists, a password reset code has been sent.' };
     }

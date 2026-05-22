@@ -6,11 +6,30 @@ import { PrismaService } from '../prisma.service';
 @Injectable()
 export class NotificationsService {
     private readonly logger = new Logger(NotificationsService.name);
+    private readonly QUEUE_TIMEOUT_MS = 5000; // 5 second timeout for queue operations
     
     constructor(
         private prisma: PrismaService,
         @InjectQueue('notifications') private readonly notificationsQueue: Queue
     ) {}
+
+    /**
+     * Helper to add jobs to queue with timeout and error handling
+     */
+    private async queueJobWithTimeout(jobName: string, jobData: any): Promise<void> {
+        try {
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error(`Queue timeout after ${this.QUEUE_TIMEOUT_MS}ms`)), this.QUEUE_TIMEOUT_MS)
+            );
+            await Promise.race([
+                this.notificationsQueue.add(jobName, jobData),
+                timeoutPromise
+            ]);
+        } catch (err: any) {
+            this.logger.error(`Failed to queue ${jobName}: ${err.message}`);
+            // Don't throw - we want this to fail gracefully without blocking the request
+        }
+    }
 
     /**
      * Sends a push notification to a specific user.
@@ -127,15 +146,11 @@ export class NotificationsService {
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once. Never share this code with anyone.</p>
         `;
 
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: title,
-                html: this.generateSetorialHtml(title, content)
-            });
-        } catch (err: any) {
-            this.logger.error(`Failed to queue OTP to ${email}: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: title,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
 
     async sendPasswordResetEmail(email: string, otpCode: string, name: string = 'Student') {
@@ -151,15 +166,11 @@ export class NotificationsService {
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once.</p>
         `;
 
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: title,
-                html: this.generateSetorialHtml(title, content)
-            });
-        } catch (err: any) {
-            this.logger.error(`Exception queuing Password Reset to ${email}: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: title,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
 
     async sendWelcomeEmail(email: string, name: string) {
@@ -177,15 +188,11 @@ export class NotificationsService {
             <p>Happy studying!</p>
         `;
 
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: title,
-                html: this.generateSetorialHtml(title, content)
-            });
-        } catch (err: any) {
-            this.logger.error(`Failed to queue Welcome email to ${email}: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: title,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
 
     async sendPayoutConfirmation(email: string, amount: number, month: string) {
@@ -197,38 +204,30 @@ export class NotificationsService {
             <p>Keep studying and acing those mock exams to increase your rank next month!</p>
         `;
 
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: 'Setorial Reward Payout Processing',
-                html: this.generateSetorialHtml(title, content)
-            });
-        } catch (err: any) {
-            this.logger.error(`Failed to queue Payout Email to ${email}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: 'Setorial Reward Payout Processing',
+            html: this.generateSetorialHtml(title, content)
+        });
     }
 
     async sendBroadcastEmail(emails: string[], subject: string, htmlMessage: string) {
         const title = subject;
         const html = this.generateSetorialHtml(title, htmlMessage);
 
-        try {
-            const chunks = [];
-            for (let i = 0; i < emails.length; i += 50) {
-                chunks.push(emails.slice(i, i + 50));
-            }
+        const chunks = [];
+        for (let i = 0; i < emails.length; i += 50) {
+            chunks.push(emails.slice(i, i + 50));
+        }
 
-            for (const chunk of chunks) {
-                const batchPayload = chunk.map(email => ({
-                    from: process.env.EMAIL_FROM_ADDRESS || 'Setorial <onboarding@resend.dev>',
-                    to: email,
-                    subject,
-                    html
-                }));
-                await this.notificationsQueue.add('email-batch', { batch: batchPayload });
-            }
-        } catch (err: any) {
-            this.logger.error(`Broadcast queuing failed: ${err.message}`);
+        for (const chunk of chunks) {
+            const batchPayload = chunk.map(email => ({
+                from: process.env.EMAIL_FROM_ADDRESS || 'Setorial <onboarding@resend.dev>',
+                to: email,
+                subject,
+                html
+            }));
+            await this.queueJobWithTimeout('email-batch', { batch: batchPayload });
         }
     }
 
@@ -240,15 +239,11 @@ export class NotificationsService {
             <p>${message.replace(/\n/g, '<br/>')}</p>
         `;
 
-        try {
-            await this.notificationsQueue.add('email', {
-                to: 'setorialapp@gmail.com',
-                replyTo: userEmail,
-                subject: `Support Request [${userEmail}]`,
-                html: this.generateSetorialHtml(title, content)
-            });
-        } catch (err: any) {
-            this.logger.error(`Support ticket queuing failed: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: 'setorialapp@gmail.com',
+            replyTo: userEmail,
+            subject: `Support Request [${userEmail}]`,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
 }
