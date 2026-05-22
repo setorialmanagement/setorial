@@ -48,6 +48,7 @@ async function main() {
             name: 'Setorial Admin',
             role: 'ADMIN',
             isVerified: true,
+            isEmailVerified: true,
             tier: 'GOLD',
             kycStatus: 'APPROVED',
         },

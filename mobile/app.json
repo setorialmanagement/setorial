@@ -37,6 +37,11 @@
       "expo-video",
       "expo-localization"
     ],
-    "owner": "george.allday"
+    "owner": "george.allday",
+    "extra": {
+      "eas": {
+        "projectId": "aab3f036-1301-4810-8c63-9affa55408b5"
+      }
+    }
   }
 }
