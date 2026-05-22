@@ -22,9 +22,22 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
     prisma;
     notificationsQueue;
     logger = new common_1.Logger(NotificationsService_1.name);
+    QUEUE_TIMEOUT_MS = 5000;
     constructor(prisma, notificationsQueue) {
         this.prisma = prisma;
         this.notificationsQueue = notificationsQueue;
+    }
+    async queueJobWithTimeout(jobName, jobData) {
+        try {
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`Queue timeout after ${this.QUEUE_TIMEOUT_MS}ms`)), this.QUEUE_TIMEOUT_MS));
+            await Promise.race([
+                this.notificationsQueue.add(jobName, jobData),
+                timeoutPromise
+            ]);
+        }
+        catch (err) {
+            this.logger.error(`Failed to queue ${jobName}: ${err.message}`);
+        }
     }
     async sendPush(userId, title, body, data = {}) {
         const user = await this.prisma.user.findUnique({
@@ -117,16 +130,11 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             </div>
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once. Never share this code with anyone.</p>
         `;
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: title,
-                html: this.generateSetorialHtml(title, content)
-            });
-        }
-        catch (err) {
-            this.logger.error(`Failed to queue OTP to ${email}: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: title,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
     async sendPasswordResetEmail(email, otpCode, name = 'Student') {
         const title = 'Reset Your Password';
@@ -139,16 +147,11 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             <p style="color: #374151;">If you didn't request this, you can safely ignore this email.</p>
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once.</p>
         `;
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: title,
-                html: this.generateSetorialHtml(title, content)
-            });
-        }
-        catch (err) {
-            this.logger.error(`Exception queuing Password Reset to ${email}: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: title,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
     async sendWelcomeEmail(email, name) {
         const title = 'Welcome to Setorial! 🎉';
@@ -164,16 +167,11 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             </ul>
             <p>Happy studying!</p>
         `;
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: title,
-                html: this.generateSetorialHtml(title, content)
-            });
-        }
-        catch (err) {
-            this.logger.error(`Failed to queue Welcome email to ${email}: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: title,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
     async sendPayoutConfirmation(email, amount, month) {
         const title = 'Your Payout is on the way! 💸';
@@ -183,37 +181,27 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             <p>Your learning rewards for <b>${month}</b> have been processed. We've initiated a transfer of <b>₦${amount.toLocaleString()}</b> to your configured bank account.</p>
             <p>Keep studying and acing those mock exams to increase your rank next month!</p>
         `;
-        try {
-            await this.notificationsQueue.add('email', {
-                to: email,
-                subject: 'Setorial Reward Payout Processing',
-                html: this.generateSetorialHtml(title, content)
-            });
-        }
-        catch (err) {
-            this.logger.error(`Failed to queue Payout Email to ${email}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: email,
+            subject: 'Setorial Reward Payout Processing',
+            html: this.generateSetorialHtml(title, content)
+        });
     }
     async sendBroadcastEmail(emails, subject, htmlMessage) {
         const title = subject;
         const html = this.generateSetorialHtml(title, htmlMessage);
-        try {
-            const chunks = [];
-            for (let i = 0; i < emails.length; i += 50) {
-                chunks.push(emails.slice(i, i + 50));
-            }
-            for (const chunk of chunks) {
-                const batchPayload = chunk.map(email => ({
-                    from: process.env.EMAIL_FROM_ADDRESS || 'Setorial <onboarding@resend.dev>',
-                    to: email,
-                    subject,
-                    html
-                }));
-                await this.notificationsQueue.add('email-batch', { batch: batchPayload });
-            }
+        const chunks = [];
+        for (let i = 0; i < emails.length; i += 50) {
+            chunks.push(emails.slice(i, i + 50));
         }
-        catch (err) {
-            this.logger.error(`Broadcast queuing failed: ${err.message}`);
+        for (const chunk of chunks) {
+            const batchPayload = chunk.map(email => ({
+                from: process.env.EMAIL_FROM_ADDRESS || 'Setorial <onboarding@resend.dev>',
+                to: email,
+                subject,
+                html
+            }));
+            await this.queueJobWithTimeout('email-batch', { batch: batchPayload });
         }
     }
     async sendSupportEmail(userEmail, message) {
@@ -223,17 +211,12 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             <hr />
             <p>${message.replace(/\n/g, '<br/>')}</p>
         `;
-        try {
-            await this.notificationsQueue.add('email', {
-                to: 'setorialapp@gmail.com',
-                replyTo: userEmail,
-                subject: `Support Request [${userEmail}]`,
-                html: this.generateSetorialHtml(title, content)
-            });
-        }
-        catch (err) {
-            this.logger.error(`Support ticket queuing failed: ${err.message}`);
-        }
+        await this.queueJobWithTimeout('email', {
+            to: 'setorialapp@gmail.com',
+            replyTo: userEmail,
+            subject: `Support Request [${userEmail}]`,
+            html: this.generateSetorialHtml(title, content)
+        });
     }
 };
 exports.NotificationsService = NotificationsService;

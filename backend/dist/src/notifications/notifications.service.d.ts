@@ -4,7 +4,9 @@ export declare class NotificationsService {
     private prisma;
     private readonly notificationsQueue;
     private readonly logger;
+    private readonly QUEUE_TIMEOUT_MS;
     constructor(prisma: PrismaService, notificationsQueue: Queue);
+    private queueJobWithTimeout;
     sendPush(userId: string, title: string, body: string, data?: Record<string, any>): Promise<void>;
     sendPushToMany(userIds: string[], title: string, body: string, data?: Record<string, any>): Promise<void>;
     private sendToTokens;

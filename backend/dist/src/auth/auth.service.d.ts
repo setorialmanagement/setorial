@@ -8,6 +8,7 @@ export declare class AuthService {
     private jwtService;
     private prisma;
     private notificationsService;
+    private readonly logger;
     constructor(usersService: UsersService, jwtService: JwtService, prisma: PrismaService, notificationsService: NotificationsService);
     register(registerDto: RegisterDto): Promise<{
         message: string;

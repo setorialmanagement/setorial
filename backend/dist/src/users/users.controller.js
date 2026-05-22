@@ -88,7 +88,8 @@ let UsersController = class UsersController {
         const user = await this.usersService.findById(req.user.userId);
         if (!user)
             throw new common_1.BadRequestException('User not found');
-        return this.notificationsService.sendSupportEmail(user.email, message);
+        this.notificationsService.sendSupportEmail(user.email, message).catch(err => console.warn(`Failed to queue support email: ${err.message}`));
+        return { message: 'Support request submitted successfully. We will get back to you shortly.' };
     }
     async submitKyc(req, body) {
         return this.usersService.submitKyc(req.user.userId, body);

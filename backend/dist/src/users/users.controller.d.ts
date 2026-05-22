@@ -87,7 +87,9 @@ export declare class UsersController {
         completedLessons: number;
         progress: number;
     }[]>;
-    sendSupport(req: any, message: string): Promise<void>;
+    sendSupport(req: any, message: string): Promise<{
+        message: string;
+    }>;
     submitKyc(req: any, body: {
         payoutMethod: PayoutMethod;
         payoutAccount: Record<string, any>;
