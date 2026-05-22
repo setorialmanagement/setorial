@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = 'https://backend-production-fc72.up.railway.app';
+const API_URL = 'https://backend-production-31e39.up.railway.app';
 
 export const api = axios.create({
     baseURL: API_URL,

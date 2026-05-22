@@ -37,11 +37,6 @@
       "expo-video",
       "expo-localization"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "148c7d41-bc4a-4e66-83cc-61b3e973fea0"
-      }
-    },
-    "owner": "yeezykng_dom"
+    "owner": "george.allday"
   }
 }
