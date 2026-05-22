@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const baseUrl = rawBaseUrl
+    ? rawBaseUrl.startsWith('http')
+        ? rawBaseUrl
+        : `https://${rawBaseUrl}`
+    : 'https://backend-production-31e39.up.railway.app';
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://backend-production-31e39.up.railway.app',
+    baseURL: baseUrl,
 });
 
 // Intercept requests to add the token
