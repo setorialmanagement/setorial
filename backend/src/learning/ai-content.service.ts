@@ -7,13 +7,17 @@ import { Queue } from 'bullmq';
 @Injectable()
 export class AiContentService {
     private readonly logger = new Logger(AiContentService.name);
-    // User requested specifically to use this DeepSeek key
-    private readonly deepseekKey = 'sk-1e93663ccdbd4d4e9ee1f6144a7271d3';
+    private readonly deepseekKey: string;
 
     constructor(
         private prisma: PrismaService,
         @InjectQueue('ai-content') private aiQueue: Queue
-    ) { }
+    ) {
+        this.deepseekKey = process.env.DEEPSEEK_API_KEY ?? '';
+        if (!this.deepseekKey) {
+            throw new Error('Missing environment variable DEEPSEEK_API_KEY');
+        }
+    }
 
     async queueFullSyllabusGeneration(subjectId: string, numTopics: number, userRole?: string) {
         await this.aiQueue.add('generate-full-subject', { subjectId, numTopics, userRole }, {

@@ -26,10 +26,13 @@ let AiContentService = AiContentService_1 = class AiContentService {
     prisma;
     aiQueue;
     logger = new common_1.Logger(AiContentService_1.name);
-    deepseekKey = 'sk-1e93663ccdbd4d4e9ee1f6144a7271d3';
     constructor(prisma, aiQueue) {
         this.prisma = prisma;
         this.aiQueue = aiQueue;
+        this.deepseekKey = process.env.DEEPSEEK_API_KEY || '';
+        if (!this.deepseekKey) {
+            throw new Error('Missing environment variable DEEPSEEK_API_KEY');
+        }
     }
     async queueFullSyllabusGeneration(subjectId, numTopics, userRole) {
         await this.aiQueue.add('generate-full-subject', { subjectId, numTopics, userRole }, {
