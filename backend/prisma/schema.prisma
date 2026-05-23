@@ -116,14 +116,16 @@ model Subject {
 }
 
 model Topic {
-  id         String   @id @default(uuid())
-  name       String
-  subjectId  String
-  subject    Subject  @relation(fields: [subjectId], references: [id])
-  lessons    Lesson[]
-  isApproved Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  description String? 
+  order       Int      @default(1)
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  lessons     Lesson[]
+  isApproved  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([subjectId])
 }
