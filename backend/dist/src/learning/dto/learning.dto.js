@@ -74,14 +74,17 @@ __decorate([
     __metadata("design:type", String)
 ], CreateLessonDto.prototype, "topicId", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateLessonDto.prototype, "content", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateLessonDto.prototype, "order", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateLessonDto.prototype, "rewardPoints", void 0);

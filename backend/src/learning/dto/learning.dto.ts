@@ -45,12 +45,15 @@ export class CreateLessonDto {
     @IsNotEmpty()
     topicId: string;
 
+    @IsOptional()
     @IsString()
     content?: string;
 
+    @IsOptional()
     @IsNumber()
     order?: number;
 
+    @IsOptional()
     @IsNumber()
     rewardPoints?: number;
 
