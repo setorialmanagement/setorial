@@ -50,6 +50,10 @@ export class CreateLessonDto {
     content?: string;
 
     @IsOptional()
+    @IsString()
+    videoUrl?: string;
+
+    @IsOptional()
     @IsNumber()
     order?: number;
 

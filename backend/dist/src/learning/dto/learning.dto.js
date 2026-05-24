@@ -58,6 +58,7 @@ class CreateLessonDto {
     name;
     topicId;
     content;
+    videoUrl;
     order;
     rewardPoints;
     questions;
@@ -78,6 +79,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateLessonDto.prototype, "content", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateLessonDto.prototype, "videoUrl", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),

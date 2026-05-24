@@ -132,7 +132,7 @@ export default function AdminDashboard() {
     // Lesson Modal State
     const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
     const [editingLesson, setEditingLesson] = useState<any>(null);
-    const [lessonForm, setLessonForm] = useState({ name: '', content: '', videoFile: null as File | null });
+    const [lessonForm, setLessonForm] = useState({ name: '', content: '', videoUrl: '', rewardPoints: 10, questions: [] as any[] });
 
     // Mock AI Modal State
     const [isMockAiModalOpen, setIsMockAiModalOpen] = useState(false);
@@ -539,8 +539,18 @@ export default function AdminDashboard() {
         const name = prompt('Lesson Name? (e.g. Introduction to Physics)');
         if (!name) return;
         try {
-            await adminApi.createLesson({ topicId, name, questions: [] });
-            alert('Lesson created successfully! You can now edit its content.');
+            const res = await adminApi.createLesson({ topicId, name, questions: [] });
+            const lesson = res.data;
+            // Open the edit modal so admin can add content, video link and questions
+            setEditingLesson(lesson);
+            setLessonForm({
+                name: lesson.name,
+                content: lesson.content || '',
+                videoUrl: lesson.videoUrl || '',
+                rewardPoints: lesson.rewardPoints ?? 10,
+                questions: lesson.questions || []
+            });
+            setIsLessonModalOpen(true);
             fetchData();
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to create lesson');
@@ -632,7 +642,9 @@ export default function AdminDashboard() {
         setLessonForm({
             name: lesson.name,
             content: lesson.content || '',
-            videoFile: null
+            videoUrl: lesson.videoUrl || '',
+            rewardPoints: lesson.rewardPoints ?? 10,
+            questions: lesson.questions || []
         });
         setIsLessonModalOpen(true);
     };
@@ -641,14 +653,15 @@ export default function AdminDashboard() {
         e.preventDefault();
         setLoading(true);
         try {
-            const formData = new FormData();
-            formData.append('name', lessonForm.name);
-            formData.append('content', lessonForm.content);
-            if (lessonForm.videoFile) {
-                formData.append('video', lessonForm.videoFile);
-            }
+            const payload: any = {
+                name: lessonForm.name,
+                content: lessonForm.content,
+                videoUrl: lessonForm.videoUrl,
+                rewardPoints: lessonForm.rewardPoints,
+                questions: lessonForm.questions
+            };
 
-            await adminApi.updateLesson(editingLesson.id, formData);
+            await adminApi.updateLesson(editingLesson.id, payload);
             alert('Lesson updated successfully!');
             setIsLessonModalOpen(false);
             fetchData();
@@ -657,6 +670,54 @@ export default function AdminDashboard() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Lesson question helpers
+    const addLessonQuestion = () => {
+        setLessonForm(prev => ({
+            ...prev,
+            questions: [...(prev.questions || []), { text: '', options: ['', '', '', ''], correctOption: 0 }]
+        }));
+    };
+
+    const updateLessonQuestionField = (qIdx: number, field: string, value: any) => {
+        setLessonForm(prev => ({
+            ...prev,
+            questions: prev.questions.map((q: any, i: number) => i === qIdx ? { ...q, [field]: value } : q)
+        }));
+    };
+
+    const updateLessonOption = (qIdx: number, oIdx: number, value: string) => {
+        setLessonForm(prev => ({
+            ...prev,
+            questions: prev.questions.map((q: any, i: number) => {
+                if (i !== qIdx) return q;
+                const newOptions = [...q.options];
+                newOptions[oIdx] = value;
+                return { ...q, options: newOptions };
+            })
+        }));
+    };
+
+    const setLessonQuestionCorrectOption = (qIdx: number, oIdx: number) => {
+        setLessonForm(prev => ({
+            ...prev,
+            questions: prev.questions.map((q: any, i: number) => i === qIdx ? { ...q, correctOption: oIdx } : q)
+        }));
+    };
+
+    const addLessonOption = (qIdx: number) => {
+        setLessonForm(prev => ({
+            ...prev,
+            questions: prev.questions.map((q: any, i: number) => i === qIdx ? { ...q, options: [...q.options, ''] } : q)
+        }));
+    };
+
+    const removeLessonQuestion = (qIdx: number) => {
+        setLessonForm(prev => ({
+            ...prev,
+            questions: prev.questions.filter((_: any, i: number) => i !== qIdx)
+        }));
     };
 
     /* ─── Tab Content ──────────────────────────────────────────────────────── */
@@ -1887,16 +1948,56 @@ export default function AdminDashboard() {
                                 </div>
 
                                 <div className="space-y-1.5 p-6 bg-zinc-50 rounded-xl border-2 border-dashed border-zinc-200">
-                                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Lesson Video (R2 Protected)</label>
+                                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Lesson Video (YouTube link)</label>
                                     <input
-                                        type="file"
-                                        accept="video/*"
-                                        className="text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-zinc-900 file:text-white hover:file:bg-zinc-800"
-                                        onChange={(e) => setLessonForm({ ...lessonForm, videoFile: e.target.files?.[0] || null })}
+                                        type="text"
+                                        className="input-field"
+                                        placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                                        value={lessonForm.videoUrl}
+                                        onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
                                     />
                                     {editingLesson?.videoUrl && (
-                                        <p className="mt-2 text-xs text-emerald-600 font-medium">✓ Current video exists. Uploading a new one will replace it.</p>
+                                        <p className="mt-2 text-xs text-emerald-600 font-medium">✓ Current video link set.</p>
                                     )}
+                                </div>
+
+                                <div className="space-y-2 p-6 bg-white rounded-xl border border-zinc-100">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Quiz Questions</label>
+                                        <button type="button" onClick={addLessonQuestion} className="btn-secondary h-8 px-3 text-xs">Add Question</button>
+                                    </div>
+                                    {lessonForm.questions && lessonForm.questions.length === 0 && (
+                                        <p className="text-xs text-zinc-500">No questions yet. Click "Add Question" to create the lesson quiz.</p>
+                                    )}
+                                    {lessonForm.questions?.map((q: any, qi: number) => (
+                                        <div key={qi} className="p-4 bg-zinc-50 rounded-lg mb-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <input
+                                                    type="text"
+                                                    className="input-field"
+                                                    placeholder={`Question ${qi + 1}`}
+                                                    value={q.text}
+                                                    onChange={(e) => updateLessonQuestionField(qi, 'text', e.target.value)}
+                                                />
+                                                <button type="button" onClick={() => removeLessonQuestion(qi)} className="text-red-500 hover:text-red-700 text-sm ml-3">Remove</button>
+                                            </div>
+                                            {q.options.map((opt: string, oi: number) => (
+                                                <div key={oi} className="flex items-center space-x-3 mb-2">
+                                                    <input type="radio" name={`correct-${qi}`} checked={q.correctOption === oi} onChange={() => setLessonQuestionCorrectOption(qi, oi)} />
+                                                    <input
+                                                        type="text"
+                                                        className="input-field flex-1"
+                                                        placeholder={`Option ${oi + 1}`}
+                                                        value={opt}
+                                                        onChange={(e) => updateLessonOption(qi, oi, e.target.value)}
+                                                    />
+                                                </div>
+                                            ))}
+                                            <div className="flex items-center space-x-2">
+                                                <button type="button" onClick={() => addLessonOption(qi)} className="btn-secondary h-8 px-3 text-xs">Add Option</button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 

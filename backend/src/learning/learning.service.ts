@@ -90,6 +90,7 @@ export class LearningService {
                     name: dto.name,
                     topicId: dto.topicId,
                     content: dto.content,
+                    videoUrl: dto.videoUrl,
                     order: dto.order ?? 1,
                     rewardPoints: dto.rewardPoints ?? 10,
                     isApproved,
@@ -229,7 +230,12 @@ export class LearningService {
         }
 
         if (lesson.videoUrl) {
-            lesson.videoUrl = await this.uploadService.getPresignedUrl(lesson.videoUrl, 3600);
+            // If the stored videoUrl is an external link (e.g., YouTube), leave it as-is.
+            if (typeof lesson.videoUrl === 'string' && lesson.videoUrl.startsWith('http')) {
+                // external URL - no presigned URL needed
+            } else {
+                lesson.videoUrl = await this.uploadService.getPresignedUrl(lesson.videoUrl, 3600);
+            }
         }
 
         const { topic, ...lessonData } = lesson;

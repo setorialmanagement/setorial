@@ -101,6 +101,7 @@ let LearningService = class LearningService {
                     name: dto.name,
                     topicId: dto.topicId,
                     content: dto.content,
+                    videoUrl: dto.videoUrl,
                     order: dto.order ?? 1,
                     rewardPoints: dto.rewardPoints ?? 10,
                     isApproved,
@@ -228,7 +229,12 @@ let LearningService = class LearningService {
             throw new common_1.NotFoundException('Lesson not found');
         }
         if (lesson.videoUrl) {
-            lesson.videoUrl = await this.uploadService.getPresignedUrl(lesson.videoUrl, 3600);
+            // If videoUrl is an external link (YouTube), don't presign; otherwise generate presigned R2 URL
+            if (typeof lesson.videoUrl === 'string' && lesson.videoUrl.startsWith('http')) {
+                // external URL - leave as-is
+            } else {
+                lesson.videoUrl = await this.uploadService.getPresignedUrl(lesson.videoUrl, 3600);
+            }
         }
         const { topic, ...lessonData } = lesson;
         return lessonData;

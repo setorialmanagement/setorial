@@ -1,5 +1,5 @@
 import { SoundButton } from '../components/SoundButton';
-import { View, Text, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView, Dimensions, useColorScheme } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView, Dimensions, useColorScheme, Linking } from "react-native";
 import { ChevronLeft, CheckCircle2, XCircle, Trophy, ArrowRight, Home, BookOpen } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
@@ -129,9 +129,13 @@ export default function LevelScreen() {
         }
     };
 
-    const player = useVideoPlayer(lesson?.videoUrl || '', (player) => {
+    const isYouTube = lesson?.videoUrl && /youtube\.com|youtu\.be/.test(lesson.videoUrl);
+
+    const player = useVideoPlayer((!isYouTube ? (lesson?.videoUrl || '') : ''), (player) => {
         player.loop = false;
     });
+
+    // External YouTube links will open in YouTube/browser (not embedded in-app).
 
     if (loading) {
         return (
@@ -166,12 +170,20 @@ export default function LevelScreen() {
                 <ScrollView className="flex-1 px-6 pt-6" showsVerticalScrollIndicator={false}>
                     {lesson.videoUrl && (
                         <View className="mb-6 rounded-2xl overflow-hidden border-2 border-gray-100 dark:border-gray-800 bg-black">
-                            <VideoView
-                                player={player}
-                                style={{ width: '100%', height: 210 }}
-                                contentFit="contain"
-                                allowsFullscreen
-                            />
+                            {isYouTube ? (
+                                <View style={{ width: '100%', height: 210, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                                    <TouchableOpacity onPress={() => Linking.openURL(lesson.videoUrl)} className="px-4 py-3 rounded-md bg-red-600">
+                                        <Text className="text-white font-bold">Open in YouTube</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <VideoView
+                                    player={player}
+                                    style={{ width: '100%', height: 210 }}
+                                    contentFit="contain"
+                                    allowsFullscreen
+                                />
+                            )}
                         </View>
                     )}
                     <View className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl items-center justify-center mb-6">
