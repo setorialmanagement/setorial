@@ -34,7 +34,7 @@ import { PrismaService } from './prisma.service';
               port: parseInt(url.port || '6379'),
               username: url.username || undefined,
               password: url.password || undefined,
-              tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+              tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
             }
           };
         }
@@ -51,6 +51,11 @@ import { PrismaService } from './prisma.service';
           store: await redisStore({
             url: redisUrl || 'redis://localhost:6379',
             ttl: 600000, // 10 minutes in milliseconds
+            pingInterval: 30000,
+            socket: redisUrl?.startsWith('rediss://') ? {
+              tls: true,
+              rejectUnauthorized: false
+            } : undefined
           }),
         };
       },
