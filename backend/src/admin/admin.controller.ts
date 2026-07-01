@@ -11,7 +11,7 @@ import * as bcrypt from 'bcrypt';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN' as any)
+@Roles(Role.ADMIN)
 export class AdminController {
     constructor(
         private payoutsService: PayoutsService,
@@ -145,6 +145,7 @@ export class AdminController {
     async getPendingKyc() {
         return this.prisma.user.findMany({
             where: { kycStatus: 'PENDING' },
+            take: 1000,
             select: { id: true, name: true, email: true, tier: true, payoutMethod: true, payoutAccount: true, createdAt: true },
             orderBy: { updatedAt: 'asc' },
         });
@@ -186,6 +187,7 @@ export class AdminController {
         if (kycStatus) where.kycStatus = kycStatus.toUpperCase();
         return this.prisma.user.findMany({
             where,
+            take: 1000,
             select: { id: true, name: true, email: true, tier: true, kycStatus: true, isVerified: true, role: true, isFrozen: true, isFlagged: true, createdAt: true },
             orderBy: { createdAt: 'desc' },
         });
@@ -284,7 +286,7 @@ export class AdminController {
 
     @Get('payout-batches')
     async getPayoutBatches() {
-        return this.prisma.payoutBatch.findMany({ orderBy: { createdAt: 'desc' } });
+        return this.prisma.payoutBatch.findMany({ take: 100, orderBy: { createdAt: 'desc' } });
     }
 
     /** Manual trigger for testing — production version runs on cron */
@@ -394,6 +396,7 @@ export class AdminController {
     @Get('support')
     async getSupportMessages() {
         return this.prisma.supportMessage.findMany({
+            take: 1000,
             include: { user: { select: { name: true, email: true } } },
             orderBy: { createdAt: 'desc' },
         });

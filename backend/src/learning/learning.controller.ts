@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { LearningService } from './learning.service';
 import { AiContentService } from './ai-content.service';
@@ -114,7 +114,11 @@ export class LearningController {
         const updateData = { ...dto };
         // If nested JSON strings come in from FormData, parse them
         if (typeof updateData.questions === 'string') {
-            updateData.questions = JSON.parse(updateData.questions);
+            try {
+                updateData.questions = JSON.parse(updateData.questions);
+            } catch (e) {
+                throw new BadRequestException('Invalid JSON format for questions');
+            }
         }
         return this.learningService.updateLessonWithVideo(id, updateData, req.user, video);
     }

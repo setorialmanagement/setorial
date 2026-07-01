@@ -154,7 +154,13 @@ export class MockExamsService {
             throw new BadRequestException('At least one subject must be selected');
         }
 
-        const questionsPerSubject = Math.floor(numQuestions / subjectIds.length);
+        const parsedNumQuestions = Number(numQuestions);
+        const validNumQuestions = (isNaN(parsedNumQuestions) || parsedNumQuestions <= 0) ? 50 : parsedNumQuestions;
+        
+        const parsedDuration = Number(durationMinutes);
+        const validDuration = (isNaN(parsedDuration) || parsedDuration <= 0) ? Math.ceil(validNumQuestions * 1.5) : parsedDuration;
+
+        const questionsPerSubject = Math.floor(validNumQuestions / subjectIds.length);
         let allQuestions: any[] = [];
         let missingQuestionsBySubject: { subjectName: string, missingCount: number }[] = [];
 
@@ -199,13 +205,13 @@ export class MockExamsService {
         }
 
         const finalQuestions = allQuestions.sort(() => 0.5 - Math.random());
-        const exactQuestions = finalQuestions.slice(0, numQuestions);
+        const exactQuestions = finalQuestions.slice(0, validNumQuestions);
 
         const customMock = await this.prisma.mockExam.create({
             data: {
                 title: `Custom Mock Exam`,
                 description: `A custom mock exam generated on the fly for your subjects.`,
-                durationMinutes: durationMinutes || Math.ceil(numQuestions * 1.5),
+                durationMinutes: validDuration,
                 isApproved: false,
                 isActive: true,
                 price: 0,
