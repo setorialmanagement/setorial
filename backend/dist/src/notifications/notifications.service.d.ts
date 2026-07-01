@@ -1,12 +1,11 @@
-import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma.service';
 export declare class NotificationsService {
     private prisma;
-    private readonly notificationsQueue;
     private readonly logger;
-    private readonly QUEUE_TIMEOUT_MS;
-    constructor(prisma: PrismaService, notificationsQueue: Queue);
-    private queueJobWithTimeout;
+    private readonly resend;
+    private readonly globalFrom;
+    constructor(prisma: PrismaService);
+    private executeEmailAsync;
     sendPush(userId: string, title: string, body: string, data?: Record<string, any>): Promise<void>;
     sendPushToMany(userIds: string[], title: string, body: string, data?: Record<string, any>): Promise<void>;
     private sendToTokens;

@@ -26,10 +26,11 @@ let AiContentService = AiContentService_1 = class AiContentService {
     prisma;
     aiQueue;
     logger = new common_1.Logger(AiContentService_1.name);
+    deepseekKey;
     constructor(prisma, aiQueue) {
         this.prisma = prisma;
         this.aiQueue = aiQueue;
-        this.deepseekKey = process.env.DEEPSEEK_API_KEY || '';
+        this.deepseekKey = process.env.DEEPSEEK_API_KEY ?? '';
         if (!this.deepseekKey) {
             throw new Error('Missing environment variable DEEPSEEK_API_KEY');
         }
@@ -134,14 +135,19 @@ Respond ONLY with valid JSON:
             });
         });
     }
-    async generateMockExam(subjectId, title, numQuestions = 30, userRole) {
+    async generateMockExam(subjectId, title, numQuestions = 30, durationMinutes, userRole) {
         const subject = await this.prisma.subject.findUnique({ where: { id: subjectId } });
         if (!subject)
             throw new Error('Subject not found');
         const isApproved = userRole === 'TUTOR' ? false : true;
-        const prompt = `Create a professional standardized mock exam for the subject "${subject.name}".
-Title: "${title}".
-Generate exactly ${numQuestions} diverse, high-quality multiple choice questions covering various topics in this subject.
+        const duration = durationMinutes || Math.ceil(numQuestions * 1.5);
+        const maxPerBatch = 30;
+        let allQuestions = [];
+        let questionsRemaining = numQuestions;
+        while (questionsRemaining > 0) {
+            const batchSize = Math.min(questionsRemaining, maxPerBatch);
+            const prompt = `Create a professional standardized mock exam for the subject "${subject.name}".
+Generate exactly ${batchSize} diverse, high-quality multiple choice questions.
 
 IMPORTANT MATH FORMATTING: All mathematical expressions MUST use LaTeX wrapped in dollar-sign delimiters.
 Use $...$ for inline math and $$...$$ for display equations.
@@ -150,9 +156,6 @@ NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2)
 
 Respond ONLY with valid JSON:
 {
-  "title": "${title}",
-  "description": "Comprehensive mock exam for ${subject.name}",
-  "durationMinutes": ${Math.ceil(numQuestions * 1.5)},
   "questions": [
     {
       "text": "Question text...",
@@ -161,23 +164,32 @@ Respond ONLY with valid JSON:
     }
   ]
 }`;
-        return this.executeGeneration(prompt, async (data) => {
-            return this.prisma.mockExam.create({
-                data: {
-                    title: data.title,
-                    description: data.description,
-                    durationMinutes: data.durationMinutes,
-                    isApproved,
-                    questions: {
-                        create: data.questions.map((q) => ({
-                            text: q.text,
-                            options: q.options,
-                            correctOption: q.correctOption
-                        }))
-                    }
-                },
-                include: { questions: true }
-            });
+            try {
+                const batchData = await this.executeGeneration(prompt, async (data) => data);
+                if (batchData?.questions && Array.isArray(batchData.questions)) {
+                    allQuestions = allQuestions.concat(batchData.questions);
+                }
+            }
+            catch (err) {
+                this.logger.error(`Batch generation failed: ${err.message}`);
+            }
+            questionsRemaining -= batchSize;
+        }
+        return this.prisma.mockExam.create({
+            data: {
+                title: title,
+                description: `Comprehensive mock exam for ${subject.name}`,
+                durationMinutes: duration,
+                isApproved,
+                questions: {
+                    create: allQuestions.map((q) => ({
+                        text: q.text,
+                        options: q.options,
+                        correctOption: q.correctOption
+                    }))
+                }
+            },
+            include: { questions: true }
         });
     }
     async generateFullSyllabus(subjectId, numTopics = 5, userRole) {
@@ -202,7 +214,7 @@ Respond ONLY with a JSON object:
             }
         }
         try {
-            await this.generateMockExam(subjectId, `${subject.name} - Standardized Pro Mock`, 30, userRole);
+            await this.generateMockExam(subjectId, `${subject.name} - Standardized Pro Mock`, 30, undefined, userRole);
         }
         catch (err) {
             this.logger.error(`Failed to generate subject mock exam: ${err.message}`);
@@ -232,6 +244,43 @@ Respond ONLY with a JSON object:
             this.logger.error(`AI Generation failed: ${error.message}`, error.stack);
             throw new Error('Failed to generate AI content');
         }
+    }
+    async generateQuestionsForSubject(subjectName, numQuestions) {
+        const maxPerBatch = 30;
+        let allQuestions = [];
+        let questionsRemaining = numQuestions;
+        while (questionsRemaining > 0) {
+            const batchSize = Math.min(questionsRemaining, maxPerBatch);
+            const prompt = `Create a professional standardized mock exam for the subject "${subjectName}".
+Generate exactly ${batchSize} diverse, high-quality multiple choice questions.
+
+IMPORTANT MATH FORMATTING: All mathematical expressions MUST use LaTeX wrapped in dollar-sign delimiters.
+Use $...$ for inline math and $$...$$ for display equations.
+Examples: $\\frac{a}{b}$, $\\sqrt{x}$, $\\sec^2(x)$, $$E = mc^2$$
+NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2). Always use LaTeX.
+
+Respond ONLY with valid JSON:
+{
+  "questions": [
+    {
+      "text": "Question text...",
+      "options": ["A", "B", "C", "D"],
+      "correctOption": 0
+    }
+  ]
+}`;
+            try {
+                const batchData = await this.executeGeneration(prompt, async (data) => data);
+                if (batchData?.questions && Array.isArray(batchData.questions)) {
+                    allQuestions = allQuestions.concat(batchData.questions);
+                }
+            }
+            catch (err) {
+                this.logger.error(`Batch generation failed for ${subjectName}: ${err.message}`);
+            }
+            questionsRemaining -= batchSize;
+        }
+        return allQuestions;
     }
 };
 exports.AiContentService = AiContentService;

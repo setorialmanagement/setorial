@@ -1,14 +1,18 @@
 import { PrismaService } from '../prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { GamificationService } from '../gamification/gamification.service';
+import { AiContentService } from '../learning/ai-content.service';
 export declare class MockExamsService {
     private prisma;
     private walletService;
     private gamificationService;
-    constructor(prisma: PrismaService, walletService: WalletService, gamificationService: GamificationService);
+    private aiContentService;
+    private readonly logger;
+    constructor(prisma: PrismaService, walletService: WalletService, gamificationService: GamificationService, aiContentService: AiContentService);
     getAvailableMocks(userId: string, role?: string): Promise<{
         id: string;
         isApproved: boolean;
+        description: string | null;
         _count: {
             questions: number;
         };
@@ -24,7 +28,6 @@ export declare class MockExamsService {
             correctOption: number;
             explanation: string | null;
         }[];
-        description: string | null;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
@@ -32,6 +35,7 @@ export declare class MockExamsService {
         price: number;
         id: string;
         isApproved: boolean;
+        description: string | null;
         _count: {
             questions: number;
         };
@@ -47,7 +51,6 @@ export declare class MockExamsService {
             correctOption: number;
             explanation: string | null;
         }[];
-        description: string | null;
         title: string;
         durationMinutes: number;
     }[]>;
@@ -62,8 +65,8 @@ export declare class MockExamsService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
-        isActive: boolean;
         description: string | null;
+        isActive: boolean;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
@@ -84,5 +87,10 @@ export declare class MockExamsService {
             correctOption: number;
             explanation: string | null;
         }[];
+    }>;
+    generateCustomMock(userId: string, subjectIds: string[], numQuestions: number, durationMinutes: number): Promise<{
+        mockId: string;
+        message: string;
+        totalQuestions: number;
     }>;
 }

@@ -29,6 +29,8 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     updateTopic(id: string, data: any, user?: any): Promise<{
@@ -37,6 +39,8 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     deleteTopic(id: string): Promise<{
@@ -45,6 +49,8 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     createLesson(dto: CreateLessonDto, user?: any): Promise<{
@@ -65,9 +71,9 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;
@@ -89,9 +95,9 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;
@@ -103,9 +109,9 @@ export declare class LearningService {
                 isApproved: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                order: number;
                 content: string | null;
                 videoUrl: string | null;
-                order: number;
                 rewardPoints: number;
                 topicId: string;
             }[];
@@ -115,6 +121,8 @@ export declare class LearningService {
             isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
+            order: number;
             subjectId: string;
         })[];
     } & {
@@ -137,9 +145,9 @@ export declare class LearningService {
                 isApproved: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                order: number;
                 content: string | null;
                 videoUrl: string | null;
-                order: number;
                 rewardPoints: number;
                 topicId: string;
             }[];
@@ -148,6 +156,8 @@ export declare class LearningService {
             isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
+            order: number;
             subjectId: string;
         }[];
         id: string;
@@ -175,9 +185,9 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;
@@ -216,6 +226,8 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     approveLesson(id: string): Promise<{
@@ -224,9 +236,9 @@ export declare class LearningService {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;

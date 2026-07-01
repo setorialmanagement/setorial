@@ -47,7 +47,7 @@ export class LearningController {
         return this.learningService.createSubject(dto, req.user);
     }
 
-    @Roles(Role.ADMIN, Role.TUTOR)
+    @Roles(Role.ADMIN)
     @Delete('subjects/:id')
     async deleteSubject(@Param('id') id: string) {
         return this.learningService.deleteSubject(id);
@@ -59,13 +59,13 @@ export class LearningController {
         return this.learningService.createTopic(dto, req.user);
     }
 
-    @Roles(Role.ADMIN, Role.TUTOR)
+    @Roles(Role.ADMIN)
     @Post('topics/:id')
     async updateTopic(@Param('id') id: string, @Body() dto: any) {
         return this.learningService.updateTopic(id, dto);
     }
 
-    @Roles(Role.ADMIN, Role.TUTOR)
+    @Roles(Role.ADMIN)
     @Delete('topics/:id')
     async deleteTopic(@Param('id') id: string) {
         return this.learningService.deleteTopic(id);
@@ -102,7 +102,7 @@ export class LearningController {
         return this.learningService.submitLesson(req.user.userId, dto);
     }
 
-    @Roles(Role.ADMIN, Role.TUTOR)
+    @Roles(Role.ADMIN)
     @Post('lessons/:id')
     @UseInterceptors(FileInterceptor('video'))
     async updateLesson(

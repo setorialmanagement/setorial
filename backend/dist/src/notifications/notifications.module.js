@@ -9,9 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationsModule = void 0;
 const common_1 = require("@nestjs/common");
 const axios_1 = require("@nestjs/axios");
-const bullmq_1 = require("@nestjs/bullmq");
 const notifications_service_1 = require("./notifications.service");
-const notifications_processor_1 = require("./notifications.processor");
 const prisma_service_1 = require("../prisma.service");
 let NotificationsModule = class NotificationsModule {
 };
@@ -21,11 +19,8 @@ exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             axios_1.HttpModule,
-            bullmq_1.BullModule.registerQueue({
-                name: 'notifications',
-            }),
         ],
-        providers: [notifications_service_1.NotificationsService, notifications_processor_1.NotificationsProcessor, prisma_service_1.PrismaService],
+        providers: [notifications_service_1.NotificationsService, prisma_service_1.PrismaService],
         exports: [notifications_service_1.NotificationsService],
     })
 ], NotificationsModule);

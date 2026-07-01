@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { GamificationService } from '../gamification/gamification.service';
+import { AiContentService } from '../learning/ai-content.service';
 
 @Injectable()
 export class MockExamsService {
+    private readonly logger = new Logger(MockExamsService.name);
+
     constructor(
         private prisma: PrismaService,
         private walletService: WalletService,
-        private gamificationService: GamificationService
+        private gamificationService: GamificationService,
+        private aiContentService: AiContentService
     ) { }
 
     async getAvailableMocks(userId: string, role?: string) {
@@ -143,5 +147,83 @@ export class MockExamsService {
         }));
 
         return { score, maxScore: questions.length, pointsEarned, status: updatedAttempt.status, corrections };
+    }
+
+    async generateCustomMock(userId: string, subjectIds: string[], numQuestions: number, durationMinutes: number) {
+        if (!subjectIds || subjectIds.length === 0) {
+            throw new BadRequestException('At least one subject must be selected');
+        }
+
+        const questionsPerSubject = Math.floor(numQuestions / subjectIds.length);
+        let allQuestions: any[] = [];
+        let missingQuestionsBySubject: { subjectName: string, missingCount: number }[] = [];
+
+        for (const subjectId of subjectIds) {
+            const subject = await this.prisma.subject.findUnique({ where: { id: subjectId } });
+            if (!subject) continue;
+
+            const dbQuestions = await this.prisma.question.findMany({
+                where: {
+                    lesson: {
+                        topic: {
+                            subjectId: subject.id
+                        }
+                    }
+                },
+                select: {
+                    text: true,
+                    options: true,
+                    correctOption: true,
+                    explanation: true
+                }
+            });
+
+            const shuffledDb = dbQuestions.sort(() => 0.5 - Math.random());
+            const selectedDb = shuffledDb.slice(0, questionsPerSubject);
+            allQuestions = allQuestions.concat(selectedDb);
+
+            const missing = questionsPerSubject - selectedDb.length;
+            if (missing > 0) {
+                missingQuestionsBySubject.push({ subjectName: subject.name, missingCount: missing });
+            }
+        }
+
+        for (const missingData of missingQuestionsBySubject) {
+            try {
+                this.logger.log(`Generating ${missingData.missingCount} missing questions via AI for ${missingData.subjectName}`);
+                const aiQuestions = await this.aiContentService.generateQuestionsForSubject(missingData.subjectName, missingData.missingCount);
+                allQuestions = allQuestions.concat(aiQuestions);
+            } catch (err) {
+                this.logger.error(`Failed to generate AI questions for ${missingData.subjectName}`, err);
+            }
+        }
+
+        const finalQuestions = allQuestions.sort(() => 0.5 - Math.random());
+        const exactQuestions = finalQuestions.slice(0, numQuestions);
+
+        const customMock = await this.prisma.mockExam.create({
+            data: {
+                title: `Custom Mock Exam`,
+                description: `A custom mock exam generated on the fly for your subjects.`,
+                durationMinutes: durationMinutes || Math.ceil(numQuestions * 1.5),
+                isApproved: false,
+                isActive: true,
+                price: 0,
+                questions: {
+                    create: exactQuestions.map((q: any) => ({
+                        text: q.text,
+                        options: q.options,
+                        correctOption: q.correctOption,
+                        explanation: q.explanation || null
+                    }))
+                }
+            }
+        });
+
+        return {
+            mockId: customMock.id,
+            message: 'Custom mock generated successfully',
+            totalQuestions: exactQuestions.length
+        };
     }
 }

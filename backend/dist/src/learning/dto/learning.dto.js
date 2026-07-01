@@ -22,6 +22,8 @@ __decorate([
 ], CreateSubjectDto.prototype, "name", void 0);
 class CreateTopicDto {
     name;
+    description;
+    order;
     subjectId;
 }
 exports.CreateTopicDto = CreateTopicDto;
@@ -30,6 +32,16 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateTopicDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateTopicDto.prototype, "description", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTopicDto.prototype, "order", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),

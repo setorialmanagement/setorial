@@ -36,7 +36,7 @@ let LearningController = class LearningController {
         return this.aiContentService.queueFullSyllabusGeneration(dto.subjectId, dto.numTopics, req.user.role);
     }
     async generateAiMock(dto, req) {
-        return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions, req.user.role);
+        return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions, dto.durationMinutes, req.user.role);
     }
     async regenerateLesson(id, req) {
         return this.aiContentService.regenerateLesson(id, req.user.role);
@@ -138,7 +138,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "createSubject", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     (0, common_1.Delete)('subjects/:id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -155,7 +155,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "createTopic", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     (0, common_1.Post)('topics/:id'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
@@ -164,7 +164,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "updateTopic", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     (0, common_1.Delete)('topics/:id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -219,7 +219,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "submitLesson", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     (0, common_1.Post)('lessons/:id'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('video')),
     __param(0, (0, common_1.Param)('id')),

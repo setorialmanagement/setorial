@@ -8,35 +8,46 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 var NotificationsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationsService = void 0;
 const common_1 = require("@nestjs/common");
-const bullmq_1 = require("@nestjs/bullmq");
-const bullmq_2 = require("bullmq");
 const prisma_service_1 = require("../prisma.service");
+const resend_1 = require("resend");
+const axios_1 = __importDefault(require("axios"));
 let NotificationsService = NotificationsService_1 = class NotificationsService {
     prisma;
-    notificationsQueue;
     logger = new common_1.Logger(NotificationsService_1.name);
-    QUEUE_TIMEOUT_MS = 5000;
-    constructor(prisma, notificationsQueue) {
+    resend;
+    globalFrom = process.env.EMAIL_FROM_ADDRESS || 'Setorial <onboarding@resend.dev>';
+    constructor(prisma) {
         this.prisma = prisma;
-        this.notificationsQueue = notificationsQueue;
+        this.resend = new resend_1.Resend(process.env.RESEND_API_KEY || 're_dummy');
     }
-    async queueJobWithTimeout(jobName, jobData) {
+    async executeEmailAsync(jobData) {
         try {
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`Queue timeout after ${this.QUEUE_TIMEOUT_MS}ms`)), this.QUEUE_TIMEOUT_MS));
-            await Promise.race([
-                this.notificationsQueue.add(jobName, jobData),
-                timeoutPromise
-            ]);
+            if (jobData.batch) {
+                await this.resend.batch.send(jobData.batch);
+                this.logger.log(`Batch email job completed for ${jobData.batch.length} recipients.`);
+            }
+            else {
+                const { error } = await this.resend.emails.send({
+                    from: this.globalFrom,
+                    to: jobData.to,
+                    subject: jobData.subject,
+                    html: jobData.html,
+                    replyTo: jobData.replyTo
+                });
+                if (error)
+                    throw new Error(error.message);
+                this.logger.log(`Email job completed for ${jobData.to}`);
+            }
         }
         catch (err) {
-            this.logger.error(`Failed to queue ${jobName}: ${err.message}`);
+            this.logger.error(`Failed to execute email: ${err.message}`);
         }
     }
     async sendPush(userId, title, body, data = {}) {
@@ -48,12 +59,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             this.logger.debug(`User ${userId} has no push token, skipping.`);
             return;
         }
-        await this.notificationsQueue.add('push', {
-            tokens: [user.expoPushToken],
-            title,
-            body,
-            payload: data,
-        });
+        this.sendToTokens([user.expoPushToken], title, body, data);
     }
     async sendPushToMany(userIds, title, body, data = {}) {
         const users = await this.prisma.user.findMany({
@@ -63,14 +69,29 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         const tokens = users.map(u => u.expoPushToken).filter(t => !!t);
         if (tokens.length === 0)
             return;
-        await this.notificationsQueue.add('push', {
-            tokens,
-            title,
-            body,
-            payload: data,
-        });
+        this.sendToTokens(tokens, title, body, data);
     }
     async sendToTokens(tokens, title, body, data = {}) {
+        const messages = tokens.map(token => ({
+            to: token,
+            sound: 'default',
+            title,
+            body,
+            data,
+        }));
+        try {
+            await axios_1.default.post('https://exp.host/--/api/v2/push/send', messages, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Accept-encoding': 'gzip, deflate',
+                    'Content-Type': 'application/json',
+                },
+            });
+            this.logger.log(`Push notification job completed for ${tokens.length} tokens.`);
+        }
+        catch (error) {
+            this.logger.error(`Failed to send push notifications via Expo: ${error.response?.data?.message || error.message}`);
+        }
     }
     generateSetorialHtml(title, messageHtml) {
         return `
@@ -130,7 +151,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             </div>
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once. Never share this code with anyone.</p>
         `;
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: title,
             html: this.generateSetorialHtml(title, content)
@@ -147,7 +168,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             <p style="color: #374151;">If you didn't request this, you can safely ignore this email.</p>
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once.</p>
         `;
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: title,
             html: this.generateSetorialHtml(title, content)
@@ -167,7 +188,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             </ul>
             <p>Happy studying!</p>
         `;
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: title,
             html: this.generateSetorialHtml(title, content)
@@ -181,7 +202,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             <p>Your learning rewards for <b>${month}</b> have been processed. We've initiated a transfer of <b>₦${amount.toLocaleString()}</b> to your configured bank account.</p>
             <p>Keep studying and acing those mock exams to increase your rank next month!</p>
         `;
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: 'Setorial Reward Payout Processing',
             html: this.generateSetorialHtml(title, content)
@@ -201,7 +222,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
                 subject,
                 html
             }));
-            await this.queueJobWithTimeout('email-batch', { batch: batchPayload });
+            this.executeEmailAsync({ batch: batchPayload });
         }
     }
     async sendSupportEmail(userEmail, message) {
@@ -211,7 +232,7 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
             <hr />
             <p>${message.replace(/\n/g, '<br/>')}</p>
         `;
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: 'setorialapp@gmail.com',
             replyTo: userEmail,
             subject: `Support Request [${userEmail}]`,
@@ -222,8 +243,6 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
 exports.NotificationsService = NotificationsService;
 exports.NotificationsService = NotificationsService = NotificationsService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(1, (0, bullmq_1.InjectQueue)('notifications')),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        bullmq_2.Queue])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], NotificationsService);
 //# sourceMappingURL=notifications.service.js.map

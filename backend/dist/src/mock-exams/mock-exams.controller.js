@@ -24,6 +24,9 @@ let MockExamsController = class MockExamsController {
     getAvailableMocks(req) {
         return this.mockService.getAvailableMocks(req.user.userId, req.user.role);
     }
+    createCustomMock(req, body) {
+        return this.mockService.generateCustomMock(req.user.userId, body.subjectIds, body.numQuestions, body.durationMinutes);
+    }
     getMockDetails(id) {
         return this.mockService.getMockDetails(id);
     }
@@ -42,6 +45,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], MockExamsController.prototype, "getAvailableMocks", null);
+__decorate([
+    (0, common_1.Post)('custom'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], MockExamsController.prototype, "createCustomMock", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

@@ -262,4 +262,45 @@ Respond ONLY with a JSON object:
             throw new Error('Failed to generate AI content');
         }
     }
+
+    async generateQuestionsForSubject(subjectName: string, numQuestions: number): Promise<any[]> {
+        const maxPerBatch = 30;
+        let allQuestions: any[] = [];
+        let questionsRemaining = numQuestions;
+
+        while (questionsRemaining > 0) {
+            const batchSize = Math.min(questionsRemaining, maxPerBatch);
+            
+            const prompt = `Create a professional standardized mock exam for the subject "${subjectName}".
+Generate exactly ${batchSize} diverse, high-quality multiple choice questions.
+
+IMPORTANT MATH FORMATTING: All mathematical expressions MUST use LaTeX wrapped in dollar-sign delimiters.
+Use $...$ for inline math and $$...$$ for display equations.
+Examples: $\\frac{a}{b}$, $\\sqrt{x}$, $\\sec^2(x)$, $$E = mc^2$$
+NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2). Always use LaTeX.
+
+Respond ONLY with valid JSON:
+{
+  "questions": [
+    {
+      "text": "Question text...",
+      "options": ["A", "B", "C", "D"],
+      "correctOption": 0
+    }
+  ]
+}`;
+
+            try {
+                const batchData = await this.executeGeneration(prompt, async (data) => data);
+                if (batchData?.questions && Array.isArray(batchData.questions)) {
+                    allQuestions = allQuestions.concat(batchData.questions);
+                }
+            } catch (err: any) {
+                this.logger.error(`Batch generation failed for ${subjectName}: ${err.message}`);
+            }
+            questionsRemaining -= batchSize;
+        }
+
+        return allQuestions;
+    }
 }

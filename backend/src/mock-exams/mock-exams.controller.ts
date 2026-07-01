@@ -13,6 +13,19 @@ export class MockExamsController {
         return this.mockService.getAvailableMocks(req.user.userId, req.user.role);
     }
 
+    @Post('custom')
+    createCustomMock(
+        @Request() req: any,
+        @Body() body: { subjectIds: string[], numQuestions: number, durationMinutes: number }
+    ) {
+        return this.mockService.generateCustomMock(
+            req.user.userId,
+            body.subjectIds,
+            body.numQuestions,
+            body.durationMinutes
+        );
+    }
+
     @Get(':id')
     getMockDetails(@Param('id') id: string) {
         return this.mockService.getMockDetails(id);

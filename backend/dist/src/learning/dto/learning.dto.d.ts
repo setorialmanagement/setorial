@@ -3,6 +3,8 @@ export declare class CreateSubjectDto {
 }
 export declare class CreateTopicDto {
     name: string;
+    description?: string;
+    order?: number;
     subjectId: string;
 }
 export declare class CreateQuestionDto {
@@ -14,6 +16,7 @@ export declare class CreateLessonDto {
     name: string;
     topicId: string;
     content?: string;
+    videoUrl?: string;
     order?: number;
     rewardPoints?: number;
     questions: CreateQuestionDto[];

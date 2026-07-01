@@ -12,6 +12,8 @@ export declare class LearningController {
             isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
+            order: number;
             subjectId: string;
         };
         levels: ({
@@ -32,9 +34,9 @@ export declare class LearningController {
             isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
+            order: number;
             content: string | null;
             videoUrl: string | null;
-            order: number;
             rewardPoints: number;
             topicId: string;
         })[];
@@ -49,7 +51,30 @@ export declare class LearningController {
         subjectId: string;
         title: string;
         numQuestions?: number;
-    }, req: any): Promise<any>;
+        durationMinutes?: number;
+    }, req: any): Promise<{
+        questions: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            mockExamId: string | null;
+            lessonId: string | null;
+            options: import("@prisma/client/runtime/client").JsonValue;
+            text: string;
+            correctOption: number;
+            explanation: string | null;
+        }[];
+    } & {
+        id: string;
+        isApproved: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string | null;
+        isActive: boolean;
+        price: import("@prisma/client-runtime-utils").Decimal;
+        title: string;
+        durationMinutes: number;
+    }>;
     regenerateLesson(id: string, req: any): Promise<{
         questions: {
             id: string;
@@ -68,9 +93,9 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;
@@ -94,6 +119,8 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     updateTopic(id: string, dto: any): Promise<{
@@ -102,6 +129,8 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     deleteTopic(id: string): Promise<{
@@ -110,6 +139,8 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     search(query: string): Promise<({
@@ -134,9 +165,9 @@ export declare class LearningController {
                 isApproved: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                order: number;
                 content: string | null;
                 videoUrl: string | null;
-                order: number;
                 rewardPoints: number;
                 topicId: string;
             }[];
@@ -146,6 +177,8 @@ export declare class LearningController {
             isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
+            order: number;
             subjectId: string;
         })[];
     } & {
@@ -168,9 +201,9 @@ export declare class LearningController {
                 isApproved: boolean;
                 createdAt: Date;
                 updatedAt: Date;
+                order: number;
                 content: string | null;
                 videoUrl: string | null;
-                order: number;
                 rewardPoints: number;
                 topicId: string;
             }[];
@@ -179,6 +212,8 @@ export declare class LearningController {
             isApproved: boolean;
             createdAt: Date;
             updatedAt: Date;
+            description: string | null;
+            order: number;
             subjectId: string;
         }[];
         id: string;
@@ -206,9 +241,9 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;
@@ -238,9 +273,9 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;
@@ -257,6 +292,8 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        description: string | null;
+        order: number;
         subjectId: string;
     }>;
     approveLesson(id: string): Promise<{
@@ -265,9 +302,9 @@ export declare class LearningController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
+        order: number;
         content: string | null;
         videoUrl: string | null;
-        order: number;
         rewardPoints: number;
         topicId: string;
     }>;

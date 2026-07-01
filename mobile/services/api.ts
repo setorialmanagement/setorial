@@ -85,6 +85,8 @@ export const mockApi = {
     start: (id: string) => api.post(`/mocks/${id}/start`),
     submit: (id: string, answers: number[], tabSwitches: number) =>
         api.post(`/mocks/${id}/submit`, { answers, tabSwitches }),
+    generateCustom: (data: { subjectIds: string[], numQuestions: number, durationMinutes: number }) =>
+        api.post('/mocks/custom', data),
 };
 
 export const storeApi = {

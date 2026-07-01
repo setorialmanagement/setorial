@@ -10,8 +10,8 @@ export declare class StoreService {
         name: string;
         createdAt: Date;
         updatedAt: Date;
-        type: import("@prisma/client").$Enums.PowerUpType;
         description: string;
+        type: import("@prisma/client").$Enums.PowerUpType;
         icon: string;
         price: import("@prisma/client-runtime-utils").Decimal;
         durationDays: number | null;
@@ -36,8 +36,8 @@ export declare class StoreService {
             name: string;
             createdAt: Date;
             updatedAt: Date;
-            type: import("@prisma/client").$Enums.PowerUpType;
             description: string;
+            type: import("@prisma/client").$Enums.PowerUpType;
             icon: string;
             price: import("@prisma/client-runtime-utils").Decimal;
             durationDays: number | null;

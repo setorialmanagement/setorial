@@ -8,20 +8,25 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var MockExamsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MockExamsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma.service");
 const wallet_service_1 = require("../wallet/wallet.service");
 const gamification_service_1 = require("../gamification/gamification.service");
-let MockExamsService = class MockExamsService {
+const ai_content_service_1 = require("../learning/ai-content.service");
+let MockExamsService = MockExamsService_1 = class MockExamsService {
     prisma;
     walletService;
     gamificationService;
-    constructor(prisma, walletService, gamificationService) {
+    aiContentService;
+    logger = new common_1.Logger(MockExamsService_1.name);
+    constructor(prisma, walletService, gamificationService, aiContentService) {
         this.prisma = prisma;
         this.walletService = walletService;
         this.gamificationService = gamificationService;
+        this.aiContentService = aiContentService;
     }
     async getAvailableMocks(userId, role) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -130,12 +135,83 @@ let MockExamsService = class MockExamsService {
         }));
         return { score, maxScore: questions.length, pointsEarned, status: updatedAttempt.status, corrections };
     }
+    async generateCustomMock(userId, subjectIds, numQuestions, durationMinutes) {
+        if (!subjectIds || subjectIds.length === 0) {
+            throw new common_1.BadRequestException('At least one subject must be selected');
+        }
+        const questionsPerSubject = Math.floor(numQuestions / subjectIds.length);
+        let allQuestions = [];
+        let missingQuestionsBySubject = [];
+        for (const subjectId of subjectIds) {
+            const subject = await this.prisma.subject.findUnique({ where: { id: subjectId } });
+            if (!subject)
+                continue;
+            const dbQuestions = await this.prisma.question.findMany({
+                where: {
+                    lesson: {
+                        topic: {
+                            subjectId: subject.id
+                        }
+                    }
+                },
+                select: {
+                    text: true,
+                    options: true,
+                    correctOption: true,
+                    explanation: true
+                }
+            });
+            const shuffledDb = dbQuestions.sort(() => 0.5 - Math.random());
+            const selectedDb = shuffledDb.slice(0, questionsPerSubject);
+            allQuestions = allQuestions.concat(selectedDb);
+            const missing = questionsPerSubject - selectedDb.length;
+            if (missing > 0) {
+                missingQuestionsBySubject.push({ subjectName: subject.name, missingCount: missing });
+            }
+        }
+        for (const missingData of missingQuestionsBySubject) {
+            try {
+                this.logger.log(`Generating ${missingData.missingCount} missing questions via AI for ${missingData.subjectName}`);
+                const aiQuestions = await this.aiContentService.generateQuestionsForSubject(missingData.subjectName, missingData.missingCount);
+                allQuestions = allQuestions.concat(aiQuestions);
+            }
+            catch (err) {
+                this.logger.error(`Failed to generate AI questions for ${missingData.subjectName}`, err);
+            }
+        }
+        const finalQuestions = allQuestions.sort(() => 0.5 - Math.random());
+        const exactQuestions = finalQuestions.slice(0, numQuestions);
+        const customMock = await this.prisma.mockExam.create({
+            data: {
+                title: `Custom Mock Exam`,
+                description: `A custom mock exam generated on the fly for your subjects.`,
+                durationMinutes: durationMinutes || Math.ceil(numQuestions * 1.5),
+                isApproved: false,
+                isActive: true,
+                price: 0,
+                questions: {
+                    create: exactQuestions.map((q) => ({
+                        text: q.text,
+                        options: q.options,
+                        correctOption: q.correctOption,
+                        explanation: q.explanation || null
+                    }))
+                }
+            }
+        });
+        return {
+            mockId: customMock.id,
+            message: 'Custom mock generated successfully',
+            totalQuestions: exactQuestions.length
+        };
+    }
 };
 exports.MockExamsService = MockExamsService;
-exports.MockExamsService = MockExamsService = __decorate([
+exports.MockExamsService = MockExamsService = MockExamsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         wallet_service_1.WalletService,
-        gamification_service_1.GamificationService])
+        gamification_service_1.GamificationService,
+        ai_content_service_1.AiContentService])
 ], MockExamsService);
 //# sourceMappingURL=mock-exams.service.js.map

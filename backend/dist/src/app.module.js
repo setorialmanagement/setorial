@@ -46,7 +46,7 @@ exports.AppModule = AppModule = __decorate([
                                 port: parseInt(url.port || '6379'),
                                 username: url.username || undefined,
                                 password: url.password || undefined,
-                                tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+                                tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
                             }
                         };
                     }
@@ -63,6 +63,11 @@ exports.AppModule = AppModule = __decorate([
                         store: await (0, cache_manager_redis_yet_1.redisStore)({
                             url: redisUrl || 'redis://localhost:6379',
                             ttl: 600000,
+                            pingInterval: 30000,
+                            socket: redisUrl?.startsWith('rediss://') ? {
+                                tls: true,
+                                rejectUnauthorized: false
+                            } : undefined
                         }),
                     };
                 },

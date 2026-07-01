@@ -206,8 +206,8 @@ export declare class AdminController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
-        isActive: boolean;
         description: string | null;
+        isActive: boolean;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
@@ -229,8 +229,8 @@ export declare class AdminController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
-        isActive: boolean;
         description: string | null;
+        isActive: boolean;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
@@ -252,8 +252,8 @@ export declare class AdminController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
-        isActive: boolean;
         description: string | null;
+        isActive: boolean;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
@@ -263,8 +263,8 @@ export declare class AdminController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
-        isActive: boolean;
         description: string | null;
+        isActive: boolean;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
@@ -286,8 +286,8 @@ export declare class AdminController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
-        isActive: boolean;
         description: string | null;
+        isActive: boolean;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;
@@ -297,8 +297,8 @@ export declare class AdminController {
         isApproved: boolean;
         createdAt: Date;
         updatedAt: Date;
-        isActive: boolean;
         description: string | null;
+        isActive: boolean;
         price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
         durationMinutes: number;

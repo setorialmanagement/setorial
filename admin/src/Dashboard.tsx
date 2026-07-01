@@ -809,13 +809,15 @@ export default function AdminDashboard() {
                                                     <Plus size={14} className="mr-2" />
                                                     Add Topic
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDeleteSubject(subject.id, subject.name)}
-                                                    className="h-9 w-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors ring-1 ring-red-200"
-                                                    title="Delete Subject"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
+                                                {userRole === 'ADMIN' && (
+                                                    <button
+                                                        onClick={() => handleDeleteSubject(subject.id, subject.name)}
+                                                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors ring-1 ring-red-200"
+                                                        title="Delete Subject"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 
@@ -862,14 +864,16 @@ export default function AdminDashboard() {
                                                                     <Plus size={14} className="mr-1" />
                                                                     Lesson
                                                                 </button>
-                                                                <button 
-                                                                    onClick={() => handleEditTopic(topic)}
-                                                                    className="h-8 px-3 flex items-center justify-center rounded-lg bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-indigo-600 transition-colors ring-1 ring-zinc-200 text-[11px] font-bold uppercase tracking-wider"
-                                                                    title="Edit Topic Details"
-                                                                >
-                                                                    <Edit3 size={14} className="mr-1" />
-                                                                    Edit
-                                                                </button>
+                                                                {userRole === 'ADMIN' && (
+                                                                    <button 
+                                                                        onClick={() => handleEditTopic(topic)}
+                                                                        className="h-8 px-3 flex items-center justify-center rounded-lg bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-indigo-600 transition-colors ring-1 ring-zinc-200 text-[11px] font-bold uppercase tracking-wider"
+                                                                        title="Edit Topic Details"
+                                                                    >
+                                                                        <Edit3 size={14} className="mr-1" />
+                                                                        Edit
+                                                                    </button>
+                                                                )}
                                                                 {(!topic.lessons || topic.lessons.length === 0) ? (
                                                                     <button
                                                                         onClick={() => handleGenerateAiLevels(subject.id, topic.name)}
@@ -884,17 +888,19 @@ export default function AdminDashboard() {
                                                                         Synced
                                                                     </div>
                                                                 )}
-                                                                <button
-                                                                    onClick={() => handleDeleteTopic(topic.id, topic.name)}
-                                                                    className="h-8 w-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors ring-1 ring-red-200"
-                                                                    title="Delete Topic"
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                </button>
+                                                                {userRole === 'ADMIN' && (
+                                                                    <button
+                                                                        onClick={() => handleDeleteTopic(topic.id, topic.name)}
+                                                                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors ring-1 ring-red-200"
+                                                                        title="Delete Topic"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         
-                                                        {topic.lessons && topic.lessons.length > 0 && (
+                                                        {userRole === 'ADMIN' && topic.lessons && topic.lessons.length > 0 && (
                                                             <div className="bg-zinc-50 px-4 py-3 space-y-2">
                                                                 {topic.lessons.map((lesson: any) => (
                                                                     <div key={lesson.id} className="flex items-center justify-between text-sm py-1 border-b border-zinc-200 last:border-0 hover:bg-zinc-100/50 px-2 rounded-md transition-colors">
