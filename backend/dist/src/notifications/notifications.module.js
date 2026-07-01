@@ -11,6 +11,9 @@ const common_1 = require("@nestjs/common");
 const axios_1 = require("@nestjs/axios");
 const notifications_service_1 = require("./notifications.service");
 const prisma_service_1 = require("../prisma.service");
+const bullmq_1 = require("@nestjs/bullmq");
+const engagement_cron_1 = require("./engagement.cron");
+const engagement_processor_1 = require("./engagement.processor");
 let NotificationsModule = class NotificationsModule {
 };
 exports.NotificationsModule = NotificationsModule;
@@ -19,8 +22,16 @@ exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             axios_1.HttpModule,
+            bullmq_1.BullModule.registerQueue({
+                name: 'engagement-push',
+            }),
         ],
-        providers: [notifications_service_1.NotificationsService, prisma_service_1.PrismaService],
+        providers: [
+            notifications_service_1.NotificationsService,
+            prisma_service_1.PrismaService,
+            engagement_cron_1.EngagementCronService,
+            engagement_processor_1.EngagementProcessor
+        ],
         exports: [notifications_service_1.NotificationsService],
     })
 ], NotificationsModule);
