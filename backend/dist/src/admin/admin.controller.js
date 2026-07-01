@@ -357,8 +357,13 @@ let AdminController = class AdminController {
             return this.notificationsService.sendPush(data.userId, data.title, data.body, data.data);
         }
         else {
+            let whereClause = { expoPushToken: { not: null } };
+            if (data.recentOnly) {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                whereClause.lastActiveAt = { gte: oneDayAgo };
+            }
             const users = await this.prisma.user.findMany({
-                where: { expoPushToken: { not: null } },
+                where: whereClause,
                 select: { id: true },
             });
             const userIds = users.map(u => u.id);

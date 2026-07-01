@@ -415,13 +415,18 @@ export class AdminController {
     // ─── Notifications (Admin) ───────────────────────────────────────────────
 
     @Post('notifications/send')
-    async sendNotification(@Body() data: { userId?: string, title: string, body: string, data?: any }) {
+    async sendNotification(@Body() data: { userId?: string, recentOnly?: boolean, title: string, body: string, data?: any }) {
         if (data.userId) {
             return this.notificationsService.sendPush(data.userId, data.title, data.body, data.data);
         } else {
-            // Send to all users with tokens
+            let whereClause: any = { expoPushToken: { not: null } };
+            if (data.recentOnly) {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                whereClause.lastActiveAt = { gte: oneDayAgo };
+            }
+            
             const users = await this.prisma.user.findMany({
-                where: { expoPushToken: { not: null } },
+                where: whereClause,
                 select: { id: true },
             });
             const userIds = users.map(u => u.id);

@@ -337,6 +337,7 @@ export declare class AdminController {
     }>;
     sendNotification(data: {
         userId?: string;
+        recentOnly?: boolean;
         title: string;
         body: string;
         data?: any;

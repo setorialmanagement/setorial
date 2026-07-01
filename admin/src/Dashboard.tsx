@@ -175,6 +175,8 @@ export default function AdminDashboard() {
 
     // Notifications
     const [broadcastType, setBroadcastType] = useState<'push' | 'email'>('push');
+    const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'recent' | 'user'>('all');
+    const [targetUserId, setTargetUserId] = useState('');
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
 
@@ -607,11 +609,20 @@ export default function AdminDashboard() {
     };
 
     const handleSendBroadcast = async () => {
+        if (broadcastTarget === 'user' && !targetUserId.trim()) {
+            alert('Please enter a User ID');
+            return;
+        }
         const title = prompt('Notification Title?');
         const body = prompt('Notification Message?');
         if (title && body) {
             try {
-                await adminApi.sendNotification({ title, body });
+                await adminApi.sendNotification({ 
+                    title, 
+                    body,
+                    userId: broadcastTarget === 'user' ? targetUserId.trim() : undefined,
+                    recentOnly: broadcastTarget === 'recent'
+                });
                 alert('Push broadcast notification queued!');
             } catch (err) { alert('Failed to send push notification'); }
         }
@@ -1540,12 +1551,36 @@ export default function AdminDashboard() {
                                 <div className="space-y-6">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Broadcast Target</label>
-                                        <div className="p-3 bg-zinc-800/50 rounded-lg flex items-center space-x-3 ring-1 ring-zinc-800">
-                                            <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
-                                                <Users size={16} className="text-zinc-400" />
-                                            </div>
-                                            <span className="text-sm font-medium">All Platform Users with Push Enabled</span>
+                                        <div className="flex space-x-2 mb-4">
+                                            <button 
+                                                onClick={() => setBroadcastTarget('all')}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-md ${broadcastTarget === 'all' ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                                            >
+                                                All Users
+                                            </button>
+                                            <button 
+                                                onClick={() => setBroadcastTarget('recent')}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-md ${broadcastTarget === 'recent' ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                                            >
+                                                Recent (24h)
+                                            </button>
+                                            <button 
+                                                onClick={() => setBroadcastTarget('user')}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-md ${broadcastTarget === 'user' ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                                            >
+                                                Specific User
+                                            </button>
                                         </div>
+                                        
+                                        {broadcastTarget === 'user' && (
+                                            <input 
+                                                type="text"
+                                                placeholder="Enter User ID (UUID)..."
+                                                value={targetUserId}
+                                                onChange={e => setTargetUserId(e.target.value)}
+                                                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+                                            />
+                                        )}
                                     </div>
                                     <button
                                         onClick={handleSendBroadcast}

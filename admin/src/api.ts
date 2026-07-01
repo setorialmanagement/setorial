@@ -97,7 +97,7 @@ export const adminApi = {
         api.post(`/admin/support/${id}/reply`, { reply, adminName }),
 
     // Notifications
-    sendNotification: (data: { userId?: string, title: string, body: string, data?: any }) => 
+    sendNotification: (data: { userId?: string, recentOnly?: boolean, title: string, body: string, data?: any }) => 
         api.post('/admin/notifications/send', data),
     sendEmailBroadcast: (data: { subject: string, body: string }) => 
         api.post('/admin/notifications/email', data),
