@@ -1,5 +1,6 @@
-import { SoundButton } from '../components/SoundButton';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
+import { TactileButton } from '../components/TactileButton';
+import { MascotInteraction } from '../components/MascotInteraction';
+import { View, Text, ScrollView, SafeAreaView, ActivityIndicator } from "react-native";
 import { ChevronLeft, Star, Lock, CheckCircle2 } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
@@ -38,9 +39,9 @@ export default function CourseDetailScreen() {
         return (
             <View className="flex-1 bg-white dark:bg-zinc-950 items-center justify-center p-5">
                 <Text className="text-gray-500 dark:text-gray-400 mb-4">Subject not found</Text>
-                <SoundButton onPress={() => router.back()} className="bg-black px-6 py-3 rounded-full">
+                <TactileButton onPress={() => router.back()} backgroundColor="#1CB0F6" shadowColor="#1899D6" contentClassName="px-6 py-3 items-center justify-center">
                     <Text className="text-white font-bold">Go Back</Text>
-                </SoundButton>
+                </TactileButton>
             </View>
         );
     }
@@ -49,18 +50,17 @@ export default function CourseDetailScreen() {
         <SafeAreaView className="flex-1 bg-[#F5F5F5] dark:bg-[#0B0D12]">
             {/* Header */}
             <View className="flex-row items-center px-6 py-5 bg-white dark:bg-[#1E222B] shadow-sm z-10 border-b-2 border-gray-100 dark:border-gray-800">
-                <SoundButton onPress={() => router.back()} className="mr-4">
+                <TactileButton onPress={() => router.back()} style={{ width: 40 }} contentClassName="items-center justify-center">
                     <ChevronLeft size={28} color="#AFAFAF" />
-                </SoundButton>
-                <Text className="text-2xl font-black text-gray-900 dark:text-white flex-1">{subject.name}</Text>
+                </TactileButton>
+                <Text className="text-2xl font-black text-gray-900 dark:text-white flex-1 ml-4">{subject.name}</Text>
             </View>
 
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100, paddingTop: 20 }}>
                 {subject.topics?.map((topic: any, topicIndex: number) => (
                     <View key={topic.id} className="mb-10 mt-4 px-6">
                         {/* Topic Header */}
-                        <SoundButton
-                            activeOpacity={0.9}
+                        <TactileButton
                             onPress={() => {
                                 const firstLesson = topic.lessons?.find((l: any) => l.status !== 'LOCKED') || topic.lessons?.[0];
                                 if (firstLesson) {
@@ -69,11 +69,15 @@ export default function CourseDetailScreen() {
                                     alert("No lessons available in this unit yet.");
                                 }
                             }}
-                            className="bg-[#F59E0B] p-6 rounded-[24px] mb-8 shadow-sm border-b-4 border-[#D97706]"
+                            backgroundColor="#F59E0B"
+                            shadowColor="#D97706"
+                            depth={8}
+                            className="mb-8"
+                            contentClassName="p-6 items-start"
                         >
                             <Text className="text-white/80 font-black text-base uppercase tracking-wider">Unit {topicIndex + 1}</Text>
-                            <Text className="text-white font-bold text-xl mt-1">{topic.name}</Text>
-                        </SoundButton>
+                            <Text className="text-white font-black text-2xl mt-1">{topic.name}</Text>
+                        </TactileButton>
 
                         {/* Pathway Nodes */}
                         <View className="items-center relative">
@@ -85,37 +89,41 @@ export default function CourseDetailScreen() {
                                 const isCurrent = lesson.status === 'CURRENT';
                                 const isLocked = lesson.status === 'LOCKED';
 
-                                let bgColorClass = "bg-[#E5E5E5] dark:bg-gray-800";
-                                let borderColorClass = "border-[#C9C9C9] dark:border-gray-700";
+                                let bgColor = "#E5E5E5";
+                                let shadowColor = "#C9C9C9";
                                 let icon = <Lock size={28} color="#AFAFAF" />;
 
                                 if (isCompleted) {
-                                    bgColorClass = "bg-[#FFC800]";
-                                    borderColorClass = "border-[#E5B400]";
+                                    bgColor = "#FFC800";
+                                    shadowColor = "#E5B400";
                                     icon = <CheckCircle2 size={32} color="#FFF" />;
                                 } else if (isCurrent) {
-                                    bgColorClass = "bg-[#F59E0B]";
-                                    borderColorClass = "border-[#46A302]";
+                                    bgColor = "#58CC02";
+                                    shadowColor = "#46A302";
                                     icon = <Star size={36} color="#FFF" fill="#FFF" />;
                                 }
 
                                 return (
-                                    <View key={lesson.id} className="mb-12 items-center justify-center relative z-10" style={{ transform: [{ translateX: offset }] }}>
-                                        <SoundButton 
-                                            activeOpacity={0.8}
-                                            disabled={isLocked}
-                                            onPress={() => router.push(`/level?id=${lesson.id}`)}
-                                        >
-                                            {isCurrent && (
-                                                <View className="absolute -top-11 -left-2 w-24 bg-white dark:bg-zinc-800 rounded-xl py-2 items-center justify-center border-2 border-b-4 border-gray-200 dark:border-zinc-700 shadow-sm z-50">
-                                                    <Text className="text-[#F59E0B] font-black uppercase text-[11px] tracking-widest">START</Text>
-                                                </View>
-                                            )}
-
-                                            <View className={`w-20 h-20 rounded-full items-center justify-center border-b-8 ${bgColorClass} ${borderColorClass}`}>
-                                                {icon}
+                                    <View key={lesson.id} className="mb-10 items-center justify-center relative z-10" style={{ transform: [{ translateX: offset }] }}>
+                                        {isCurrent && (
+                                            <View className="absolute -top-12 w-28 bg-white dark:bg-zinc-800 rounded-2xl py-2 items-center justify-center border-2 border-b-[6px] border-gray-200 dark:border-zinc-700 z-50">
+                                                <Text className="text-[#58CC02] font-black uppercase text-[13px] tracking-widest">START</Text>
                                             </View>
-                                        </SoundButton>
+                                        )}
+                                        <View style={{ width: 80, height: 80 }}>
+                                            <TactileButton 
+                                                disabled={isLocked}
+                                                onPress={() => router.push(`/rive-quiz?id=${lesson.id}`)}
+                                                backgroundColor={bgColor}
+                                                shadowColor={shadowColor}
+                                                depth={isCurrent ? 8 : (isLocked ? 4 : 6)}
+                                                borderRadius={999}
+                                                style={{ width: 80, height: 80 }}
+                                                contentClassName="w-20 h-20 items-center justify-center"
+                                            >
+                                                {icon}
+                                            </TactileButton>
+                                        </View>
                                     </View>
                                 );
                             })}
@@ -124,8 +132,11 @@ export default function CourseDetailScreen() {
                 ))}
 
                 {(!subject.topics || subject.topics.length === 0) && (
-                    <View className="items-center justify-center mt-20">
-                        <Text className="text-gray-400 font-bold">No units available yet.</Text>
+                    <View className="items-center justify-center mt-10 px-6">
+                        <MascotInteraction 
+                            state="thinking" 
+                            message="No units available yet! Check back later." 
+                        />
                     </View>
                 )}
             </ScrollView>

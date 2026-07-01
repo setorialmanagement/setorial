@@ -1,8 +1,10 @@
 import { SoundButton } from '../components/SoundButton';
-import { View, Text, SafeAreaView, Image, TouchableOpacity, ScrollView, Animated } from "react-native";
+import { TactileButton } from '../components/TactileButton';
+import { View, Text, SafeAreaView, Image, TouchableOpacity, ScrollView, Animated as RNAnimated } from "react-native";
 import { useRouter } from "expo-router";
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft } from "lucide-react-native";
+import Animated, { FadeIn, FadeInDown, SlideInDown, FadeInUp } from 'react-native-reanimated';
 
 // Types
 type StepConfig = {
@@ -74,13 +76,13 @@ export default function OnboardingScreen() {
     const [selections, setSelections] = useState<Record<number, string[]>>({});
     
     // Progress Bar Animation
-    const progressAnim = useRef(new Animated.Value(1)).current;
+    const progressAnim = useRef(new RNAnimated.Value(1)).current;
     
     const currentStep = STEPS[currentStepIndex];
     const totalSteps = STEPS.length;
     
     useEffect(() => {
-        Animated.spring(progressAnim, {
+        RNAnimated.spring(progressAnim, {
             toValue: currentStepIndex + 1,
             useNativeDriver: false,
             bounciness: 0,
@@ -133,7 +135,7 @@ export default function OnboardingScreen() {
     const isNextDisabled = currentStep.type === 'options' && (!selections[currentStep.id] || selections[currentStep.id].length === 0);
 
     return (
-        <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+        <SafeAreaView className="flex-1 bg-white dark:bg-[#0B0D12]">
             {/* Header / Progress Bar */}
             <View className="flex-row items-center px-5 pt-2 pb-4">
                 <SoundButton onPress={handleBack} className="p-2 -ml-2 mr-3" soundType="boop">
@@ -142,7 +144,7 @@ export default function OnboardingScreen() {
                 
                 {/* Progress Bar Track */}
                 <View className="flex-1 h-4 bg-gray-200 dark:bg-zinc-800 rounded-full overflow-hidden flex-row">
-                    <Animated.View 
+                    <RNAnimated.View 
                         className="h-full bg-[#F59E0B] rounded-full"
                         style={{
                             flex: progressAnim.interpolate({
@@ -153,8 +155,8 @@ export default function OnboardingScreen() {
                     >
                         {/* Highlight strip for 3D effect */}
                         <View className="h-1.5 bg-white/30 rounded-full mx-2 mt-0.5" />
-                    </Animated.View>
-                    <Animated.View 
+                    </RNAnimated.View>
+                    <RNAnimated.View 
                         style={{
                             flex: progressAnim.interpolate({
                                 inputRange: [0, totalSteps],
@@ -168,7 +170,7 @@ export default function OnboardingScreen() {
             <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
                 
                 {/* Mascot & Chat Bubble */}
-                <View className="flex-row items-end mt-4 mb-8">
+                <Animated.View entering={FadeIn.delay(100)} className="flex-row items-end mt-4 mb-8">
                     <Image 
                         source={{ uri: 'https://pub-2adf18353cc14bf899bf2827efdfec49.r2.dev/public/logo.png' }} 
                         style={{ width: 80, height: 80, borderRadius: 20 }}
@@ -176,33 +178,33 @@ export default function OnboardingScreen() {
                     />
                     
                     {/* Chat Bubble */}
-                    <View className="bg-white dark:bg-zinc-900 border-2 border-gray-200 dark:border-zinc-800 rounded-2xl rounded-bl-sm p-4 ml-4 flex-1 relative justify-center min-h-[70px]">
+                    <View className="bg-white dark:bg-[#131620] border-2 border-gray-200 dark:border-[#272B36] rounded-2xl rounded-bl-sm p-4 ml-4 flex-1 relative justify-center min-h-[70px]">
                         <Text className="text-gray-700 dark:text-gray-200 font-bold text-[17px] leading-6">
                             {currentStep.question}
                         </Text>
                     </View>
-                </View>
+                </Animated.View>
 
                 {/* Content Area */}
                 {currentStep.type === 'options' && (
                     <View className="pb-10">
-                        {currentStep.options?.map(option => {
+                        {currentStep.options?.map((option, index) => {
                             const isSelected = (selections[currentStep.id] || []).includes(option.id);
                             return (
-                                <View key={option.id} className="relative mb-4">
+                                <Animated.View key={option.id} entering={FadeInDown.delay(index * 80).springify()} className="relative mb-4">
                                     {option.recommended && (
                                         <View className="absolute -top-3 right-4 bg-[#1CB0F6] px-3 py-1 rounded-md z-10">
                                             <Text className="text-white font-bold text-[10px] uppercase tracking-widest">Recommended</Text>
                                         </View>
                                     )}
-                                    <SoundButton
-                                        activeOpacity={0.8}
+                                    <TactileButton
                                         onPress={() => handleSelectOption(option.id)}
-                                        className={`border-2 border-b-4 rounded-2xl p-5 ${
-                                            isSelected 
-                                                ? 'border-[#F59E0B] border-b-[#D97706] bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20' 
-                                                : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900'
-                                        }`}
+                                        backgroundColor={isSelected ? 'rgba(245, 158, 11, 0.1)' : '#FFFFFF'}
+                                        shadowColor={isSelected ? '#D97706' : '#E5E5E5'}
+                                        contentClassName="p-5"
+                                        depth={4}
+                                        borderRadius={16}
+                                        style={{ marginBottom: 0 }}
                                     >
                                         <Text className={`font-bold text-[17px] ${isSelected ? 'text-[#D97706] dark:text-[#F59E0B]' : 'text-gray-700 dark:text-gray-300'}`}>
                                             {option.title}
@@ -212,15 +214,15 @@ export default function OnboardingScreen() {
                                                 {option.subtitle}
                                             </Text>
                                         )}
-                                    </SoundButton>
-                                </View>
+                                    </TactileButton>
+                                </Animated.View>
                             );
                         })}
                     </View>
                 )}
 
                 {currentStep.type === 'notification' && (
-                    <View className="items-center justify-center py-6">
+                    <Animated.View entering={FadeInUp.delay(150).springify()} className="items-center justify-center py-6">
                         {/* Mock iOS Notification Prompt */}
                         <View className="bg-white dark:bg-[#1C1C1E] w-[270px] rounded-2xl overflow-hidden" style={{
                             shadowColor: "#000",
@@ -249,27 +251,26 @@ export default function OnboardingScreen() {
                         
                         {/* Blue Arrow Pointing Up */}
                         <Text className="text-[#1CB0F6] text-[40px] mt-6">↑</Text>
-                    </View>
+                    </Animated.View>
                 )}
             </ScrollView>
 
             {/* Bottom Action Area */}
-            <View className="px-5 pb-8 pt-4 border-t border-transparent">
-                <SoundButton
+            <Animated.View entering={SlideInDown.delay(300).springify()} className="px-5 pb-8 pt-4 border-t border-transparent">
+                <TactileButton
                     soundType="pop"
-                    activeOpacity={0.8}
                     onPress={handleNext}
                     disabled={isNextDisabled}
-                    className={`py-4 rounded-2xl items-center border-b-4 ${isNextDisabled
-                        ? 'bg-[#E5E5E5] dark:bg-zinc-800 border-[#CECECE] dark:border-zinc-700'
-                        : 'bg-[#F59E0B] border-[#D97706] border-t-[#F59E0B] border-x-[#F59E0B]'
-                        }`}
+                    backgroundColor="#F59E0B"
+                    shadowColor="#D97706"
+                    contentClassName="py-4 items-center justify-center"
+                    className="rounded-2xl"
                 >
                     <Text className={`font-bold text-[17px] uppercase tracking-wider ${isNextDisabled ? 'text-[#AFAFAF] dark:text-zinc-500' : 'text-white'}`}>
                         {currentStep.type === 'notification' ? 'Remind Me To Practice' : 'Continue'}
                     </Text>
-                </SoundButton>
-            </View>
+                </TactileButton>
+            </Animated.View>
         </SafeAreaView>
     );
 }

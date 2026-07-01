@@ -1,10 +1,12 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
 import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicator, Alert, Image, Platform } from 'react-native';
 import { ChevronLeft, Camera } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../services/api';
 import { useState } from 'react';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import * as ImagePicker from 'expo-image-picker';
 import LottieView from 'lottie-react-native';
@@ -71,18 +73,18 @@ export default function EditProfileScreen() {
                     <ChevronLeft size={24} color="#AFAFAF" />
                 </SoundButton>
                 <Text className="text-black dark:text-white font-bold text-xl">Edit Profile</Text>
-                <SoundButton activeOpacity={0.8} onPress={handleSave} disabled={saving} className="bg-[#1CB0F6] px-5 py-2 rounded-xl border-b-4 border-[#1899D6]">
+                <TactileButton onPress={handleSave} disabled={saving} backgroundColor="#1CB0F6" shadowColor="#1899D6" contentClassName="px-5 py-2 items-center justify-center" borderRadius={12} depth={4}>
                     {saving ? (
                         <ActivityIndicator size="small" color="#FFF" />
                     ) : (
                         <Text className="text-white font-bold text-sm tracking-widest uppercase">Save</Text>
                     )}
-                </SoundButton>
+                </TactileButton>
             </View>
 
             <View className="px-5">
                 {/* Avatar */}
-                <View className="items-center mb-10">
+                <Animated.View entering={FadeIn.delay(100).springify()} className="items-center mb-10">
                     <View className="relative">
                         <View className="w-28 h-28 rounded-full bg-gray-100 dark:bg-[#1E222B] items-center justify-center border-4 border-white dark:border-[#0B0D12] shadow-md overflow-hidden">
                             {image || user?.avatarUrl ? (
@@ -107,29 +109,35 @@ export default function EditProfileScreen() {
                             <Camera size={16} color="#FFF" />
                         </SoundButton>
                     </View>
-                </View>
+                </Animated.View>
 
                 {/* Name */}
-                <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Full Name</Text>
-                <TextInput
-                    value={name}
-                    onChangeText={setName}
-                    className="bg-white dark:bg-[#1E222B] p-5 rounded-2xl text-[#4B4B4B] dark:text-white font-bold text-[17px] border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] mb-6"
-                    placeholder="Your name"
-                    placeholderTextColor="#94A3B8"
-                />
+                <Animated.View entering={FadeInDown.delay(200).springify()}>
+                    <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Full Name</Text>
+                    <TextInput
+                        value={name}
+                        onChangeText={setName}
+                        className="bg-white dark:bg-[#1E222B] p-5 rounded-2xl text-[#4B4B4B] dark:text-white font-bold text-[17px] border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] mb-6"
+                        placeholder="Your name"
+                        placeholderTextColor="#94A3B8"
+                    />
+                </Animated.View>
 
                 {/* Email (read-only) */}
-                <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Email</Text>
-                <View className="bg-[#F5F5F5] dark:bg-[#2A2E39] p-5 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#272B36] mb-6">
-                    <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-[17px]">{user?.email || ''}</Text>
-                </View>
+                <Animated.View entering={FadeInDown.delay(300).springify()}>
+                    <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Email</Text>
+                    <View className="bg-[#F5F5F5] dark:bg-[#2A2E39] p-5 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#272B36] mb-6">
+                        <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-[17px]">{user?.email || ''}</Text>
+                    </View>
+                </Animated.View>
 
                 {/* Tier */}
-                <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Current Tier</Text>
-                <View className="bg-[#F5F5F5] dark:bg-[#2A2E39] p-5 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#272B36]">
-                    <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-[17px]">{user?.tier || 'FREE'}</Text>
-                </View>
+                <Animated.View entering={FadeInDown.delay(400).springify()}>
+                    <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Current Tier</Text>
+                    <View className="bg-[#F5F5F5] dark:bg-[#2A2E39] p-5 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#272B36]">
+                        <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-[17px]">{user?.tier || 'FREE'}</Text>
+                    </View>
+                </Animated.View>
             </View>
         </SafeAreaView>
     );

@@ -31,8 +31,8 @@ export class LearningController {
 
     @Roles(Role.ADMIN, Role.TUTOR)
     @Post('ai/generate-mock')
-    async generateAiMock(@Body() dto: { subjectId: string, title: string, numQuestions?: number }, @Request() req: any) {
-        return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions, req.user.role);
+    async generateAiMock(@Body() dto: { subjectId: string, title: string, numQuestions?: number, durationMinutes?: number }, @Request() req: any) {
+        return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions, dto.durationMinutes, req.user.role);
     }
 
     @Roles(Role.ADMIN, Role.TUTOR)

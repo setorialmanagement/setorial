@@ -1,3 +1,4 @@
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TrendingUp, Layers, Wallet, ArrowUpRight, ArrowDownLeft, Clock } from 'lucide-react-native';
@@ -47,22 +48,22 @@ export default function StatisticsScreen() {
                 <Text className="text-black dark:text-white text-[28px] font-black tracking-tight mb-8">Wallet</Text>
 
                 {/* Balance Card - Duolingo Gamified Style */}
-                <View className="bg-[#1CB0F6] border-2 border-b-4 border-[#1899D6] p-8 rounded-[32px] mb-10 overflow-hidden relative">
+                <Animated.View entering={FadeInDown.delay(100).springify()} className="bg-[#1CB0F6] border-2 border-b-4 border-[#1899D6] p-8 rounded-[32px] mb-10 overflow-hidden relative">
                     {/* Decorative Background */}
-                    <View className="absolute top-[-20] right-[-20] w-40 h-40 bg-white/20 dark:bg-zinc-950/20 rounded-full" />
+                    <View className="absolute top-[-20] right-[-20] w-40 h-40 bg-white/20 dark:bg-[#0B0D12]/20 rounded-full" />
 
                     <Text className="text-white/90 font-bold uppercase tracking-widest text-xs mb-2">Total Monetizable Balance</Text>
                     <Text className="text-white text-[42px] font-black tracking-tighter mb-1">
                         ₦{balance.ngn.toLocaleString()}
                     </Text>
                     <Text className="text-white/80 font-bold text-lg mb-2">${balance.usd.toFixed(2)} USD</Text>
-                </View>
+                </Animated.View>
 
                 {/* Activity */}
                 <Text className="text-black dark:text-white font-bold text-xl tracking-tight mb-4">Payout History</Text>
                 {transactions.length > 0 ? (
-                    transactions.map((tx) => (
-                        <View key={tx.id} className="flex-row items-center justify-between p-5 mb-3 bg-white dark:bg-[#1E222B] border-2 border-[#E5E5E5] dark:border-[#272B36] border-b-4 rounded-2xl">
+                    transactions.map((tx, index) => (
+                        <Animated.View key={tx.id} entering={FadeInDown.delay(200 + index * 80).springify()} className="flex-row items-center justify-between p-5 mb-3 bg-white dark:bg-[#1E222B] border-2 border-[#E5E5E5] dark:border-[#272B36] border-b-4 rounded-2xl">
                             <View className="flex-row items-center">
                                 <View className={`w-12 h-12 rounded-full items-center justify-center border-2 border-b-4 ${tx.amount > 0 ? 'bg-[#DDF4FF] border-[#1CB0F6] dark:bg-[#1CB0F6]/20' : 'bg-[#FFDFDF] border-[#FF4B4B] dark:bg-[#FF4B4B]/20'
                                     } mr-4`}>
@@ -81,10 +82,10 @@ export default function StatisticsScreen() {
                                 }`}>
                                 {tx.amount > 0 ? '+' : ''}₦{Math.abs(tx.amount).toLocaleString()}
                             </Text>
-                        </View>
+                        </Animated.View>
                     ))
                 ) : (
-                    <View className="items-center justify-center bg-gray-50 dark:bg-zinc-900 p-10 rounded-[32px] border border-gray-100 dark:border-zinc-800">
+                    <View className="items-center justify-center bg-gray-50 dark:bg-[#131620] p-10 rounded-[32px] border border-gray-100 dark:border-[#272B36]">
                         <Layers size={32} color="#D1D5DB" className="mb-3" />
                         <Text className="text-gray-400 font-medium text-center">No transactions yet.</Text>
                     </View>

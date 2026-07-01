@@ -1,4 +1,5 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
 import { MascotInteraction } from '../components/MascotInteraction';
 import { View, Text, SafeAreaView, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { ChevronLeft, Send, Sparkles } from 'lucide-react-native';
@@ -46,15 +47,26 @@ export default function TutorScreen() {
                     state="sad" 
                     message="Oops! The Personal Tutor is exclusive to our Gold Pride members. Upgrade to get 1-on-1 help!" 
                 />
-                <SoundButton 
-                    onPress={() => router.push('/subscription')}
-                    className="mt-8 bg-[#EAB308] px-8 py-4 rounded-2xl border-b-4 border-[#CA8A04]"
+                <View className="mt-8 mb-4 w-full px-4">
+                    <TactileButton 
+                        onPress={() => router.push('/subscription')}
+                        backgroundColor="#EAB308"
+                        shadowColor="#CA8A04"
+                        depth={6}
+                        contentClassName="py-4 items-center justify-center"
+                    >
+                        <Text className="text-white font-black uppercase tracking-widest">Upgrade to Gold</Text>
+                    </TactileButton>
+                </View>
+                <TactileButton 
+                    onPress={() => router.back()}
+                    backgroundColor="transparent"
+                    shadowColor="transparent"
+                    depth={0}
+                    contentClassName="items-center justify-center"
                 >
-                    <Text className="text-white font-black uppercase tracking-widest">Upgrade to Gold</Text>
-                </SoundButton>
-                <SoundButton onPress={() => router.back()} className="mt-4">
                     <Text className="text-gray-400 font-bold">Go Back</Text>
-                </SoundButton>
+                </TactileButton>
             </SafeAreaView>
         );
     }
@@ -137,13 +149,20 @@ export default function TutorScreen() {
                             onChangeText={setMessage}
                             multiline
                         />
-                        <SoundButton 
-                            onPress={handleSend}
-                            disabled={!message.trim() || loading}
-                            className={`ml-2 w-10 h-10 rounded-full items-center justify-center ${message.trim() ? 'bg-[#1CB0F6]' : 'bg-gray-200'}`}
-                        >
-                            <Send size={18} color="#FFF" />
-                        </SoundButton>
+                        <View className="ml-2 w-12 h-12">
+                            <TactileButton 
+                                onPress={handleSend}
+                                disabled={!message.trim() || loading}
+                                backgroundColor={message.trim() ? '#1CB0F6' : '#E5E5E5'}
+                                shadowColor={message.trim() ? '#1899D6' : '#CECECE'}
+                                depth={4}
+                                borderRadius={999}
+                                style={{ width: 40, height: 40 }}
+                                contentClassName="w-10 h-10 items-center justify-center"
+                            >
+                                <Send size={18} color={message.trim() ? '#FFF' : '#AFAFAF'} />
+                            </TactileButton>
+                        </View>
                     </View>
                 </View>
             </KeyboardAvoidingView>

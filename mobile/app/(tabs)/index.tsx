@@ -9,7 +9,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useState, useEffect, useCallback } from 'react';
 import { authApi, walletApi, learningApi } from '../../services/api';
 import { getTierColors } from '../../utils/theme';
-import { ScaleButton } from '../../components/ScaleButton';
+import { TactileButton } from '../../components/TactileButton';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 export default function HomeScreen() {
@@ -62,6 +63,24 @@ export default function HomeScreen() {
         setMascotMessage(messages[Math.floor(Math.random() * messages.length)]);
     }, []);
 
+    const pulse = useSharedValue(1);
+    useEffect(() => {
+        pulse.value = withRepeat(
+            withSequence(
+                withTiming(1.2, { duration: 150 }),
+                withTiming(1, { duration: 150 }),
+                withTiming(1.2, { duration: 150 }),
+                withTiming(1, { duration: 1500 })
+            ),
+            -1,
+            true
+        );
+    }, []);
+
+    const pulseStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: pulse.value }]
+    }));
+
     const theme = getTierColors(user?.tier);
 
     return (
@@ -96,7 +115,9 @@ export default function HomeScreen() {
                             onPress={() => router.push('/achievements')}
                             className="flex-row items-center mr-6"
                         >
-                            <Star size={22} color="#FF9600" fill="#FF9600" />
+                            <Animated.View style={pulseStyle}>
+                                <Star size={22} color="#FF9600" fill="#FF9600" />
+                            </Animated.View>
                             <Text className="text-[#FF9600] font-bold text-lg ml-1">{user?.streak || 0}</Text>
                         </SoundButton>
                         <SoundButton
@@ -193,21 +214,28 @@ export default function HomeScreen() {
                                 <Text className="text-[#4B4B4B] dark:text-white font-medium text-lg">${balance.usd.toFixed(2)}</Text>
                             </View>
                         </View>
-                        <ScaleButton
+                        <TactileButton
                             onPress={() => router.push('/payout-history')}
-                            className="py-3 px-6 rounded-xl border-b-4 border-opacity-80"
-                            style={{ backgroundColor: theme.primary, borderColor: theme.primaryDark }}
+                            backgroundColor={theme.primary}
+                            shadowColor={theme.primaryDark}
+                            depth={4}
+                            style={{ width: 'auto', marginBottom: 0 }}
+                            contentClassName="py-3 px-6 items-center justify-center"
                         >
                             <Text className="text-white font-bold text-[13px] tracking-widest uppercase">{t('common.history')}</Text>
-                        </ScaleButton>
+                        </TactileButton>
                     </View>
                 )}
 
                 {/* Promo Card -> Duolingo Style Super Card */}
                 {!['SILVER', 'GOLD'].includes(user?.tier || '') && (
-                    <ScaleButton
+                    <TactileButton
                         onPress={() => {}} // User hasn't specified upgrade path yet
-                        className="bg-[#FFC800] border-2 border-b-4 border-[#E5B400] border-t-[#FFC800] border-x-[#FFC800] rounded-2xl p-6 flex-row items-center mb-10 overflow-hidden relative"
+                        backgroundColor="#FFC800"
+                        shadowColor="#E5B400"
+                        depth={8}
+                        className="mb-10"
+                        contentClassName="p-6 flex-row items-center overflow-hidden relative"
                     >
                         <View className="w-2/3 pr-4 z-10">
                             <Text className="text-white font-black text-2xl tracking-tight leading-tight mb-2">
@@ -223,15 +251,18 @@ export default function HomeScreen() {
                         <View className="absolute right-[-10px] bottom-[-20px] opacity-70">
                             <Trophy size={140} color="#E5B400" />
                         </View>
-                    </ScaleButton>
+                    </TactileButton>
                 )}
 
                 {/* Mock Exams Access */}
-                <View className="mb-10">
+                <View className="mb-8">
                     <Text className="text-black dark:text-white font-bold text-xl tracking-tight mb-4">{t('home.prep')}</Text>
-                    <ScaleButton
+                    <TactileButton
                         onPress={() => router.push('/mock-exams')}
-                        className="bg-white dark:bg-[#1E222B] border-2 border-[#E5E5E5] dark:border-[#272B36] p-5 rounded-2xl border-b-4 flex-row items-center justify-between"
+                        backgroundColor={isDark ? '#1E222B' : '#FFFFFF'}
+                        shadowColor={isDark ? '#272B36' : '#E5E5E5'}
+                        depth={6}
+                        contentClassName="p-5 flex-row items-center justify-between"
                     >
                         <View className="flex-1 mr-4">
                             <Text className="text-[#4B4B4B] dark:text-white font-bold text-lg mb-1">{t('home.mock_exams')}</Text>
@@ -240,7 +271,27 @@ export default function HomeScreen() {
                         <View className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 items-center justify-center border-2 border-[#1CB0F6]">
                             <Clock size={24} color="#1CB0F6" />
                         </View>
-                    </ScaleButton>
+                    </TactileButton>
+                </View>
+
+                {/* Rive Demo Access */}
+                <View className="mb-10">
+                    <Text className="text-black dark:text-white font-bold text-xl tracking-tight mb-4">Interactive Demo (Rive)</Text>
+                    <TactileButton
+                        onPress={() => router.push('/rive-quiz')}
+                        backgroundColor="#FF4B4B"
+                        shadowColor="#EA2B2B"
+                        depth={6}
+                        contentClassName="p-5 flex-row items-center justify-between"
+                    >
+                        <View className="flex-1 mr-4">
+                            <Text className="text-white font-bold text-lg mb-1">Play Rive Quiz</Text>
+                            <Text className="text-white/80 font-medium">Test the WebGL fully interactive 60fps canvas.</Text>
+                        </View>
+                        <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center">
+                            <Sparkles size={24} color="#FFF" />
+                        </View>
+                    </TactileButton>
                 </View>
 
 
@@ -260,28 +311,25 @@ export default function HomeScreen() {
                             const theme = colors[index % colors.length];
 
                             return (
-                                <ScaleButton
-                                    key={subject.id}
-                                    onPress={() => router.push(`/course-detail?id=${subject.id}`)}
-                                    className="p-5 rounded-2xl mb-4 border-2 border-b-4 flex-row items-center justify-between overflow-hidden"
-                                    style={{
-                                        backgroundColor: theme.bg,
-                                        borderColor: theme.border,
-                                        borderTopColor: theme.bg,
-                                        borderLeftColor: theme.bg,
-                                        borderRightColor: theme.bg
-                                    }}
-                                >
-                                    <View>
-                                        <Text className="text-white font-bold text-2xl mb-1">{subject.name}</Text>
-                                        <Text className="text-white/80 font-bold text-sm tracking-wider uppercase">
-                                            {subject.topics?.length || 0} {t('home.topics')}
-                                        </Text>
-                                    </View>
-                                    <View className="w-12 h-12 bg-black/10 dark:bg-black/20 rounded-full items-center justify-center">
-                                        <ArrowUpRight size={24} color="#FFF" />
-                                    </View>
-                                </ScaleButton>
+                                <View key={subject.id} className="mb-4">
+                                    <TactileButton
+                                        onPress={() => router.push(`/course-detail?id=${subject.id}`)}
+                                        backgroundColor={theme.bg}
+                                        shadowColor={theme.border}
+                                        depth={6}
+                                        contentClassName="p-5 flex-row items-center justify-between overflow-hidden"
+                                    >
+                                        <View>
+                                            <Text className="text-white font-black text-2xl mb-1">{subject.name}</Text>
+                                            <Text className="text-white/80 font-bold text-sm tracking-wider uppercase">
+                                                {subject.topics?.length || 0} {t('home.topics')}
+                                            </Text>
+                                        </View>
+                                        <View className="w-12 h-12 bg-black/10 dark:bg-black/20 rounded-full items-center justify-center">
+                                            <ArrowUpRight size={24} color="#FFF" />
+                                        </View>
+                                    </TactileButton>
+                                </View>
                             )
                         })
                     ) : (

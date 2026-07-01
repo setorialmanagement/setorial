@@ -1,4 +1,6 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
+import Animated, { SlideInLeft, SlideInUp } from 'react-native-reanimated';
 import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Image } from "react-native";
 import { ChevronLeft, Trophy, Crown, Medal, LayoutGrid } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -68,21 +70,30 @@ function LeaderboardScreen() {
 
                 {/* Subject Selector */}
                 <View className="mb-6">
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                        <SoundButton
-                            onPress={() => handleSubjectSelect(null)}
-                            className={`px-6 py-3 rounded-2xl mr-3 border-2 border-b-4 ${!selectedSubject ? 'bg-[#1CB0F6] border-[#1899D6]' : 'bg-white dark:bg-[#1E222B] border-[#E5E5E5] dark:border-[#272B36]'}`}
-                        >
-                            <Text className={`font-bold uppercase tracking-widest text-xs ${!selectedSubject ? 'text-white' : 'text-[#AFAFAF] dark:text-gray-400'}`}>Global</Text>
-                        </SoundButton>
-                        {subjects.map((subject) => (
-                            <SoundButton
-                                key={subject.id}
-                                onPress={() => handleSubjectSelect(subject.id)}
-                                className={`px-6 py-3 rounded-2xl mr-3 border-2 border-b-4 ${selectedSubject === subject.id ? 'bg-[#1CB0F6] border-[#1899D6]' : 'bg-white dark:bg-[#1E222B] border-[#E5E5E5] dark:border-[#272B36]'}`}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row pb-2">
+                        <View className="mr-3">
+                            <TactileButton
+                                onPress={() => handleSubjectSelect(null)}
+                                backgroundColor={!selectedSubject ? '#1CB0F6' : '#FFFFFF'}
+                                shadowColor={!selectedSubject ? '#1899D6' : '#E5E5E5'}
+                                depth={4}
+                                contentClassName="px-6 py-3"
                             >
-                                <Text className={`font-bold uppercase tracking-widest text-xs ${selectedSubject === subject.id ? 'text-white' : 'text-[#AFAFAF] dark:text-gray-400'}`}>{subject.name}</Text>
-                            </SoundButton>
+                                <Text className={`font-bold uppercase tracking-widest text-xs ${!selectedSubject ? 'text-white' : 'text-[#AFAFAF] dark:text-gray-400'}`}>Global</Text>
+                            </TactileButton>
+                        </View>
+                        {subjects.map((subject) => (
+                            <View key={subject.id} className="mr-3">
+                                <TactileButton
+                                    onPress={() => handleSubjectSelect(subject.id)}
+                                    backgroundColor={selectedSubject === subject.id ? '#1CB0F6' : '#FFFFFF'}
+                                    shadowColor={selectedSubject === subject.id ? '#1899D6' : '#E5E5E5'}
+                                    depth={4}
+                                    contentClassName="px-6 py-3"
+                                >
+                                    <Text className={`font-bold uppercase tracking-widest text-xs ${selectedSubject === subject.id ? 'text-white' : 'text-[#AFAFAF] dark:text-gray-400'}`}>{subject.name}</Text>
+                                </TactileButton>
+                            </View>
                         ))}
                     </ScrollView>
                 </View>
@@ -126,21 +137,29 @@ function LeaderboardScreen() {
                     <View className="bg-white dark:bg-[#0B0D12] p-6 mb-10 min-h-[400px]">
                         <Text className="text-[#AFAFAF] dark:text-gray-500 font-bold mb-6 text-sm uppercase tracking-widest text-center">Top Performers</Text>
                         {others.map((item, index) => (
-                            <View key={item.id} className="flex-row items-center justify-between p-4 mb-3 bg-white dark:bg-[#1E222B] border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl">
-                                <View className="flex-row items-center">
-                                    <Text className="text-[#AFAFAF] dark:text-gray-400 font-black w-6 text-lg">{index + 4}</Text>
-                                    <View className="w-12 h-12 rounded-full bg-[#F5F5F5] dark:bg-[#2A2E39] mr-4 overflow-hidden border-2 border-[#E5E5E5] dark:border-[#272B36]">
-                                        <Image source={{ uri: item.avatarUrl || `https://i.pravatar.cc/100?u=${item.id}` }} className="w-full h-full rounded-full" />
+                            <Animated.View key={item.id} entering={SlideInLeft.delay(index * 100).springify()}>
+                                <TactileButton
+                                    backgroundColor="#FFFFFF"
+                                    shadowColor="#E5E5E5"
+                                    depth={4}
+                                    style={{ width: '100%', marginBottom: 12 }}
+                                    contentClassName="p-4 flex-row items-center justify-between"
+                                >
+                                    <View className="flex-row items-center">
+                                        <Text className="text-[#AFAFAF] font-black w-6 text-lg">{index + 4}</Text>
+                                        <View className="w-12 h-12 rounded-full bg-[#F5F5F5] mr-4 overflow-hidden border-2 border-[#E5E5E5]">
+                                            <Image source={{ uri: item.avatarUrl || `https://i.pravatar.cc/100?u=${item.id}` }} className="w-full h-full rounded-full" />
+                                        </View>
+                                        <View>
+                                            <Text className="text-[#4B4B4B] font-bold text-[17px] uppercase tracking-wider">{item.name || 'Student'}</Text>
+                                            <Text className="text-[#AFAFAF] text-xs font-bold uppercase">Rank #{index + 4}</Text>
+                                        </View>
                                     </View>
-                                    <View>
-                                        <Text className="text-[#4B4B4B] dark:text-white font-bold text-[17px] uppercase tracking-wider">{item.name || 'Student'}</Text>
-                                        <Text className="text-[#AFAFAF] dark:text-gray-500 text-xs font-bold uppercase">Rank #{index + 4}</Text>
+                                    <View className="bg-[#FFC800] px-4 py-2 rounded-xl border-b-4 border-[#E5B400]">
+                                        <Text className="text-yellow-900 font-extrabold uppercase tracking-widest">{item.points} pts</Text>
                                     </View>
-                                </View>
-                                <View className="bg-[#FFC800] px-4 py-2 rounded-xl border-b-4 border-[#E5B400]">
-                                    <Text className="text-yellow-900 font-extrabold uppercase tracking-widest">{item.points} pts</Text>
-                                </View>
-                            </View>
+                                </TactileButton>
+                            </Animated.View>
                         ))}
                     </View>
                 </ScrollView>
@@ -152,7 +171,7 @@ function LeaderboardScreen() {
 function PodiumItem({ user, rank, height, color, icon }: any) {
     const isWinner = rank === 1;
     return (
-        <View className="items-center mx-2 w-28">
+        <Animated.View entering={SlideInUp.delay(rank * 100).springify().damping(12)} className="items-center mx-2 w-28">
             <View className="relative mb-4 z-10">
                 <View className={`w-16 h-16 rounded-full border-4 border-white overflow-hidden shadow-sm ${color}`}>
                     <Image source={{ uri: user.avatarUrl || `https://i.pravatar.cc/100?u=${user.id}` }} className="w-full h-full" />
@@ -169,7 +188,7 @@ function PodiumItem({ user, rank, height, color, icon }: any) {
                 <Text className="text-black dark:text-white font-extrabold text-2xl">{user.points}</Text>
                 <Text className="text-black dark:text-white/50 text-[11px] font-black mt-2 uppercase tracking-wide">{user.name?.split(' ')[0] || 'User'}</Text>
             </View>
-        </View>
+        </Animated.View>
     );
 }
 

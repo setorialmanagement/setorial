@@ -1,33 +1,39 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma.service';
+import { Resend } from 'resend';
+import axios from 'axios';
 
 @Injectable()
 export class NotificationsService {
     private readonly logger = new Logger(NotificationsService.name);
-    private readonly QUEUE_TIMEOUT_MS = 5000; // 5 second timeout for queue operations
+    private readonly resend: Resend;
+    private readonly globalFrom = process.env.EMAIL_FROM_ADDRESS || 'Setorial <onboarding@resend.dev>';
     
-    constructor(
-        private prisma: PrismaService,
-        @InjectQueue('notifications') private readonly notificationsQueue: Queue
-    ) {}
+    constructor(private prisma: PrismaService) {
+        this.resend = new Resend(process.env.RESEND_API_KEY || 're_dummy');
+    }
 
     /**
-     * Helper to add jobs to queue with timeout and error handling
+     * Executes the email payload asynchronously (fire and forget)
      */
-    private async queueJobWithTimeout(jobName: string, jobData: any): Promise<void> {
+    private async executeEmailAsync(jobData: any): Promise<void> {
         try {
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error(`Queue timeout after ${this.QUEUE_TIMEOUT_MS}ms`)), this.QUEUE_TIMEOUT_MS)
-            );
-            await Promise.race([
-                this.notificationsQueue.add(jobName, jobData),
-                timeoutPromise
-            ]);
+            if (jobData.batch) {
+                await this.resend.batch.send(jobData.batch);
+                this.logger.log(`Batch email job completed for ${jobData.batch.length} recipients.`);
+            } else {
+                const { error } = await this.resend.emails.send({
+                    from: this.globalFrom,
+                    to: jobData.to,
+                    subject: jobData.subject,
+                    html: jobData.html,
+                    replyTo: jobData.replyTo
+                });
+                if (error) throw new Error(error.message);
+                this.logger.log(`Email job completed for ${jobData.to}`);
+            }
         } catch (err: any) {
-            this.logger.error(`Failed to queue ${jobName}: ${err.message}`);
-            // Don't throw - we want this to fail gracefully without blocking the request
+            this.logger.error(`Failed to execute email: ${err.message}`);
         }
     }
 
@@ -45,12 +51,7 @@ export class NotificationsService {
             return;
         }
 
-        await this.notificationsQueue.add('push', {
-            tokens: [user.expoPushToken],
-            title,
-            body,
-            payload: data,
-        });
+        this.sendToTokens([user.expoPushToken], title, body, data);
     }
 
     /**
@@ -65,19 +66,33 @@ export class NotificationsService {
         const tokens = users.map(u => u.expoPushToken!).filter(t => !!t);
         if (tokens.length === 0) return;
 
-        await this.notificationsQueue.add('push', {
-            tokens,
-            title,
-            body,
-            payload: data,
-        });
+        this.sendToTokens(tokens, title, body, data);
     }
 
     /**
-     * @deprecated Use queue instead. Internal helper to call Expo Push API.
+     * Internal helper to call Expo Push API asynchronously.
      */
     private async sendToTokens(tokens: string[], title: string, body: string, data: Record<string, any> = {}) {
-        // ... replaced by processor
+        const messages = tokens.map(token => ({
+            to: token,
+            sound: 'default',
+            title,
+            body,
+            data,
+        }));
+
+        try {
+            await axios.post('https://exp.host/--/api/v2/push/send', messages, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Accept-encoding': 'gzip, deflate',
+                    'Content-Type': 'application/json',
+                },
+            });
+            this.logger.log(`Push notification job completed for ${tokens.length} tokens.`);
+        } catch (error: any) {
+            this.logger.error(`Failed to send push notifications via Expo: ${error.response?.data?.message || error.message}`);
+        }
     }
 
     // ─── EMAIL INTEGRATION (RESEND) ──────────────────────────────────────────
@@ -146,7 +161,7 @@ export class NotificationsService {
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once. Never share this code with anyone.</p>
         `;
 
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: title,
             html: this.generateSetorialHtml(title, content)
@@ -166,7 +181,7 @@ export class NotificationsService {
             <p style="color: #374151;">This code will expire in 15 minutes and can only be used once.</p>
         `;
 
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: title,
             html: this.generateSetorialHtml(title, content)
@@ -188,7 +203,7 @@ export class NotificationsService {
             <p>Happy studying!</p>
         `;
 
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: title,
             html: this.generateSetorialHtml(title, content)
@@ -204,7 +219,7 @@ export class NotificationsService {
             <p>Keep studying and acing those mock exams to increase your rank next month!</p>
         `;
 
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: email,
             subject: 'Setorial Reward Payout Processing',
             html: this.generateSetorialHtml(title, content)
@@ -227,7 +242,7 @@ export class NotificationsService {
                 subject,
                 html
             }));
-            await this.queueJobWithTimeout('email-batch', { batch: batchPayload });
+            this.executeEmailAsync({ batch: batchPayload });
         }
     }
 
@@ -239,7 +254,7 @@ export class NotificationsService {
             <p>${message.replace(/\n/g, '<br/>')}</p>
         `;
 
-        await this.queueJobWithTimeout('email', {
+        this.executeEmailAsync({
             to: 'setorialapp@gmail.com',
             replyTo: userEmail,
             subject: `Support Request [${userEmail}]`,

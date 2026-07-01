@@ -1,4 +1,6 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { View, Text, TouchableOpacity, ScrollView, AppState, Alert, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
@@ -147,7 +149,7 @@ export default function ActiveMockScreen() {
 
             <ScrollView className="flex-1 px-5 pt-6 pb-20">
                 {mock.questions.map((q: any, qIndex: number) => (
-                    <View key={q.id} className="mb-10">
+                    <Animated.View key={q.id} entering={FadeIn.delay(qIndex * 80 + 100)} className="mb-10">
                         <MathText content={`${qIndex + 1}. ${q.text}`} fontSize={20} containerStyle={{ marginBottom: 16 }} />
 
                         {q.options.map((opt: string, optIndex: number) => {
@@ -164,7 +166,7 @@ export default function ActiveMockScreen() {
                                 >
                                     <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3
                                         ${isSelected ? 'border-[#1CB0F6] bg-[#1CB0F6]' : 'border-[#E5E5E5] dark:border-[#4B4B4B]'}`}>
-                                        {isSelected && <View className="w-2 h-2 rounded-full bg-white dark:bg-zinc-950" />}
+                                        {isSelected && <View className="w-2 h-2 rounded-full bg-white dark:bg-[#0B0D12]" />}
                                     </View>
                                     <View style={{ flex: 1 }}>
                                         <MathText content={opt} color={isSelected ? '#1CB0F6' : (isDark ? '#D1D5DB' : '#4B4B4B')} fontSize={16} />
@@ -172,19 +174,24 @@ export default function ActiveMockScreen() {
                                 </SoundButton>
                             );
                         })}
-                    </View>
+                    </Animated.View>
                 ))}
 
-                <SoundButton
-                    onPress={confirmSubmit}
-                    disabled={isSubmitting}
-                    className="bg-[#F59E0B] border-b-4 border-[#D97706] rounded-2xl py-4 flex-row items-center justify-center mb-10"
-                >
-                    <CheckCircle2 size={24} color="#FFF" style={{ marginRight: 8 }} />
-                    <Text className="text-white font-bold text-lg uppercase tracking-wider">
-                        Submit Exam
-                    </Text>
-                </SoundButton>
+                <Animated.View entering={FadeInDown.delay(300).springify()}>
+                    <TactileButton
+                        onPress={confirmSubmit}
+                        disabled={isSubmitting}
+                        backgroundColor="#F59E0B"
+                        shadowColor="#D97706"
+                        contentClassName="py-4 flex-row items-center justify-center"
+                        className="rounded-2xl mb-10"
+                    >
+                        <CheckCircle2 size={24} color="#FFF" style={{ marginRight: 8 }} />
+                        <Text className="text-white font-bold text-lg uppercase tracking-wider">
+                            Submit Exam
+                        </Text>
+                    </TactileButton>
+                </Animated.View>
             </ScrollView>
         </SafeAreaView>
     );

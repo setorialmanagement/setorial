@@ -1,9 +1,11 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { authApi } from "../services/api";
+import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
@@ -75,7 +77,7 @@ export default function ForgotPasswordScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+        <SafeAreaView className="flex-1 bg-white dark:bg-[#0B0D12]">
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 className="flex-1"
@@ -90,7 +92,7 @@ export default function ForgotPasswordScreen() {
                     </View>
 
                     {/* Title Area */}
-                    <View className="mb-8">
+                    <Animated.View entering={FadeIn.delay(100)} className="mb-8">
                         <Text className="text-[26px] font-bold text-black dark:text-white mb-1.5 tracking-tight">
                             {step === 1 ? "Reset Password" : "Check Your Email"}
                         </Text>
@@ -99,18 +101,18 @@ export default function ForgotPasswordScreen() {
                                 ? "Enter your email address and we'll send you a 6-digit recovery code." 
                                 : `We've sent a 6-digit code to ${email}.`}
                         </Text>
-                    </View>
+                    </Animated.View>
 
                     {/* Error & Success Messages */}
                     {error ? <Text className="text-red-500 text-sm mb-4 bg-red-50 p-3 rounded-lg">{error}</Text> : null}
                     {success ? <Text className="text-green-600 text-sm mb-4 bg-green-50 p-3 rounded-lg">{success}</Text> : null}
 
                     {/* Form Section */}
-                    <View className="mb-5">
+                    <Animated.View entering={FadeInDown.delay(200).springify()} className="mb-5">
                         
                         {step === 1 && (
                             /* Email Input */
-                            <View className="border border-gray-200 dark:border-zinc-800 rounded-xl px-4 pt-3 pb-2 mb-4">
+                            <View className="border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl px-4 pt-3 pb-2 mb-4">
                                 <Text className="text-gray-400 text-[12px] font-medium mb-0.5 tracking-wide">Email</Text>
                                 <TextInput
                                     placeholder="name@example.com"
@@ -127,7 +129,7 @@ export default function ForgotPasswordScreen() {
                         {step === 2 && (
                             <>
                                 {/* OTP Input */}
-                                <View className="border border-gray-200 dark:border-zinc-800 rounded-xl px-4 pt-3 pb-2 mb-4">
+                                <View className="border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl px-4 pt-3 pb-2 mb-4">
                                     <Text className="text-gray-400 text-[12px] font-medium mb-0.5 tracking-wide">6-Digit Code</Text>
                                     <TextInput
                                         placeholder="123456"
@@ -141,7 +143,7 @@ export default function ForgotPasswordScreen() {
                                 </View>
 
                                 {/* New Password Input */}
-                                <View className="border border-gray-200 dark:border-zinc-800 rounded-xl px-4 pt-3 pb-2 mb-4 flex-row items-center justify-between">
+                                <View className="border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl px-4 pt-3 pb-2 mb-4 flex-row items-center justify-between">
                                     <View className="flex-1">
                                         <Text className="text-gray-400 text-[12px] font-medium mb-0.5 tracking-wide">New Password</Text>
                                         <TextInput
@@ -163,20 +165,19 @@ export default function ForgotPasswordScreen() {
                                 </View>
                             </>
                         )}
-                    </View>
+                    </Animated.View>
 
                 </ScrollView>
 
                 {/* Bottom Action Area */}
-                <View className="px-5 pb-8 pt-4 border-t border-transparent">
-                    <SoundButton
-                        activeOpacity={0.8}
+                <Animated.View entering={SlideInDown.delay(300).springify()} className="px-5 pb-8 pt-4 border-t border-transparent">
+                    <TactileButton
                         onPress={step === 1 ? handleSendOtp : handleResetPassword}
                         disabled={loading}
-                        className={`py-4 rounded-2xl items-center border-b-4 ${loading
-                            ? 'bg-[#E5E5E5] border-[#CECECE]'
-                            : 'bg-[#F59E0B] border-[#D97706] border-t-[#F59E0B] border-x-[#F59E0B]'
-                            }`}
+                        backgroundColor="#F59E0B"
+                        shadowColor="#D97706"
+                        contentClassName="py-4 items-center justify-center"
+                        className="rounded-2xl"
                     >
                         {loading ? (
                             <ActivityIndicator color="#FFF" />
@@ -185,8 +186,8 @@ export default function ForgotPasswordScreen() {
                                 {step === 1 ? "Send Code" : "Reset Password"}
                             </Text>
                         )}
-                    </SoundButton>
-                </View>
+                    </TactileButton>
+                </Animated.View>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );

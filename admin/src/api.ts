@@ -76,7 +76,7 @@ export const adminApi = {
     generateFullSubject: (data: { subjectId: string, numTopics: number }) => 
         api.post('/learning/ai/generate-full-subject', data),
     regenerateLesson: (id: string) => api.post(`/learning/lessons/${id}/regenerate`),
-    generateAiMock: (data: { subjectId: string, title: string, numQuestions?: number }) => 
+    generateAiMock: (data: { subjectId: string, title: string, numQuestions?: number, durationMinutes?: number }) => 
         api.post('/learning/ai/generate-mock', data),
     getLesson: (id: string) => api.get(`/learning/lessons/${id}`),
     updateLesson: (id: string, data: any) => {

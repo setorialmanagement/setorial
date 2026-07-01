@@ -137,15 +137,22 @@ Respond ONLY with valid JSON:
         });
     }
 
-    async generateMockExam(subjectId: string, title: string, numQuestions: number = 30, userRole?: string) {
+    async generateMockExam(subjectId: string, title: string, numQuestions: number = 30, durationMinutes?: number, userRole?: string) {
         const subject = await this.prisma.subject.findUnique({ where: { id: subjectId } });
         if (!subject) throw new Error('Subject not found');
 
         const isApproved = userRole === 'TUTOR' ? false : true;
+        const duration = durationMinutes || Math.ceil(numQuestions * 1.5);
+        const maxPerBatch = 30;
+        
+        let allQuestions: any[] = [];
+        let questionsRemaining = numQuestions;
 
-        const prompt = `Create a professional standardized mock exam for the subject "${subject.name}".
-Title: "${title}".
-Generate exactly ${numQuestions} diverse, high-quality multiple choice questions covering various topics in this subject.
+        while (questionsRemaining > 0) {
+            const batchSize = Math.min(questionsRemaining, maxPerBatch);
+            
+            const prompt = `Create a professional standardized mock exam for the subject "${subject.name}".
+Generate exactly ${batchSize} diverse, high-quality multiple choice questions.
 
 IMPORTANT MATH FORMATTING: All mathematical expressions MUST use LaTeX wrapped in dollar-sign delimiters.
 Use $...$ for inline math and $$...$$ for display equations.
@@ -154,9 +161,6 @@ NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2)
 
 Respond ONLY with valid JSON:
 {
-  "title": "${title}",
-  "description": "Comprehensive mock exam for ${subject.name}",
-  "durationMinutes": ${Math.ceil(numQuestions * 1.5)},
   "questions": [
     {
       "text": "Question text...",
@@ -166,23 +170,33 @@ Respond ONLY with valid JSON:
   ]
 }`;
 
-        return this.executeGeneration(prompt, async (data) => {
-            return this.prisma.mockExam.create({
-                data: {
-                    title: data.title,
-                    description: data.description,
-                    durationMinutes: data.durationMinutes,
-                    isApproved,
-                    questions: {
-                        create: data.questions.map((q: any) => ({
-                            text: q.text,
-                            options: q.options,
-                            correctOption: q.correctOption
-                        }))
-                    }
-                },
-                include: { questions: true }
-            });
+            try {
+                const batchData = await this.executeGeneration(prompt, async (data) => data);
+                if (batchData?.questions && Array.isArray(batchData.questions)) {
+                    allQuestions = allQuestions.concat(batchData.questions);
+                }
+            } catch (err) {
+                this.logger.error(`Batch generation failed: ${err.message}`);
+                // Continue to save what we have if a batch fails, or you could throw.
+            }
+            questionsRemaining -= batchSize;
+        }
+
+        return this.prisma.mockExam.create({
+            data: {
+                title: title,
+                description: `Comprehensive mock exam for ${subject.name}`,
+                durationMinutes: duration,
+                isApproved,
+                questions: {
+                    create: allQuestions.map((q: any) => ({
+                        text: q.text,
+                        options: q.options,
+                        correctOption: q.correctOption
+                    }))
+                }
+            },
+            include: { questions: true }
         });
     }
 
@@ -213,7 +227,7 @@ Respond ONLY with a JSON object:
 
         // Step 3: Generate a Mock Exam for the subject
         try {
-            await this.generateMockExam(subjectId, `${subject.name} - Standardized Pro Mock`, 30, userRole);
+            await this.generateMockExam(subjectId, `${subject.name} - Standardized Pro Mock`, 30, undefined, userRole);
         } catch (err) {
             this.logger.error(`Failed to generate subject mock exam: ${err.message}`);
         }

@@ -1,11 +1,12 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
 import { View, Text, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import { Trophy, CheckCircle2, XCircle, ArrowLeft, Home } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { MathText } from '../components/MathText';
 import { MascotInteraction } from '../components/MascotInteraction';
-import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 
 import { playSound } from '../lib/audio';
 
@@ -65,7 +66,7 @@ export default function MockResultScreen() {
                         You scored {result.score} out of {result.maxScore}
                     </Text>
 
-                    <View className="bg-gray-50 dark:bg-[#1E222B] w-full p-6 rounded-[24px] border-2 border-gray-100 dark:border-gray-800">
+                    <Animated.View entering={SlideInDown.delay(400).springify()} className="bg-gray-50 dark:bg-[#1E222B] w-full p-6 rounded-[24px] border-2 border-gray-100 dark:border-gray-800">
                         <View className="flex-row justify-between mb-4 items-center">
                             <Text className="text-gray-500 dark:text-gray-400 font-bold text-[15px] uppercase">Points Earned</Text>
                             <Text className="text-[#FFC800] dark:text-[#FFD900] font-black text-xl">+{result.pointsEarned} XP</Text>
@@ -77,15 +78,17 @@ export default function MockResultScreen() {
                                 {Math.round((result.score / result.maxScore) * 100)}%
                             </Text>
                         </View>
-                    </View>
+                    </Animated.View>
                 </Animated.View>
 
-                <Text className="text-xl font-black text-black dark:text-white mb-6">Review Corrections</Text>
+                <Animated.View entering={FadeInDown.delay(500).springify()}>
+                    <Text className="text-xl font-black text-black dark:text-white mb-6">Review Corrections</Text>
+                </Animated.View>
 
                 {result.corrections.map((corr: any, index: number) => {
                     const isCorrect = corr.userOption === corr.correctOption;
                     return (
-                        <View key={index} className="mb-8 p-5 rounded-3xl border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1E222B]">
+                        <Animated.View key={index} entering={FadeInDown.delay(index * 80 + 600).springify()} className="mb-8 p-5 rounded-3xl border-2 border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1E222B]">
                             <View className="flex-row items-center mb-4">
                                 <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
                                     <Text className="text-white font-bold">{index + 1}</Text>
@@ -126,17 +129,21 @@ export default function MockResultScreen() {
                                     <MathText content={corr.explanation} fontSize={14} />
                                 </View>
                             )}
-                        </View>
+                        </Animated.View>
                     );
                 })}
 
-                <SoundButton
-                    activeOpacity={0.8}
-                    onPress={() => router.replace('/(tabs)')}
-                    className="bg-[#1CB0F6] border-b-4 border-[#1899D6] p-4 rounded-2xl items-center mb-10"
-                >
-                    <Text className="text-white font-bold text-[17px] uppercase tracking-wider">Done</Text>
-                </SoundButton>
+                <Animated.View entering={SlideInDown.delay(800).springify()}>
+                    <TactileButton
+                        onPress={() => router.replace('/(tabs)')}
+                        backgroundColor="#1CB0F6"
+                        shadowColor="#1899D6"
+                        contentClassName="p-4 items-center justify-center"
+                        className="rounded-2xl mb-10"
+                    >
+                        <Text className="text-white font-bold text-[17px] uppercase tracking-wider">Done</Text>
+                    </TactileButton>
+                </Animated.View>
             </ScrollView>
         </SafeAreaView>
     );

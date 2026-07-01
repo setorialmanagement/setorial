@@ -1,4 +1,5 @@
-import { SoundButton } from '../../components/SoundButton';
+import { TactileButton } from '../../components/TactileButton';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Snowflake, Zap, ShoppingBag, CheckCircle } from 'lucide-react-native';
@@ -128,11 +129,12 @@ export default function StoreScreen() {
                 {loading ? (
                     <ActivityIndicator size="large" color="#F59E0B" className="mt-10" />
                 ) : (
-                    items.map((item: any) => {
+                    items.map((item: any, index: number) => {
                         const colors = getGradientColors(item.type);
                         return (
-                            <View
+                            <Animated.View
                                 key={item.id}
+                                entering={FadeInDown.delay(index * 100).springify()}
                                 className="bg-white dark:bg-[#1E222B] border-2 border-b-4 rounded-2xl p-6 mb-5"
                                 style={{ borderColor: colors.border }}
                             >
@@ -149,18 +151,19 @@ export default function StoreScreen() {
                                     </View>
                                 </View>
 
-                                <SoundButton
-                                    activeOpacity={0.8}
+                                <TactileButton
                                     onPress={() => handleBuy(item)}
                                     disabled={buying === item.type}
-                                    className="py-3 rounded-xl border-b-4 items-center"
-                                    style={{ backgroundColor: colors.border, borderBottomColor: colors.text }}
+                                    backgroundColor={colors.border}
+                                    shadowColor={colors.text}
+                                    contentClassName="py-3 items-center justify-center"
+                                    className="rounded-xl"
                                 >
                                     <Text className="text-white font-bold text-[15px] uppercase tracking-wider">
                                         {buying === item.type ? 'Processing...' : `Buy for ₦${item.price}`}
                                     </Text>
-                                </SoundButton>
-                            </View>
+                                </TactileButton>
+                            </Animated.View>
                         );
                     })
                 )}

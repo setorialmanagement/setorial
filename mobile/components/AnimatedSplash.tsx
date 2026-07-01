@@ -1,29 +1,26 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { StyleSheet, Dimensions, View, Text, Platform } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Dimensions, View, Image } from 'react-native';
 import Animated, { 
-    FadeInUp, 
     useSharedValue, 
     useAnimatedStyle, 
     withTiming, 
-    runOnJS 
+    runOnJS,
+    withRepeat,
+    withSequence,
+    withSpring,
+    Easing
 } from 'react-native-reanimated';
-import LottieView from 'lottie-react-native';
 
-const { width, height } = Dimensions.get('window');
-const MASCOT_SIZE = Math.round(width * 0.9);
+const { width } = Dimensions.get('window');
+const ICON_SIZE = Math.round(width * 0.4);
 
 interface AnimatedSplashProps {
     onFinish: () => void;
 }
 
-/**
- * Vibrant orange splash screen mirroring Duolingo's aesthetic.
- * Blends the background with the mascot's brand color.
- */
 export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     const opacity = useSharedValue(1);
-    const textOpacity = useSharedValue(0);
-    const animationRef = useRef<LottieView>(null);
+    const scale = useSharedValue(0.8);
 
     const finishSplash = () => {
         opacity.value = withTiming(0, { duration: 800 }, (finished) => {
@@ -34,49 +31,40 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     };
 
     useEffect(() => {
-        // Fade in the text after a small delay
-        textOpacity.value = withTiming(1, { duration: 1000 });
+        // Heartbeat / Zoom animation for the icon
+        scale.value = withRepeat(
+            withSequence(
+                withTiming(1.1, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+                withTiming(0.9, { duration: 800, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1, // infinite
+            true // reverse
+        );
 
-        // Manual play trigger — autoPlay alone can fail on mount with New Architecture
-        const playTimer = setTimeout(() => {
-            animationRef.current?.play();
-        }, 150);
-
-        // Fallback timeout in case Lottie onAnimationFinish doesn't fire
-        const fallbackTimer = setTimeout(() => {
+        // Keep the splash screen visible for a set time (e.g., 2.5 seconds), then fade out
+        const timer = setTimeout(() => {
             finishSplash();
-        }, 5000); 
+        }, 2500); 
 
-        return () => {
-            clearTimeout(playTimer);
-            clearTimeout(fallbackTimer);
-        };
+        return () => clearTimeout(timer);
     }, []);
 
     const containerStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,
     }));
 
-    const textStyle = useAnimatedStyle(() => ({
-        opacity: textOpacity.value,
-        transform: [{ translateY: withTiming(textOpacity.value === 1 ? 0 : 20) }]
+    const iconStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }]
     }));
 
     return (
         <Animated.View style={[styles.container, containerStyle]}>
             <View style={styles.content}>
-                <LottieView
-                    ref={animationRef}
-                    autoPlay
-                    loop={false}
-                    source={require('../assets/animations/point_down.json')}
-                    style={{ width: MASCOT_SIZE, height: MASCOT_SIZE, backgroundColor: 'transparent' }}
+                <Animated.Image
+                    source={require('../assets/images/icon.png')}
+                    style={[styles.icon, iconStyle]}
                     resizeMode="contain"
-                    onAnimationFinish={finishSplash}
                 />
-                <Animated.View style={[styles.textWrapper, textStyle]}>
-                    <Text style={styles.brandText}>SETORIAL</Text>
-                </Animated.View>
             </View>
         </Animated.View>
     );
@@ -87,25 +75,15 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FF9F0A', // Vibrant orange that blends with the lion
+        backgroundColor: '#FF9F0A', // Vibrant orange
     },
     content: {
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
     },
-    textWrapper: {
-        marginTop: -60,
-        zIndex: 10,
-    },
-    brandText: {
-        fontSize: 52,
-        fontWeight: '900',
-        color: '#FFFFFF', // White text for maximum contrast on orange
-        letterSpacing: 8,
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
-        textShadowOffset: { width: 0, height: 4 },
-        textShadowRadius: 10,
-    },
+    icon: {
+        width: ICON_SIZE,
+        height: ICON_SIZE,
+    }
 });
-

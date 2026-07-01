@@ -1,10 +1,12 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
 import { View, Text, TextInput, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import { ArrowLeft, Eye, EyeOff, Check, ChevronDown } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { authApi } from "../services/api";
 import { useAuthStore } from "../store/authStore";
+import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -46,7 +48,7 @@ export default function RegisterScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+        <SafeAreaView className="flex-1 bg-white dark:bg-[#0B0D12]">
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 className="flex-1"
@@ -65,16 +67,16 @@ export default function RegisterScreen() {
                     </View>
 
                     {/* Title Area */}
-                    <View className="mb-8">
+                    <Animated.View entering={FadeIn.delay(100)} className="mb-8">
                         <Text className="text-[26px] font-bold text-black dark:text-white mb-1.5 tracking-tight">Create your account</Text>
                         <Text className="text-gray-500 dark:text-gray-400 text-base">We'll send you a code to verify this email.</Text>
-                    </View>
+                    </Animated.View>
 
                     {/* Form Section */}
-                    <View className="mb-8">
+                    <Animated.View entering={FadeInDown.delay(200).springify()} className="mb-8">
 
                         {/* Name Input */}
-                        <View className="border border-gray-200 dark:border-zinc-800 rounded-xl px-4 pt-3 pb-2 mb-4">
+                        <View className="border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl px-4 pt-3 pb-2 mb-4">
                             <Text className="text-gray-400 text-[12px] font-medium mb-0.5 tracking-wide">Full Name</Text>
                             <TextInput
                                 placeholder="Your full name"
@@ -87,7 +89,7 @@ export default function RegisterScreen() {
                         </View>
 
                         {/* Email Input */}
-                        <View className="border border-gray-200 dark:border-zinc-800 rounded-xl px-4 pt-3 pb-2 mb-4">
+                        <View className="border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl px-4 pt-3 pb-2 mb-4">
                             <Text className="text-gray-400 text-[12px] font-medium mb-0.5 tracking-wide">Email</Text>
                             <TextInput
                                 placeholder="name@example.com"
@@ -101,7 +103,7 @@ export default function RegisterScreen() {
                         </View>
 
                         {/* Password Input */}
-                        <View className="border border-gray-200 dark:border-zinc-800 rounded-xl px-4 pt-3 pb-2 mb-4 flex-row items-center justify-between">
+                        <View className="border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl px-4 pt-3 pb-2 mb-4 flex-row items-center justify-between">
                             <View className="flex-1">
                                 <Text className="text-gray-400 text-[12px] font-medium mb-0.5 tracking-wide">Password</Text>
                                 <TextInput
@@ -123,7 +125,7 @@ export default function RegisterScreen() {
                         </View>
 
                         {/* Referral Input (Optional styling) */}
-                        <View className="border border-gray-200 dark:border-zinc-800 rounded-xl px-4 pt-3 pb-2 mb-4 opacity-60 justify-center h-[64px]">
+                        <View className="border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36] rounded-2xl px-4 pt-3 pb-2 mb-4 opacity-60 justify-center h-[64px]">
                             <TextInput
                                 placeholder="Referral code (optional)"
                                 placeholderTextColor="#9CA3AF"
@@ -131,20 +133,20 @@ export default function RegisterScreen() {
                                 editable={false}
                             />
                         </View>
-                    </View>
+                    </Animated.View>
 
                     {error ? <Text className="text-red-500 text-sm mb-4">{error}</Text> : null}
 
                 </ScrollView>
 
                 {/* Bottom Action Area */}
-                <View className="px-5 pb-8 pt-4 border-t border-transparent">
+                <Animated.View entering={SlideInDown.delay(300).springify()} className="px-5 pb-8 pt-4 border-t border-transparent">
                     {/* Privacy Policy Checkbox */}
                     <SoundButton
                         className="flex-row items-center mb-6"
                         onPress={() => setAgreed(!agreed)}
                     >
-                        <View className={`w-6 h-6 rounded border mr-3 items-center justify-center ${agreed ? 'bg-black border-black' : 'border-gray-300 bg-white dark:bg-zinc-950'}`}>
+                        <View className={`w-6 h-6 rounded border mr-3 items-center justify-center ${agreed ? 'bg-black border-black' : 'border-gray-300 bg-white dark:bg-[#0B0D12]'}`}>
                             {agreed && <Check size={16} color="#FFF" strokeWidth={3} />}
                         </View>
                         <Text className="text-black dark:text-white text-base">
@@ -153,22 +155,21 @@ export default function RegisterScreen() {
                     </SoundButton>
 
                     {/* Continue Button */}
-                    <SoundButton
-                        activeOpacity={0.8}
+                    <TactileButton
                         onPress={handleRegister}
                         disabled={loading || !agreed}
-                        className={`py-4 rounded-2xl items-center border-b-4 ${loading || !agreed
-                            ? 'bg-[#E5E5E5] border-[#CECECE]'
-                            : 'bg-[#F59E0B] border-[#D97706] border-t-[#F59E0B] border-x-[#F59E0B]'
-                            }`}
+                        backgroundColor="#F59E0B"
+                        shadowColor="#D97706"
+                        contentClassName="py-4 items-center justify-center"
+                        className="rounded-2xl"
                     >
                         {loading ? (
                             <ActivityIndicator color="#FFF" />
                         ) : (
                             <Text className={`font-bold text-[17px] uppercase tracking-wider ${loading || !agreed ? 'text-[#AFAFAF]' : 'text-white'}`}>Continue</Text>
                         )}
-                    </SoundButton>
-                </View>
+                    </TactileButton>
+                </Animated.View>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );

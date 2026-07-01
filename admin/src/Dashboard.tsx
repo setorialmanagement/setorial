@@ -136,7 +136,7 @@ export default function AdminDashboard() {
 
     // Mock AI Modal State
     const [isMockAiModalOpen, setIsMockAiModalOpen] = useState(false);
-    const [mockAiForm, setMockAiForm] = useState({ subjectId: '', title: '', numQuestions: '30' });
+    const [mockAiForm, setMockAiForm] = useState({ subjectId: '', title: '', numQuestions: '60', durationMinutes: '120' });
 
     // Filters
     const [tierFilter, setTierFilter] = useState('');
@@ -458,7 +458,8 @@ export default function AdminDashboard() {
             await adminApi.generateAiMock({ 
                 subjectId: mockAiForm.subjectId, 
                 title: mockAiForm.title, 
-                numQuestions: Number(mockAiForm.numQuestions) 
+                numQuestions: Number(mockAiForm.numQuestions),
+                durationMinutes: Number(mockAiForm.durationMinutes)
             });
             alert('AI Mock Exam generated successfully!');
             setIsMockAiModalOpen(false);
@@ -2039,14 +2040,27 @@ export default function AdminDashboard() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider ml-1">Number of Questions (20-60)</label>
+                                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider ml-1">Number of Questions (20-180)</label>
                                 <input
                                     type="number"
                                     min="20"
-                                    max="60"
+                                    max="180"
                                     className="input-field"
                                     value={mockAiForm.numQuestions}
                                     onChange={(e) => setMockAiForm({ ...mockAiForm, numQuestions: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider ml-1">Duration (Minutes)</label>
+                                <input
+                                    type="number"
+                                    min="10"
+                                    max="360"
+                                    className="input-field"
+                                    value={mockAiForm.durationMinutes}
+                                    onChange={(e) => setMockAiForm({ ...mockAiForm, durationMinutes: e.target.value })}
                                     required
                                 />
                             </div>

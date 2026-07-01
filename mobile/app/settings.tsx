@@ -4,6 +4,7 @@ import { ChevronLeft, User, Bell, Shield, CircleHelp, Volume2, Vibrate } from 'l
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -23,27 +24,28 @@ export default function SettingsScreen() {
 
             <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
                 {/* Account Section */}
-                <Text className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Account</Text>
+                <Animated.Text entering={FadeInUp.delay(60).springify()} className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Account</Animated.Text>
                 <SettingRow
+                    index={0}
                     icon={<User size={20} color="#000" />}
                     label="Edit Profile"
                     onPress={() => router.push('/edit-profile')}
                 />
-                <SettingRow icon={<Bell size={20} color="#000" />} label="Notifications">
+                <SettingRow index={1} icon={<Bell size={20} color="#000" />} label="Notifications">
                     <Switch
                         value={notifications}
                         onValueChange={setNotifications}
                         trackColor={{ false: '#E2E8F0', true: '#000' }}
                     />
                 </SettingRow>
-                <SettingRow icon={<Vibrate size={20} color="#000" />} label="Haptic Feedback">
+                <SettingRow index={2} icon={<Vibrate size={20} color="#000" />} label="Haptic Feedback">
                     <Switch
                         value={hapticsEnabled}
                         onValueChange={setHapticsEnabled}
                         trackColor={{ false: '#E2E8F0', true: '#F59E0B' }}
                     />
                 </SettingRow>
-                <SettingRow icon={<Volume2 size={20} color="#000" />} label="Sound Effects">
+                <SettingRow index={3} icon={<Volume2 size={20} color="#000" />} label="Sound Effects">
                     <Switch
                         value={soundEnabled}
                         onValueChange={setSoundEnabled}
@@ -51,6 +53,7 @@ export default function SettingsScreen() {
                     />
                 </SettingRow>
                 <SettingRow
+                    index={4}
                     icon={<Shield size={20} color="#000" />}
                     label="Security & Privacy"
                     onPress={() => router.push('/security')}
@@ -59,8 +62,9 @@ export default function SettingsScreen() {
                 <View className="h-10" />
 
                 {/* Support Section */}
-                <Text className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Support</Text>
+                <Animated.Text entering={FadeInUp.delay(460).springify()} className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Support</Animated.Text>
                 <SettingRow
+                    index={5}
                     icon={<CircleHelp size={20} color="#000" />}
                     label="Help Center"
                     onPress={() => router.push('/help')}
@@ -69,9 +73,9 @@ export default function SettingsScreen() {
                 <View className="h-10" />
 
                 {/* Legal Section */}
-                <Text className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Legal</Text>
-                <SettingRow label="Terms of Service" onPress={() => router.push('/terms')} />
-                <SettingRow label="Privacy Policy" onPress={() => router.push('/privacy')} />
+                <Animated.Text entering={FadeInUp.delay(580).springify()} className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Legal</Animated.Text>
+                <SettingRow index={6} label="Terms of Service" onPress={() => router.push('/terms')} />
+                <SettingRow index={7} label="Privacy Policy" onPress={() => router.push('/privacy')} />
 
                 <View className="h-32" />
             </ScrollView>
@@ -79,22 +83,24 @@ export default function SettingsScreen() {
     );
 }
 
-function SettingRow({ icon, label, children, onPress }: { icon?: any, label: string, children?: any, onPress?: () => void }) {
+function SettingRow({ icon, label, children, onPress, index = 0 }: { icon?: any, label: string, children?: any, onPress?: () => void, index?: number }) {
     return (
-        <SoundButton
-            activeOpacity={0.8}
-            onPress={onPress}
-            disabled={!onPress && !children}
-            className="flex-row items-center p-5 mb-3 bg-white dark:bg-[#1E222B] border-2 border-[#E5E5E5] dark:border-[#272B36] border-b-4 rounded-2xl"
-        >
-            {icon && (
-                <View className="w-10 h-10 rounded-xl bg-[#F5F5F5] dark:bg-[#2A2E39] border-2 border-[#E5E5E5] dark:border-[#272B36] items-center justify-center mr-4">
-                    {icon}
-                </View>
-            )}
-            <Text className="flex-1 text-[#4B4B4B] dark:text-white font-bold text-[17px]">{label}</Text>
-            {children || (onPress && <ChevronLeft size={20} color="#CECECE" style={{ transform: [{ rotate: '180deg' }] }} />)}
-        </SoundButton>
+        <Animated.View entering={FadeInUp.delay(100 + index * 80).springify()}>
+            <SoundButton
+                activeOpacity={0.8}
+                onPress={onPress}
+                disabled={!onPress && !children}
+                className="flex-row items-center p-5 mb-3 bg-white dark:bg-[#1E222B] border-2 border-[#E5E5E5] dark:border-[#272B36] border-b-4 rounded-2xl"
+            >
+                {icon && (
+                    <View className="w-10 h-10 rounded-xl bg-[#F5F5F5] dark:bg-[#2A2E39] border-2 border-[#E5E5E5] dark:border-[#272B36] items-center justify-center mr-4">
+                        {icon}
+                    </View>
+                )}
+                <Text className="flex-1 text-[#4B4B4B] dark:text-white font-bold text-[17px]">{label}</Text>
+                {children || (onPress && <ChevronLeft size={20} color="#CECECE" style={{ transform: [{ rotate: '180deg' }] }} />)}
+            </SoundButton>
+        </Animated.View>
     );
 }
 

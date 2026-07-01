@@ -1,4 +1,6 @@
 import { SoundButton } from '../components/SoundButton';
+import { TactileButton } from '../components/TactileButton';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { View, Text, ScrollView, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { ChevronLeft, Check, Crown, Shield, Star, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -200,12 +202,15 @@ export default function SubscriptionScreen() {
                             <Text className="text-blue-700 dark:text-blue-300 text-sm mb-4 leading-5">
                                 We detected you are likely in <Text className="font-bold">{user.detectedCountry}</Text>. Confirm this to lock your local pricing.
                             </Text>
-                            <SoundButton
+                            <TactileButton
                                 onPress={handleConfirmCountry}
-                                className="bg-blue-600 py-3 rounded-xl items-center shadow-sm"
+                                backgroundColor="#2563EB"
+                                shadowColor="#1D4ED8"
+                                depth={4}
+                                contentClassName="py-3 items-center justify-center"
                             >
                                 <Text className="text-white font-bold">Confirm & Lock Region</Text>
-                            </SoundButton>
+                            </TactileButton>
                         </View>
                     )}
 
@@ -277,13 +282,14 @@ export default function SubscriptionScreen() {
                         </SoundButton>
                     </View>
 
-                    {tiers.map((tier) => {
+                    {tiers.map((tier, index) => {
                         const isActive = currentTier === tier.tierId;
                         const Icon = tier.icon;
                         const isLoading = loading === tier.name;
 
                         return (
-                            <View
+                            <Animated.View
+                                entering={SlideInDown.delay(index * 100).springify().damping(15)}
                                 key={tier.name}
                                 className={`mb-6 p-6 rounded-[32px] border-2 border-b-4 ${isActive ? 'border-black bg-black dark:border-white dark:bg-[#13151A]' : 'border-gray-100 bg-white dark:border-[#272B36] dark:bg-[#1E222B]'}`}
                             >
@@ -330,27 +336,23 @@ export default function SubscriptionScreen() {
                                 ))}
 
                                 {!isActive && tier.name !== 'Free' && (
-                                    <SoundButton
-                                        activeOpacity={0.8}
+                                    <TactileButton
                                         onPress={() => handleUpgrade(tier.name)}
                                         disabled={isLoading}
-                                        className="mt-4 py-4 rounded-2xl items-center border-b-4 relative overflow-hidden"
-                                        style={{
-                                            backgroundColor: isLoading ? '#E5E5E5' : tier.accent,
-                                            borderColor: isLoading ? '#CECECE' : tier.accent + 'CC',
-                                            borderTopColor: isLoading ? '#E5E5E5' : tier.accent,
-                                            borderLeftColor: isLoading ? '#E5E5E5' : tier.accent,
-                                            borderRightColor: isLoading ? '#E5E5E5' : tier.accent,
-                                        }}
+                                        backgroundColor={isLoading ? '#E5E5E5' : tier.accent}
+                                        shadowColor={isLoading ? '#CECECE' : tier.accent + 'CC'}
+                                        depth={6}
+                                        className="mt-4"
+                                        contentClassName="py-4 items-center justify-center"
                                     >
                                         {isLoading ? (
                                             <ActivityIndicator color="#FFF" />
                                         ) : (
                                             <Text className="text-white font-bold text-[17px] uppercase tracking-wider">Upgrade to {tier.name}</Text>
                                         )}
-                                    </SoundButton>
+                                    </TactileButton>
                                 )}
-                            </View>
+                            </Animated.View>
                         );
                     })}
 

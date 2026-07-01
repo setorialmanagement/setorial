@@ -1,4 +1,6 @@
 import { SoundButton } from '../../components/SoundButton';
+import { TactileButton } from '../../components/TactileButton';
+import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 import { View, Text, TouchableOpacity, ScrollView, Image, RefreshControl, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Settings, LogOut, ChevronRight, BookOpen, Star, HelpCircle, ShieldCheck } from 'lucide-react-native';
@@ -45,52 +47,54 @@ export default function ProfileScreen() {
                 <Text className="text-black dark:text-white text-[28px] font-bold tracking-tight mb-8">Manage</Text>
 
                 {/* Profile Header */}
-                <SoundButton
-                    onPress={() => router.push('/edit-profile')}
-                    className="flex-row items-center mb-10"
-                >
-                    <View className="relative mr-4">
-                        <View className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#1E222B] items-center justify-center overflow-hidden border border-gray-200 dark:border-[#272B36]">
-                            {user?.avatarUrl ? (
-                                <Image source={{ uri: user.avatarUrl }} className="w-full h-full" />
-                            ) : (
-                                <LottieView
-                                    autoPlay
-                                    loop
-                                    source={require('../../assets/animations/happy.json')}
-                                    style={{ width: 80, height: 80 }}
-                                    renderMode="SOFTWARE"
-                                    resizeMode="contain"
-                                    cacheComposition={true}
-                                />
-                            )}
-                        </View>
-                        <View className={`absolute bottom-0 right-0 w-4 h-4 border-2 border-white dark:border-[#0B0D12] rounded-full ${user?.isVerified ? 'bg-blue-500' : 'bg-green-500'}`} />
-                    </View>
-                    <View className="flex-1">
-                        <View className="flex-row items-center">
-                            <Text className="text-black dark:text-white text-[22px] font-bold tracking-tight mr-2">{user?.name || 'Student'}</Text>
-                        </View>
-                        <View className="flex-row items-center mt-1">
-                            <View
-                                className="px-3 py-1 rounded-full border border-b-2"
-                                style={{
-                                    backgroundColor: `${theme.primary}20`,
-                                    borderColor: theme.primary
-                                }}
-                            >
-                                <Text
-                                    className="text-[11px] font-black uppercase tracking-widest"
-                                    style={{ color: theme.primaryDark }}
-                                >
-                                    {user?.tier || 'FREE'}
-                                </Text>
+                <Animated.View entering={FadeIn.delay(100).springify()}>
+                    <SoundButton
+                        onPress={() => router.push('/edit-profile')}
+                        className="flex-row items-center mb-10"
+                    >
+                        <View className="relative mr-4">
+                            <View className="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#1E222B] items-center justify-center overflow-hidden border border-gray-200 dark:border-[#272B36]">
+                                {user?.avatarUrl ? (
+                                    <Image source={{ uri: user.avatarUrl }} className="w-full h-full" />
+                                ) : (
+                                    <LottieView
+                                        autoPlay
+                                        loop
+                                        source={require('../../assets/animations/happy.json')}
+                                        style={{ width: 80, height: 80 }}
+                                        renderMode="SOFTWARE"
+                                        resizeMode="contain"
+                                        cacheComposition={true}
+                                    />
+                                )}
                             </View>
-                            <Text className="text-gray-400 dark:text-gray-500 font-medium ml-3 text-xs">• {user?.email || 'student@setorial.com'}</Text>
+                            <View className={`absolute bottom-0 right-0 w-4 h-4 border-2 border-white dark:border-[#0B0D12] rounded-full ${user?.isVerified ? 'bg-blue-500' : 'bg-green-500'}`} />
                         </View>
-                    </View>
-                    <ChevronRight size={20} color="#9CA3AF" />
-                </SoundButton>
+                        <View className="flex-1">
+                            <View className="flex-row items-center">
+                                <Text className="text-black dark:text-white text-[22px] font-bold tracking-tight mr-2">{user?.name || 'Student'}</Text>
+                            </View>
+                            <View className="flex-row items-center mt-1">
+                                <View
+                                    className="px-3 py-1 rounded-full border border-b-2"
+                                    style={{
+                                        backgroundColor: `${theme.primary}20`,
+                                        borderColor: theme.primary
+                                    }}
+                                >
+                                    <Text
+                                        className="text-[11px] font-black uppercase tracking-widest"
+                                        style={{ color: theme.primaryDark }}
+                                    >
+                                        {user?.tier || 'FREE'}
+                                    </Text>
+                                </View>
+                                <Text className="text-gray-400 dark:text-gray-500 font-medium ml-3 text-xs">• {user?.email || 'student@setorial.com'}</Text>
+                            </View>
+                        </View>
+                        <ChevronRight size={20} color="#9CA3AF" />
+                    </SoundButton>
+                </Animated.View>
 
                 {/* Badges Section */}
                 <View className="mb-8">
@@ -117,49 +121,65 @@ export default function ProfileScreen() {
                 {/* Action List */}
                 <Text className="text-black dark:text-white font-bold text-xl tracking-tight mb-4">Account</Text>
                 <View className="mb-8">
-                    <ActionRow
-                        icon={<BookOpen size={20} color="#000" />}
-                        label="My Learning Path"
-                        onPress={() => router.push('/learning-path')}
-                    />
-                    <ActionRow
-                        icon={<Star size={20} color="#000" />}
-                        label="Achievements"
-                        onPress={() => router.push('/achievements')}
-                    />
-                    <ActionRow
-                        icon={<ShieldCheck size={20} color="#000" />}
-                        label="Subscription Tier"
-                        onPress={() => router.push('/subscription')}
-                    />
-                    {['SILVER', 'GOLD'].includes(user?.tier || '') && (
+                    <Animated.View entering={SlideInUp.delay(0 * 80).springify()}>
                         <ActionRow
-                            icon={<ShieldCheck size={20} color="#1CB0F6" />}
-                            label="Monetization & Verification"
-                            onPress={() => router.push('/verification')}
+                            icon={<BookOpen size={20} color="#000" />}
+                            label="My Learning Path"
+                            onPress={() => router.push('/learning-path')}
                         />
+                    </Animated.View>
+                    <Animated.View entering={SlideInUp.delay(1 * 80).springify()}>
+                        <ActionRow
+                            icon={<Star size={20} color="#000" />}
+                            label="Achievements"
+                            onPress={() => router.push('/achievements')}
+                        />
+                    </Animated.View>
+                    <Animated.View entering={SlideInUp.delay(2 * 80).springify()}>
+                        <ActionRow
+                            icon={<ShieldCheck size={20} color="#000" />}
+                            label="Subscription Tier"
+                            onPress={() => router.push('/subscription')}
+                        />
+                    </Animated.View>
+                    {['SILVER', 'GOLD'].includes(user?.tier || '') && (
+                        <Animated.View entering={SlideInUp.delay(3 * 80).springify()}>
+                            <ActionRow
+                                icon={<ShieldCheck size={20} color="#1CB0F6" />}
+                                label="Monetization & Verification"
+                                onPress={() => router.push('/verification')}
+                            />
+                        </Animated.View>
                     )}
-                    <ActionRow
-                        icon={<Settings size={20} color="#000" />}
-                        label="Settings"
-                        onPress={() => router.push('/settings')}
-                    />
-                    <ActionRow
-                        icon={<HelpCircle size={20} color="#000" />}
-                        label="Help Center"
-                        onPress={() => router.push('/help')}
-                    />
+                    <Animated.View entering={SlideInUp.delay(4 * 80).springify()}>
+                        <ActionRow
+                            icon={<Settings size={20} color="#000" />}
+                            label="Settings"
+                            onPress={() => router.push('/settings')}
+                        />
+                    </Animated.View>
+                    <Animated.View entering={SlideInUp.delay(5 * 80).springify()}>
+                        <ActionRow
+                            icon={<HelpCircle size={20} color="#000" />}
+                            label="Help Center"
+                            onPress={() => router.push('/help')}
+                        />
+                    </Animated.View>
                 </View>
 
                 {/* Log Out Button */}
-                <SoundButton
-                    activeOpacity={0.8}
-                    onPress={handleLogout}
-                    className="flex-row items-center justify-center bg-white dark:bg-[#1E222B] border-2 border-[#E5E5E5] dark:border-[#272B36] border-b-4 p-4 rounded-2xl mb-10"
-                >
-                    <LogOut size={20} color="#FF4B4B" />
-                    <Text className="text-[#FF4B4B] font-bold ml-2 text-[17px] uppercase tracking-wider">Log Out</Text>
-                </SoundButton>
+                <Animated.View entering={SlideInUp.delay(6 * 80).springify()}>
+                    <TactileButton
+                        onPress={handleLogout}
+                        backgroundColor="#FF4B4B"
+                        shadowColor="#CC3333"
+                        contentClassName="flex-row items-center justify-center py-4"
+                        className="rounded-2xl mb-10"
+                    >
+                        <LogOut size={20} color="#FFFFFF" />
+                        <Text className="text-white font-bold ml-2 text-[17px] uppercase tracking-wider">Log Out</Text>
+                    </TactileButton>
+                </Animated.View>
 
                 <View className="h-32" />
 
