@@ -2070,6 +2070,24 @@ export default function AdminDashboard() {
 
                         <form onSubmit={handleGenerateAiMock} className="p-8 space-y-6">
                             <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider ml-1">Subject</label>
+                                <select
+                                    className="input-field bg-white"
+                                    value={mockAiForm.subjectId}
+                                    onChange={(e) => {
+                                        const selSub = subjects.find((s: any) => s.id === e.target.value);
+                                        setMockAiForm({ ...mockAiForm, subjectId: e.target.value, title: selSub ? `AI Mock Exam for ${selSub.name}` : mockAiForm.title });
+                                    }}
+                                    required
+                                >
+                                    <option value="" disabled>Select a subject...</option>
+                                    {subjects.map((sub: any) => (
+                                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider ml-1">Exam Title</label>
                                 <input
                                     type="text"
