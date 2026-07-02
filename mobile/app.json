@@ -15,7 +15,8 @@
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "package": "com.yeezykng_dom.setorial"
+      "package": "com.yeezykng_dom.setorial",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"

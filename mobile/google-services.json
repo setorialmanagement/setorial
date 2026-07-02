@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "522042944569",
+    "project_id": "setorial-f1ad5",
+    "storage_bucket": "setorial-f1ad5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:522042944569:android:b3a1a01d4afcd4aef231e8",
+        "android_client_info": {
+          "package_name": "com.yeezykng_dom.setorial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeFu-oLlWVUn5RLrvgGcX2Mie-qnFDLT8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
