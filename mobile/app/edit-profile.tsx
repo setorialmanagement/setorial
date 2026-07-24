@@ -9,7 +9,7 @@ import { useState } from 'react';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import * as ImagePicker from 'expo-image-picker';
-import LottieView from 'lottie-react-native';
+import { LION_IMAGES } from '../lib/lionMood';
 
 export default function EditProfileScreen() {
     const router = useRouter();
@@ -90,14 +90,10 @@ export default function EditProfileScreen() {
                             {image || user?.avatarUrl ? (
                                 <Image source={{ uri: image || user?.avatarUrl || '' }} className="w-full h-full" />
                             ) : (
-                                <LottieView
-                                    autoPlay
-                                    loop
-                                    source={require('../assets/animations/happy.json')}
-                                    style={{ width: 130, height: 130 }}
-                                    renderMode="SOFTWARE"
-                                    resizeMode="contain"
-                                    cacheComposition={true}
+                                <Image
+                                    source={LION_IMAGES.happy}
+                                    style={{ width: 130, height: 130, borderRadius: 65 }}
+                                    resizeMode="cover"
                                 />
                             )}
                         </View>

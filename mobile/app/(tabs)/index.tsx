@@ -1,7 +1,7 @@
 import { SoundButton } from '../../components/SoundButton';
 import { MascotInteraction } from '../../components/MascotInteraction';
 import { Languages } from 'lucide-react-native';
-import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowUpRight, ShieldCheck, CreditCard, ChevronRight, Trophy, Star, Clock, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 export default function HomeScreen() {
     const { t } = useTranslation();
     const router = useRouter();
+    const isDark = useColorScheme() === 'dark';
     const { user, token, updateUser, setLangModalOpen } = useAuthStore();
     const [balance, setBalance] = useState({ ngn: 0, usd: 0 });
     const [subjects, setSubjects] = useState<any[]>([]);
@@ -274,25 +275,7 @@ export default function HomeScreen() {
                     </TactileButton>
                 </View>
 
-                {/* Rive Demo Access */}
-                <View className="mb-10">
-                    <Text className="text-black dark:text-white font-bold text-xl tracking-tight mb-4">Interactive Demo (Rive)</Text>
-                    <TactileButton
-                        onPress={() => router.push('/rive-quiz')}
-                        backgroundColor="#FF4B4B"
-                        shadowColor="#EA2B2B"
-                        depth={6}
-                        contentClassName="p-5 flex-row items-center justify-between"
-                    >
-                        <View className="flex-1 mr-4">
-                            <Text className="text-white font-bold text-lg mb-1">Play Rive Quiz</Text>
-                            <Text className="text-white/80 font-medium">Test the WebGL fully interactive 60fps canvas.</Text>
-                        </View>
-                        <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center">
-                            <Sparkles size={24} color="#FFF" />
-                        </View>
-                    </TactileButton>
-                </View>
+
 
 
                 {/* Popular on Stake / Top Subjects */}

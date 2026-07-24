@@ -1,13 +1,13 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
 import { MascotInteraction } from '../components/MascotInteraction';
-import { View, Text, SafeAreaView, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
 import { ChevronLeft, Send, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
-import LottieView from 'lottie-react-native';
+import { LION_IMAGES } from '../lib/lionMood';
 
 export default function TutorScreen() {
     const router = useRouter();
@@ -104,12 +104,10 @@ export default function TutorScreen() {
                             {msg.role === 'tutor' && (
                                 <View className="mr-3 mt-1">
                                     <View className="w-10 h-10 rounded-full bg-yellow-100 items-center justify-center overflow-hidden">
-                                        <LottieView
-                                            autoPlay
-                                            loop
-                                            source={require('../assets/animations/happy.json')}
-                                            style={{ width: 44, height: 44, backgroundColor: 'transparent' }}
-                                            resizeMode="contain"
+                                        <Image
+                                            source={LION_IMAGES.happy}
+                                            style={{ width: 44, height: 44, borderRadius: 22 }}
+                                            resizeMode="cover"
                                         />
                                     </View>
                                 </View>

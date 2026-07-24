@@ -9,7 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { authApi } from '../../services/api';
 import { getTierColors } from '../../utils/theme';
-import LottieView from 'lottie-react-native';
+import { LION_IMAGES } from '../../lib/lionMood';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -57,14 +57,10 @@ export default function ProfileScreen() {
                                 {user?.avatarUrl ? (
                                     <Image source={{ uri: user.avatarUrl }} className="w-full h-full" />
                                 ) : (
-                                    <LottieView
-                                        autoPlay
-                                        loop
-                                        source={require('../../assets/animations/happy.json')}
-                                        style={{ width: 80, height: 80 }}
-                                        renderMode="SOFTWARE"
-                                        resizeMode="contain"
-                                        cacheComposition={true}
+                                    <Image
+                                        source={LION_IMAGES.happy}
+                                        style={{ width: 80, height: 80, borderRadius: 40 }}
+                                        resizeMode="cover"
                                     />
                                 )}
                             </View>

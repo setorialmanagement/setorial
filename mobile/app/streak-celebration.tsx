@@ -1,22 +1,76 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, SafeAreaView, StyleSheet, useColorScheme } from 'react-native';
-import { RiveView, RiveViewRef, Fit, Alignment } from '@rive-app/react-native';
+import React, { useEffect } from 'react';
+import { View, Text, SafeAreaView, StyleSheet, useColorScheme, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import Animated, { FadeIn, SlideInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { 
+    FadeIn, 
+    SlideInDown, 
+    ZoomIn,
+    useSharedValue,
+    useAnimatedStyle,
+    withRepeat,
+    withSequence,
+    withTiming,
+    withSpring,
+    Easing,
+} from 'react-native-reanimated';
 import { TactileButton } from '../components/TactileButton';
 import { feedback } from '../lib/feedback';
+import { LION_IMAGES } from '../lib/lionMood';
 
 export default function StreakCelebrationScreen() {
     const router = useRouter();
     const { streak } = useLocalSearchParams<{ streak: string }>();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
-    const riveRef = useRef<RiveViewRef>(null);
     const streakCount = parseInt(streak || '1', 10);
+
+    // Animated flame glow
+    const glowScale = useSharedValue(1);
+    const glowOpacity = useSharedValue(0.6);
+    const lionRotate = useSharedValue(0);
 
     useEffect(() => {
         feedback.victory();
+
+        // Pulsing glow effect
+        glowScale.value = withRepeat(
+            withSequence(
+                withTiming(1.3, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+                withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1,
+            true
+        );
+
+        glowOpacity.value = withRepeat(
+            withSequence(
+                withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+                withTiming(0.4, { duration: 1200, easing: Easing.inOut(Easing.ease) })
+            ),
+            -1,
+            true
+        );
+
+        // Subtle lion wiggle
+        lionRotate.value = withRepeat(
+            withSequence(
+                withTiming(-5, { duration: 300 }),
+                withTiming(5, { duration: 300 }),
+                withTiming(0, { duration: 300 })
+            ),
+            3,
+            false
+        );
     }, []);
+
+    const glowStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: glowScale.value }],
+        opacity: glowOpacity.value,
+    }));
+
+    const lionStyle = useAnimatedStyle(() => ({
+        transform: [{ rotate: `${lionRotate.value}deg` }],
+    }));
 
     // Milestone messages
     const getMessage = (count: number): string => {
@@ -32,11 +86,11 @@ export default function StreakCelebrationScreen() {
     };
 
     const getAccentColor = (count: number): string => {
-        if (count >= 30) return '#FF6B00'; // Deep orange
-        if (count >= 14) return '#FF8C00'; // Dark orange
-        if (count >= 7) return '#FF9600';  // Orange  
-        if (count >= 3) return '#FFA726';  // Light orange
-        return '#FFB74D'; // Pale orange
+        if (count >= 30) return '#FF6B00';
+        if (count >= 14) return '#FF8C00';
+        if (count >= 7) return '#FF9600';
+        if (count >= 3) return '#FFA726';
+        return '#FFB74D';
     };
 
     const accent = getAccentColor(streakCount);
@@ -44,15 +98,24 @@ export default function StreakCelebrationScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0B0D12' : '#FFFFFF' }]}>  
             <View style={styles.content}>
-                {/* Rive Streak Flame Animation */}
-                <Animated.View entering={ZoomIn.delay(200).springify().damping(12)} style={styles.riveWrapper}>
-                    <RiveView
-                        ref={riveRef}
-                        url={require('../assets/animations/streak.riv')}
-                        fit={Fit.Contain}
-                        alignment={Alignment.Center}
-                        autoPlay
-                        style={styles.riveView}
+                {/* Animated Glow Behind Lion */}
+                <Animated.View entering={ZoomIn.delay(200).springify().damping(12)} style={styles.lionWrapper}>
+                    {/* Glow ring */}
+                    <Animated.View style={[styles.glowRing, glowStyle, { 
+                        borderColor: accent,
+                        shadowColor: accent,
+                    }]} />
+                    
+                    {/* Fire emoji overlay */}
+                    <View style={styles.fireContainer}>
+                        <Text style={styles.fireEmoji}>🔥</Text>
+                    </View>
+
+                    {/* Lion Image */}
+                    <Animated.Image
+                        source={LION_IMAGES.happy}
+                        style={[styles.lionImage, lionStyle]}
+                        resizeMode="contain"
                     />
                 </Animated.View>
 
@@ -73,7 +136,7 @@ export default function StreakCelebrationScreen() {
                     </Text>
                 </Animated.View>
 
-                {/* Milestone badges for specific streaks */}
+                {/* Milestone badges */}
                 {(streakCount === 7 || streakCount === 14 || streakCount === 30 || streakCount === 100 || streakCount === 365) && (
                     <Animated.View entering={ZoomIn.delay(800).springify()} style={[styles.milestoneBadge, { borderColor: accent + '40', backgroundColor: accent + '15' }]}>
                         <Text style={[styles.milestoneText, { color: accent }]}>
@@ -109,14 +172,37 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingHorizontal: 32,
     },
-    riveWrapper: {
-        width: 220,
-        height: 220,
+    lionWrapper: {
+        width: 200,
+        height: 200,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 16,
     },
-    riveView: {
-        width: '100%',
-        height: '100%',
+    glowRing: {
+        position: 'absolute',
+        width: 220,
+        height: 220,
+        borderRadius: 110,
+        borderWidth: 4,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 30,
+        elevation: 20,
+    },
+    fireContainer: {
+        position: 'absolute',
+        top: -20,
+        right: -10,
+        zIndex: 10,
+    },
+    fireEmoji: {
+        fontSize: 48,
+    },
+    lionImage: {
+        width: 160,
+        height: 160,
+        borderRadius: 28,
     },
     countContainer: {
         alignItems: 'center',

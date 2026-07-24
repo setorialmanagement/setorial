@@ -1,65 +1,52 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import LottieView from 'lottie-react-native';
-import Animated, { FadeInRight } from 'react-native-reanimated';
+import React from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import Animated, { 
+    FadeInRight, 
+    SlideInUp,
+    FadeIn,
+    BounceIn,
+} from 'react-native-reanimated';
+import { stateToMood, LION_IMAGES, type LionMood } from '../lib/lionMood';
 
 interface MascotInteractionProps {
     message?: string;
-    state?: 'happy' | 'sad' | 'thinking' | 'pointing_down' | 'pointing_up' | 'pointing_left' | 'pointing_right';
+    /** Legacy state names for backward compat, OR direct lion mood names */
+    state?: 'happy' | 'sad' | 'thinking' | 'pointing_down' | 'pointing_up' | 'pointing_left' | 'pointing_right' | 'angry' | 'crying' | 'freezing' | 'sleeping' | 'formal';
     size?: number;
+    /** Direct mood override (takes priority over state) */
+    mood?: LionMood;
 }
 
-const MASCOT_ANIMATIONS: Record<string, any> = {
-    happy: require('../assets/animations/happy.json'),
-    sad: require('../assets/animations/crying.json'),
-    thinking: require('../assets/animations/happy.json'),
-    pointing_down: require('../assets/animations/point_down.json'),
-    pointing_up: require('../assets/animations/point_up.json'),
-    pointing_left: require('../assets/animations/point_left.json'),
-    pointing_right: require('../assets/animations/point_left.json'),
-};
-
-export const MascotInteraction: React.FC<MascotInteractionProps> = ({ message, state = 'happy', size = 160 }) => {
-    const isRight = state === 'pointing_right';
-    const animationRef = useRef<LottieView>(null);
-
-    // This delay ensures the native view is ready before we start playback
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            animationRef.current?.play();
-        }, 150);
-        return () => clearTimeout(timer);
-    }, [state]);
-
-    const source = MASCOT_ANIMATIONS[state] || MASCOT_ANIMATIONS.happy;
+export const MascotInteraction: React.FC<MascotInteractionProps> = ({ 
+    message, 
+    state = 'happy', 
+    size = 120,
+    mood,
+}) => {
+    // Determine which lion to show
+    const lionMood = mood || stateToMood(state);
+    const lionImage = LION_IMAGES[lionMood];
 
     return (
         <View style={styles.container}>
-            {/* Mascot Lottie Animation */}
-            <View 
-                style={[
-                    { width: size, height: size, marginBottom: -8, backgroundColor: 'transparent' },
-                    { transform: [{ scaleX: isRight ? -1 : 1 }] }
-                ]}
-            >
-                <LottieView
-                    ref={animationRef}
-                    source={source}
-                    autoPlay={true}
-                    loop
-                    style={{ 
-                        width: size, 
-                        height: size, 
-                        backgroundColor: 'transparent' 
-                    }}
-                    resizeMode="contain"
-                />
+            {/* Lion Image — slides up from its own boundary */}
+            <View style={[styles.lionContainer, { width: size, height: size }]}>
+                <Animated.View
+                    entering={SlideInUp.delay(100).springify().damping(14).stiffness(100)}
+                    style={styles.lionInner}
+                >
+                    <Image
+                        source={lionImage}
+                        style={[styles.lionImage, { width: size, height: size }]}
+                        resizeMode="contain"
+                    />
+                </Animated.View>
             </View>
 
             {/* Speech Bubble */}
             {message && (
                 <Animated.View 
-                    entering={FadeInRight.delay(300)}
+                    entering={FadeInRight.delay(400).springify().damping(14)}
                     style={styles.bubble}
                     className="bg-white dark:bg-[#1E222B] border-2 border-b-4 border-gray-100 dark:border-[#272B36]"
                 >
@@ -85,6 +72,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         width: '100%',
     },
+    lionContainer: {
+        overflow: 'hidden',
+        borderRadius: 20,
+        marginBottom: -8,
+    },
+    lionInner: {
+        width: '100%',
+        height: '100%',
+    },
+    lionImage: {
+        borderRadius: 20,
+    },
     bubble: {
         flex: 1,
         padding: 16,
@@ -98,4 +97,3 @@ const styles = StyleSheet.create({
         borderRightColor: 'transparent',
     }
 });
-

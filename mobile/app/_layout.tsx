@@ -106,6 +106,7 @@ export default function RootLayout() {
                 <Stack.Screen name="verification" />
                 <Stack.Screen name="mock-result" />
                 <Stack.Screen name="tutor" />
+                <Stack.Screen name="streak-celebration" />
             </Stack>
 
             {/* Offline Guardian */}

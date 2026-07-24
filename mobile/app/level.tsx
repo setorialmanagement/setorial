@@ -6,12 +6,13 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideInRight, SlideOutLeft, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { learningApi } from "../services/api";
 import { MathText } from "../components/MathText";
 import { feedback } from "../lib/feedback";
 import { MascotInteraction } from '../components/MascotInteraction';
 import { FillInTheBlank } from '../components/FillInTheBlank';
+import { ShiningProgressBar } from '../components/ShiningProgressBar';
 import { useAuthStore } from '../store/authStore';
 
 const { width } = Dimensions.get('window');
@@ -71,7 +72,7 @@ export default function LevelScreen() {
 
     const checkSavedSession = async () => {
         try {
-            const data = await AsyncStorage.getItem(`lesson_session_${id}`);
+            const data = await SecureStore.getItemAsync(`lesson_session_${id}`);
             if (data) {
                 const session = JSON.parse(data);
                 setSavedSession(session);
@@ -105,14 +106,14 @@ export default function LevelScreen() {
     };
 
     const startFresh = async () => {
-        await AsyncStorage.removeItem(`lesson_session_${id}`);
+        await SecureStore.deleteItemAsync(`lesson_session_${id}`);
         setShowResumePrompt(false);
     };
 
     // Save session whenever state changes
     useEffect(() => {
         if (phase === 'questions' && lesson) {
-            AsyncStorage.setItem(`lesson_session_${id}`, JSON.stringify({
+            SecureStore.setItemAsync(`lesson_session_${id}`, JSON.stringify({
                 currentIndex,
                 answers,
                 hearts
@@ -161,7 +162,7 @@ export default function LevelScreen() {
     const submitLesson = async (finalAnswers: number[]) => {
         setSubmitting(true);
         try {
-            await AsyncStorage.removeItem(`lesson_session_${id}`);
+            await SecureStore.deleteItemAsync(`lesson_session_${id}`);
             const res = await learningApi.submitLesson({
                 lessonId: id as string,
                 answers: finalAnswers
