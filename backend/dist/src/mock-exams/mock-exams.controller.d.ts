@@ -93,4 +93,16 @@ export declare class MockExamsController {
             explanation: string | null;
         }[];
     }>;
+    initializePayment(req: any, id: string): Promise<{
+        authorization_url: any;
+        access_code: any;
+        reference: any;
+    }>;
+    verifyPayment(req: any, body: {
+        reference: string;
+    }): Promise<{
+        status: string;
+        attemptId: string;
+        mockId: any;
+    }>;
 }

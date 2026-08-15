@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
 
 interface User {
     id: string;
@@ -73,13 +74,36 @@ export const useAuthStore = create<AuthState>((set) => ({
             const soundPref = await SecureStore.getItemAsync('soundEnabled');
 
             if (token && userData) {
-                set({
-                    token,
-                    user: JSON.parse(userData),
-                    isLoading: false,
-                    hapticsEnabled: hapticsPref === null ? true : hapticsPref === 'true',
-                    soundEnabled: soundPref === null ? true : soundPref === 'true',
-                });
+                // Validate the token is still valid against the API
+                try {
+                    const { api } = require('../services/api');
+                    const res = await api.get('/users/me', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    set({
+                        token,
+                        user: res.data ?? JSON.parse(userData),
+                        isLoading: false,
+                        hapticsEnabled: hapticsPref === null ? true : hapticsPref === 'true',
+                        soundEnabled: soundPref === null ? true : soundPref === 'true',
+                    });
+                } catch (apiError: any) {
+                    // Token is invalid/expired — clear it
+                    if (apiError?.response?.status === 401) {
+                        await SecureStore.deleteItemAsync('userToken');
+                        await SecureStore.deleteItemAsync('userData');
+                        set({ user: null, token: null, isLoading: false });
+                    } else {
+                        // Network error or other — use cached data optimistically
+                        set({
+                            token,
+                            user: JSON.parse(userData),
+                            isLoading: false,
+                            hapticsEnabled: hapticsPref === null ? true : hapticsPref === 'true',
+                            soundEnabled: soundPref === null ? true : soundPref === 'true',
+                        });
+                    }
+                }
             } else {
                 set({ isLoading: false });
             }

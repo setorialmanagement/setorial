@@ -6,53 +6,78 @@ import Animated, {
     FadeIn,
     BounceIn,
 } from 'react-native-reanimated';
+import LottieView from 'lottie-react-native';
 import { stateToMood, LION_IMAGES, type LionMood } from '../lib/lionMood';
 
 interface MascotInteractionProps {
     message?: string;
+    messageNode?: React.ReactNode;
     /** Legacy state names for backward compat, OR direct lion mood names */
     state?: 'happy' | 'sad' | 'thinking' | 'pointing_down' | 'pointing_up' | 'pointing_left' | 'pointing_right' | 'angry' | 'crying' | 'freezing' | 'sleeping' | 'formal';
     size?: number;
     /** Direct mood override (takes priority over state) */
     mood?: LionMood;
+    noEntryAnimation?: boolean;
 }
 
 export const MascotInteraction: React.FC<MascotInteractionProps> = ({ 
     message, 
+    messageNode,
     state = 'happy', 
     size = 120,
     mood,
+    noEntryAnimation = false,
 }) => {
     // Determine which lion to show
     const lionMood = mood || stateToMood(state);
     const lionImage = LION_IMAGES[lionMood];
+    
+    // Check if mood has a Lottie animation
+    const hasLottie = ['happy', 'sad', 'crying'].includes(lionMood);
+    let lottieSource = null;
+    if (lionMood === 'happy') {
+        lottieSource = require('../assets/animations/Happy-mood.json');
+    } else if (lionMood === 'sad' || lionMood === 'crying') {
+        lottieSource = require('../assets/animations/sad-mood-loop.json');
+    }
 
     return (
         <View style={styles.container}>
             {/* Lion Image — slides up from its own boundary */}
             <View style={[styles.lionContainer, { width: size, height: size }]}>
                 <Animated.View
-                    entering={SlideInUp.delay(100).springify().damping(14).stiffness(100)}
+                    entering={noEntryAnimation ? undefined : SlideInUp.delay(100).springify().damping(14).stiffness(100)}
                     style={styles.lionInner}
                 >
-                    <Image
-                        source={lionImage}
-                        style={[styles.lionImage, { width: size, height: size }]}
-                        resizeMode="contain"
-                    />
+                    {hasLottie ? (
+                        <LottieView
+                            source={lottieSource}
+                            autoPlay
+                            loop
+                            style={[styles.lionImage, { width: size, height: size }]}
+                        />
+                    ) : (
+                        <Image
+                            source={lionImage}
+                            style={[styles.lionImage, { width: size, height: size }]}
+                            resizeMode="contain"
+                        />
+                    )}
                 </Animated.View>
             </View>
 
             {/* Speech Bubble */}
-            {message && (
+            {(message || messageNode) && (
                 <Animated.View 
-                    entering={FadeInRight.delay(400).springify().damping(14)}
+                    entering={noEntryAnimation ? undefined : FadeInRight.delay(400).springify().damping(14)}
                     style={styles.bubble}
                     className="bg-white dark:bg-[#1E222B] border-2 border-b-4 border-gray-100 dark:border-[#272B36]"
                 >
-                    <Text className="text-black dark:text-white font-bold text-[15px] leading-5">
-                        {message}
-                    </Text>
+                    {messageNode ? messageNode : (
+                        <Text className="text-black dark:text-white font-bold text-[15px] leading-5">
+                            {message}
+                        </Text>
+                    )}
                     
                     {/* Tail of the bubble */}
                     <View 

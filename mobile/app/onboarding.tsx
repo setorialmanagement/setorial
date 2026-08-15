@@ -1,10 +1,12 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
-import { View, Text, SafeAreaView, Image, TouchableOpacity, ScrollView, Animated as RNAnimated } from "react-native";
+import { View, Text, Image, TouchableOpacity, ScrollView, Animated as RNAnimated, useColorScheme } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useState, useRef, useEffect } from "react";
 import { ArrowLeft } from "lucide-react-native";
 import Animated, { FadeIn, FadeInDown, SlideInDown, FadeInUp } from 'react-native-reanimated';
+import { MascotInteraction } from '../components/MascotInteraction';
 
 // Types
 type StepConfig = {
@@ -133,6 +135,8 @@ export default function OnboardingScreen() {
     };
 
     const isNextDisabled = currentStep.type === 'options' && (!selections[currentStep.id] || selections[currentStep.id].length === 0);
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
 
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-[#0B0D12]">
@@ -170,19 +174,11 @@ export default function OnboardingScreen() {
             <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
                 
                 {/* Mascot & Chat Bubble */}
-                <Animated.View entering={FadeIn.delay(100)} className="flex-row items-end mt-4 mb-8">
-                    <Image 
-                        source={{ uri: 'https://pub-2adf18353cc14bf899bf2827efdfec49.r2.dev/public/logo.png' }} 
-                        style={{ width: 80, height: 80, borderRadius: 20 }}
-                        resizeMode="cover"
+                <Animated.View entering={FadeIn.delay(100)} className="mb-8">
+                    <MascotInteraction
+                        state="happy"
+                        message={currentStep.question}
                     />
-                    
-                    {/* Chat Bubble */}
-                    <View className="bg-white dark:bg-[#131620] border-2 border-gray-200 dark:border-[#272B36] rounded-2xl rounded-bl-sm p-4 ml-4 flex-1 relative justify-center min-h-[70px]">
-                        <Text className="text-gray-700 dark:text-gray-200 font-bold text-[17px] leading-6">
-                            {currentStep.question}
-                        </Text>
-                    </View>
                 </Animated.View>
 
                 {/* Content Area */}
@@ -199,8 +195,8 @@ export default function OnboardingScreen() {
                                     )}
                                     <TactileButton
                                         onPress={() => handleSelectOption(option.id)}
-                                        backgroundColor={isSelected ? 'rgba(245, 158, 11, 0.1)' : '#FFFFFF'}
-                                        shadowColor={isSelected ? '#D97706' : '#E5E5E5'}
+                                        backgroundColor={isSelected ? (isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.1)') : (isDark ? '#1C1F26' : '#FFFFFF')}
+                                        shadowColor={isSelected ? '#D97706' : (isDark ? '#0A0C10' : '#E5E5E5')}
                                         contentClassName="p-5"
                                         depth={4}
                                         borderRadius={16}

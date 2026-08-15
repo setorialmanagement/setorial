@@ -232,4 +232,84 @@ export class MockExamsService {
             totalQuestions: exactQuestions.length
         };
     }
+    async initializePayment(userId: string, mockId: string) {
+        const secret = process.env.PAYSTACK_SECRET_KEY;
+        if (!secret) throw new BadRequestException('Paystack not configured');
+
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new BadRequestException('User not found');
+
+        const mock = await this.prisma.mockExam.findUnique({ where: { id: mockId } });
+        if (!mock) throw new NotFoundException('Mock exam not found');
+
+        if (Number(mock.price) <= 0) {
+            throw new BadRequestException('This mock exam is free. No payment required.');
+        }
+
+        const amount = Math.round(Number(mock.price) * 100); // Convert to kobo
+
+        const response = await fetch('https://api.paystack.co/transaction/initialize', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${secret}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: user.email,
+                amount,
+                metadata: {
+                    userId: user.id,
+                    mockExamId: mock.id,
+                    type: 'MOCK_EXAM',
+                },
+                callback_url: `setorial://mock-payment-callback`,
+            }),
+        });
+
+        const data = await response.json();
+        if (!data.status) throw new BadRequestException(data.message || 'Payment initialization failed');
+
+        return {
+            authorization_url: data.data.authorization_url,
+            access_code: data.data.access_code,
+            reference: data.data.reference,
+        };
+    }
+
+    async verifyPayment(userId: string, reference: string) {
+        const secret = process.env.PAYSTACK_SECRET_KEY;
+        if (!secret) throw new BadRequestException('Paystack not configured');
+
+        const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+            headers: { 'Authorization': `Bearer ${secret}` },
+        });
+
+        const data = await response.json();
+        if (!data.status || data.data.status !== 'success') {
+            throw new BadRequestException('Payment not verified or not successful');
+        }
+
+        const metadata = data.data.metadata;
+        if (metadata?.type !== 'MOCK_EXAM' || metadata?.userId !== userId || !metadata?.mockExamId) {
+            throw new BadRequestException('Invalid payment metadata');
+        }
+
+        // Check if an attempt already exists for this payment (e.g. handled via webhook)
+        let attempt = await this.prisma.mockAttempt.findFirst({
+            where: { userId, mockExamId: metadata.mockExamId, status: 'IN_PROGRESS' }
+        });
+
+        // If no active attempt exists, create one now that payment is verified
+        if (!attempt) {
+            attempt = await this.prisma.mockAttempt.create({
+                data: {
+                    userId,
+                    mockExamId: metadata.mockExamId,
+                    status: 'IN_PROGRESS'
+                }
+            });
+        }
+
+        return { status: 'success', attemptId: attempt.id, mockId: metadata.mockExamId };
+    }
 }

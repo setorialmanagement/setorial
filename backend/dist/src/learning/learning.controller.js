@@ -77,7 +77,12 @@ let LearningController = class LearningController {
     async updateLesson(id, dto, req, video) {
         const updateData = { ...dto };
         if (typeof updateData.questions === 'string') {
-            updateData.questions = JSON.parse(updateData.questions);
+            try {
+                updateData.questions = JSON.parse(updateData.questions);
+            }
+            catch (e) {
+                throw new common_1.BadRequestException('Invalid JSON format for questions');
+            }
         }
         return this.learningService.updateLessonWithVideo(id, updateData, req.user, video);
     }

@@ -157,6 +157,7 @@ let AdminController = class AdminController {
     async getPendingKyc() {
         return this.prisma.user.findMany({
             where: { kycStatus: 'PENDING' },
+            take: 1000,
             select: { id: true, name: true, email: true, tier: true, payoutMethod: true, payoutAccount: true, createdAt: true },
             orderBy: { updatedAt: 'asc' },
         });
@@ -189,6 +190,7 @@ let AdminController = class AdminController {
             where.kycStatus = kycStatus.toUpperCase();
         return this.prisma.user.findMany({
             where,
+            take: 1000,
             select: { id: true, name: true, email: true, tier: true, kycStatus: true, isVerified: true, role: true, isFrozen: true, isFlagged: true, createdAt: true },
             orderBy: { createdAt: 'desc' },
         });
@@ -263,7 +265,7 @@ let AdminController = class AdminController {
         });
     }
     async getPayoutBatches() {
-        return this.prisma.payoutBatch.findMany({ orderBy: { createdAt: 'desc' } });
+        return this.prisma.payoutBatch.findMany({ take: 100, orderBy: { createdAt: 'desc' } });
     }
     async triggerPayout(month) {
         return this.payoutsService.processPayout(month);
@@ -337,6 +339,7 @@ let AdminController = class AdminController {
     }
     async getSupportMessages() {
         return this.prisma.supportMessage.findMany({
+            take: 1000,
             include: { user: { select: { name: true, email: true } } },
             orderBy: { createdAt: 'desc' },
         });
@@ -580,7 +583,7 @@ __decorate([
 exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)('ADMIN'),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __metadata("design:paramtypes", [payouts_service_1.PayoutsService,
         prisma_service_1.PrismaService,
         mock_exams_service_1.MockExamsService,

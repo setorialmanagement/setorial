@@ -133,7 +133,21 @@ let SubscriptionsService = class SubscriptionsService {
         if (event === 'charge.success') {
             const data = payload.data;
             const metadata = data.metadata;
-            if (metadata?.userId && metadata?.tier) {
+            if (metadata?.type === 'MOCK_EXAM' && metadata?.userId && metadata?.mockExamId) {
+                const attempt = await this.prisma.mockAttempt.findFirst({
+                    where: { userId: metadata.userId, mockExamId: metadata.mockExamId, status: 'IN_PROGRESS' }
+                });
+                if (!attempt) {
+                    await this.prisma.mockAttempt.create({
+                        data: {
+                            userId: metadata.userId,
+                            mockExamId: metadata.mockExamId,
+                            status: 'IN_PROGRESS'
+                        }
+                    });
+                }
+            }
+            else if (metadata?.userId && metadata?.tier) {
                 await this._activateSubscription(metadata.userId, metadata.tier, metadata.billingCycle || 'MONTHLY', data.reference, data.amount, data.currency || 'NGN');
             }
         }

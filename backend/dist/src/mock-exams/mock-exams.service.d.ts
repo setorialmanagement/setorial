@@ -93,4 +93,14 @@ export declare class MockExamsService {
         message: string;
         totalQuestions: number;
     }>;
+    initializePayment(userId: string, mockId: string): Promise<{
+        authorization_url: any;
+        access_code: any;
+        reference: any;
+    }>;
+    verifyPayment(userId: string, reference: string): Promise<{
+        status: string;
+        attemptId: string;
+        mockId: any;
+    }>;
 }

@@ -1,6 +1,7 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
-import { View, Text, TouchableOpacity, SafeAreaView, TextInput, ActivityIndicator, Alert, Image, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, Image, Platform } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Camera } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
@@ -66,6 +67,9 @@ export default function EditProfileScreen() {
         }
     };
 
+    const hasChanges = name.trim() !== (user?.name || '') || image !== null;
+    const canSave = hasChanges && !saving;
+
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-[#0B0D12]">
             <View className="flex-row items-center justify-between px-5 py-6">
@@ -73,16 +77,10 @@ export default function EditProfileScreen() {
                     <ChevronLeft size={24} color="#AFAFAF" />
                 </SoundButton>
                 <Text className="text-black dark:text-white font-bold text-xl">Edit Profile</Text>
-                <TactileButton onPress={handleSave} disabled={saving} backgroundColor="#1CB0F6" shadowColor="#1899D6" contentClassName="px-5 py-2 items-center justify-center" borderRadius={12} depth={4}>
-                    {saving ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                        <Text className="text-white font-bold text-sm tracking-widest uppercase">Save</Text>
-                    )}
-                </TactileButton>
+                <View className="w-10" />
             </View>
 
-            <View className="px-5">
+            <View className="px-5 flex-1">
                 {/* Avatar */}
                 <Animated.View entering={FadeIn.delay(100).springify()} className="items-center mb-10">
                     <View className="relative">
@@ -128,11 +126,32 @@ export default function EditProfileScreen() {
                 </Animated.View>
 
                 {/* Tier */}
-                <Animated.View entering={FadeInDown.delay(400).springify()}>
+                <Animated.View entering={FadeInDown.delay(400).springify()} className="mb-8">
                     <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Current Tier</Text>
                     <View className="bg-[#F5F5F5] dark:bg-[#2A2E39] p-5 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#272B36]">
                         <Text className="text-[#AFAFAF] dark:text-gray-400 font-bold text-[17px]">{user?.tier || 'FREE'}</Text>
                     </View>
+                </Animated.View>
+                
+                {/* Save Button */}
+                <Animated.View entering={FadeInDown.delay(500).springify()} className="mt-auto mb-8">
+                    <TactileButton 
+                        onPress={handleSave} 
+                        disabled={!canSave} 
+                        backgroundColor={canSave ? "#1CB0F6" : "#E5E5E5"} 
+                        shadowColor={canSave ? "#1899D6" : "#D4D4D4"} 
+                        contentClassName="py-4 items-center justify-center" 
+                        borderRadius={16} 
+                        depth={4}
+                    >
+                        {saving ? (
+                            <ActivityIndicator size="small" color="#FFF" />
+                        ) : (
+                            <Text className={`font-black text-[17px] uppercase tracking-widest ${canSave ? 'text-white' : 'text-[#AFAFAF]'}`}>
+                                Save Changes
+                            </Text>
+                        )}
+                    </TactileButton>
                 </Animated.View>
             </View>
         </SafeAreaView>

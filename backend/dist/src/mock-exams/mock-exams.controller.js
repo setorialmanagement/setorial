@@ -36,6 +36,12 @@ let MockExamsController = class MockExamsController {
     submitMock(req, id, body) {
         return this.mockService.submitMock(req.user.userId, id, body.answers, body.tabSwitches);
     }
+    initializePayment(req, id) {
+        return this.mockService.initializePayment(req.user.userId, id);
+    }
+    verifyPayment(req, body) {
+        return this.mockService.verifyPayment(req.user.userId, body.reference);
+    }
 };
 exports.MockExamsController = MockExamsController;
 __decorate([
@@ -77,6 +83,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
 ], MockExamsController.prototype, "submitMock", null);
+__decorate([
+    (0, common_1.Post)(':id/pay'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], MockExamsController.prototype, "initializePayment", null);
+__decorate([
+    (0, common_1.Post)('verify-payment'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], MockExamsController.prototype, "verifyPayment", null);
 exports.MockExamsController = MockExamsController = __decorate([
     (0, common_1.Controller)('mocks'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

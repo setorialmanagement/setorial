@@ -1,7 +1,8 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
 import Animated, { SlideInLeft, SlideInUp } from 'react-native-reanimated';
-import { View, Text, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Trophy, Crown, Medal, LayoutGrid } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";

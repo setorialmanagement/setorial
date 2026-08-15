@@ -44,4 +44,14 @@ export class MockExamsController {
     ) {
         return this.mockService.submitMock(req.user.userId, id, body.answers, body.tabSwitches);
     }
+
+    @Post(':id/pay')
+    initializePayment(@Request() req: any, @Param('id') id: string) {
+        return this.mockService.initializePayment(req.user.userId, id);
+    }
+
+    @Post('verify-payment')
+    verifyPayment(@Request() req: any, @Body() body: { reference: string }) {
+        return this.mockService.verifyPayment(req.user.userId, body.reference);
+    }
 }

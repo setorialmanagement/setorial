@@ -1,7 +1,8 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
 import Animated, { SlideInDown } from 'react-native-reanimated';
-import { View, Text, ScrollView, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Check, Crown, Shield, Star, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';

@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = 'https://setorial.onrender.com';
+const API_URL = 'https://setorial-backend-677120499703.us-central1.run.app';
 
 export const api = axios.create({
     baseURL: API_URL,
@@ -87,6 +87,8 @@ export const mockApi = {
         api.post(`/mocks/${id}/submit`, { answers, tabSwitches }),
     generateCustom: (data: { subjectIds: string[], numQuestions: number, durationMinutes: number }) =>
         api.post('/mocks/custom', data),
+    initializePayment: (id: string) => api.post(`/mocks/${id}/pay`),
+    verifyPayment: (reference: string) => api.post('/mocks/verify-payment', { reference }),
 };
 
 export const storeApi = {

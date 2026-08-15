@@ -1,136 +1,113 @@
 import { TactileButton } from '../components/TactileButton';
 import { MascotInteraction } from '../components/MascotInteraction';
 import { SoundButton } from '../components/SoundButton';
-import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, Dimensions, useColorScheme } from "react-native";
-import { ChevronLeft, Star, Lock, CheckCircle2 } from "lucide-react-native";
+import { View, Text, ScrollView, ActivityIndicator, Dimensions, useColorScheme } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ChevronLeft, Star, Lock, Check } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { learningApi } from "../services/api";
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
-import Svg, { Path, Circle, Rect, Polygon, Ellipse, G } from 'react-native-svg';
+import Animated, { FadeIn, FadeInDown, ZoomIn, withRepeat, withTiming, withSequence, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
+import AnimatedGrassBackground from '../components/AnimatedGrassBackground';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PATH_WIDTH = SCREEN_WIDTH;
-const NODE_SIZE = 70;
+const NODE_SIZE = 72;
+const NODE_SPACING = 80;
+const X_AMPLITUDE = 60;
 
-// --- SVG Nature Decorations ---
+// Floating Label Component (Speech Bubble)
+function FloatingLabel({ label, nodeIsLeft, isCurrent, onPress }: { label: string, nodeIsLeft: boolean, isCurrent: boolean, onPress?: () => void }) {
+    const offset = useSharedValue(0);
 
-function TreeSvg({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
-    return (
-        <G transform={`translate(${x}, ${y}) scale(${scale})`}>
-            {/* Trunk */}
-            <Rect x={-4} y={-5} width={8} height={22} fill="#8B6914" rx={3} />
-            {/* Foliage layers */}
-            <Polygon points="-18,0 0,-35 18,0" fill="#2D8B4E" />
-            <Polygon points="-14,-12 0,-42 14,-12" fill="#34A853" />
-            <Polygon points="-10,-22 0,-48 10,-22" fill="#43C466" />
-        </G>
-    );
-}
-
-function CloudSvg({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) {
-    return (
-        <G transform={`translate(${x}, ${y}) scale(${scale})`} opacity={0.5}>
-            <Ellipse cx={0} cy={0} rx={30} ry={12} fill="#FFFFFF" />
-            <Ellipse cx={20} cy={-4} rx={22} ry={10} fill="#FFFFFF" />
-            <Ellipse cx={-16} cy={-2} rx={18} ry={9} fill="#FFFFFF" />
-        </G>
-    );
-}
-
-function FlowerSvg({ x, y }: { x: number; y: number }) {
-    return (
-        <G transform={`translate(${x}, ${y})`}>
-            <Circle cx={0} cy={0} r={4} fill="#FFD700" />
-            <Circle cx={-4} cy={-3} r={3} fill="#FF69B4" />
-            <Circle cx={4} cy={-3} r={3} fill="#FF69B4" />
-            <Circle cx={-4} cy={3} r={3} fill="#FF69B4" />
-            <Circle cx={4} cy={3} r={3} fill="#FF69B4" />
-        </G>
-    );
-}
-
-function RockSvg({ x, y, flip = false }: { x: number; y: number; flip?: boolean }) {
-    return (
-        <G transform={`translate(${x}, ${y}) scale(${flip ? -1 : 1}, 1)`}>
-            <Ellipse cx={0} cy={0} rx={18} ry={12} fill="#9CA3AF" />
-            <Ellipse cx={-8} cy={-5} rx={12} ry={8} fill="#B0B8C4" />
-        </G>
-    );
-}
-
-/**
- * Generate a winding S-curve path and node positions
- */
-function generateWindingPath(nodeCount: number) {
-    const startY = 80;
-    const verticalSpacing = 130;
-    const horizontalAmplitude = SCREEN_WIDTH * 0.25;
-    const centerX = PATH_WIDTH / 2;
-
-    const nodes: { x: number; y: number }[] = [];
-
-    for (let i = 0; i < nodeCount; i++) {
-        const y = startY + i * verticalSpacing;
-        // S-curve: alternates left-right using sine
-        const phase = (i / 2) * Math.PI;
-        const x = centerX + Math.sin(phase) * horizontalAmplitude;
-        nodes.push({ x, y });
-    }
-
-    // Build SVG path through nodes with smooth curves
-    let pathD = '';
-    if (nodes.length > 0) {
-        pathD = `M ${nodes[0].x} ${nodes[0].y}`;
-        for (let i = 1; i < nodes.length; i++) {
-            const prev = nodes[i - 1];
-            const curr = nodes[i];
-            const midY = (prev.y + curr.y) / 2;
-            pathD += ` C ${prev.x} ${midY}, ${curr.x} ${midY}, ${curr.x} ${curr.y}`;
+    useEffect(() => {
+        if (isCurrent) {
+            offset.value = withRepeat(
+                withSequence(
+                    withTiming(nodeIsLeft ? -6 : 6, { duration: 500 }),
+                    withTiming(0, { duration: 500 })
+                ),
+                -1,
+                true
+            );
         }
-    }
+    }, [isCurrent, nodeIsLeft]);
 
-    const totalHeight = nodeCount > 0 ? nodes[nodes.length - 1].y + 120 : 400;
-    return { nodes, pathD, totalHeight };
-}
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: offset.value }]
+    }));
 
-/**
- * Generate semi-random decorations (trees, flowers, rocks) for a given path area
- */
-function generateDecorations(nodeCount: number, totalHeight: number) {
-    const decorations: Array<{ type: 'tree' | 'flower' | 'rock' | 'cloud'; x: number; y: number; scale?: number; flip?: boolean }> = [];
-    const seed = nodeCount * 7; // pseudo-random seed
-
-    // Trees along edges
-    for (let i = 0; i < nodeCount + 4; i++) {
-        const y = 40 + i * 110 + ((seed + i * 37) % 50);
-        const side = i % 2 === 0;
-        const x = side ? 25 + ((seed + i * 13) % 30) : SCREEN_WIDTH - 25 - ((seed + i * 17) % 30);
-        const scale = 0.7 + ((seed + i * 23) % 40) / 100;
-        decorations.push({ type: 'tree', x, y, scale });
-    }
-
-    // Flowers scattered
-    for (let i = 0; i < nodeCount + 2; i++) {
-        const y = 100 + i * 140 + ((seed + i * 41) % 80);
-        const x = 30 + ((seed + i * 31) % (SCREEN_WIDTH - 60));
-        decorations.push({ type: 'flower', x, y });
-    }
-
-    // Rocks
-    for (let i = 0; i < Math.ceil(nodeCount / 2); i++) {
-        const y = 160 + i * 250 + ((seed + i * 53) % 100);
-        const side = i % 2 === 1;
-        const x = side ? 40 + ((seed + i * 19) % 40) : SCREEN_WIDTH - 40 - ((seed + i * 29) % 40);
-        decorations.push({ type: 'rock', x, y, flip: side });
-    }
-
-    // Clouds at the top
-    decorations.push({ type: 'cloud', x: 60, y: 30, scale: 0.8 });
-    decorations.push({ type: 'cloud', x: SCREEN_WIDTH - 80, y: 50, scale: 0.6 });
-    decorations.push({ type: 'cloud', x: SCREEN_WIDTH / 2 + 20, y: 15, scale: 0.5 });
-
-    return decorations;
+    return (
+        <Animated.View
+            entering={isCurrent ? FadeIn.delay(600) : FadeIn.delay(200)}
+            style={[{
+                position: 'absolute',
+                left: nodeIsLeft ? NODE_SIZE + 12 : undefined,
+                right: !nodeIsLeft ? NODE_SIZE + 12 : undefined,
+                top: isCurrent ? -15 : 10,
+                width: 140,
+                flexDirection: nodeIsLeft ? 'row' : 'row-reverse',
+                alignItems: 'center',
+                zIndex: isCurrent ? 40 : 20,
+            }, animatedStyle]}
+        >
+            <View style={{
+                width: 0,
+                height: 0,
+                borderTopWidth: 8,
+                borderBottomWidth: 8,
+                borderLeftWidth: nodeIsLeft ? 0 : 8,
+                borderRightWidth: nodeIsLeft ? 8 : 0,
+                borderTopColor: 'transparent',
+                borderBottomColor: 'transparent',
+                borderLeftColor: nodeIsLeft ? 'transparent' : '#FFF',
+                borderRightColor: nodeIsLeft ? '#FFF' : 'transparent',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+            }} />
+            
+            <View style={{
+                backgroundColor: '#FFF',
+                borderRadius: 16,
+                padding: 12,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 8,
+                elevation: 6,
+                borderWidth: 2,
+                borderColor: '#E5E7EB',
+                flex: 1,
+                alignItems: 'center',
+            }}>
+                <Text style={{ 
+                    color: isCurrent ? '#F59E0B' : '#6B7280', 
+                    fontWeight: '900', 
+                    fontSize: 14, 
+                    marginBottom: isCurrent ? 8 : 0,
+                    textAlign: 'center'
+                }}>
+                    {label}
+                </Text>
+                
+                {isCurrent && onPress && (
+                    <TactileButton
+                        onPress={onPress}
+                        backgroundColor="#58CC02"
+                        shadowColor="#46A302"
+                        depth={4}
+                        contentClassName="py-2 px-2 items-center justify-center w-full"
+                    >
+                        <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1 }}>
+                            START
+                        </Text>
+                    </TactileButton>
+                )}
+            </View>
+        </Animated.View>
+    );
 }
 
 export default function CourseDetailScreen() {
@@ -140,6 +117,12 @@ export default function CourseDetailScreen() {
     const [loading, setLoading] = useState(true);
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+
+    const theme = {
+        background: isDark ? '#1a2e1a' : '#e4fcc6',
+        text: isDark ? '#FFFFFF' : '#374151',
+        border: isDark ? '#2e472e' : '#c6e8a1',
+    };
 
     useEffect(() => {
         if (id) fetchSubject();
@@ -158,170 +141,146 @@ export default function CourseDetailScreen() {
 
     if (loading) {
         return (
-            <View className="flex-1 bg-white dark:bg-[#0B0D12] items-center justify-center">
-                <ActivityIndicator size="large" color="#F59E0B" />
+            <View style={{ flex: 1, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color="#58CC02" />
             </View>
         );
     }
 
     if (!subject) {
         return (
-            <View className="flex-1 bg-white dark:bg-[#0B0D12] items-center justify-center p-5">
-                <Text className="text-gray-500 dark:text-gray-400 mb-4">Subject not found</Text>
+            <View style={{ flex: 1, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                <Text style={{ color: theme.text, marginBottom: 16 }}>Subject not found</Text>
                 <TactileButton onPress={() => router.back()} backgroundColor="#1CB0F6" shadowColor="#1899D6" contentClassName="px-6 py-3 items-center justify-center">
-                    <Text className="text-white font-bold">Go Back</Text>
+                    <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Go Back</Text>
                 </TactileButton>
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#0B0D12' : '#8BC34A' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+            <AnimatedGrassBackground isDark={isDark} />
             {/* Header Banner */}
             <View style={{
-                backgroundColor: '#F59E0B',
+                flexDirection: 'row',
+                alignItems: 'center',
                 paddingHorizontal: 20,
                 paddingTop: 16,
                 paddingBottom: 20,
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border,
+                backgroundColor: theme.background,
                 zIndex: 20,
             }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <SoundButton onPress={() => router.back()} style={{ marginRight: 12 }}>
-                        <ChevronLeft size={28} color="#FFF" />
-                    </SoundButton>
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 13, textTransform: 'uppercase', letterSpacing: 2 }}>
-                        {subject.name}
-                    </Text>
-                </View>
+                <SoundButton onPress={() => router.back()} style={{ marginRight: 12 }}>
+                    <ChevronLeft size={28} color={theme.text} />
+                </SoundButton>
+                <Text style={{ color: theme.text, fontWeight: '800', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                    {subject.name}
+                </Text>
             </View>
 
             <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 120 }}
+                contentContainerStyle={{ paddingBottom: 120, paddingTop: 24 }}
                 showsVerticalScrollIndicator={false}
             >
                 {subject.topics?.map((topic: any, topicIndex: number) => {
                     const lessons = topic.lessons || [];
-                    const { nodes, pathD, totalHeight } = generateWindingPath(lessons.length);
-                    const decorations = generateDecorations(lessons.length, totalHeight);
+                    const UNIT_COLOR = topicIndex % 2 === 0 ? '#58CC02' : '#1CB0F6'; 
+                    const UNIT_COLOR_DARK = topicIndex % 2 === 0 ? '#46A302' : '#1480B0';
 
-                    // Find the first CURRENT lesson to auto-show "LANJUTKAN" popup
-                    const currentLessonIdx = lessons.findIndex((l: any) => l.status === 'CURRENT');
+                    let pathD = '';
+                    const points = lessons.map((_: any, i: number) => {
+                        const offset = Math.sin((i * Math.PI) / 2) * X_AMPLITUDE;
+                        const y = i * (NODE_SIZE + NODE_SPACING) + NODE_SIZE / 2;
+                        const x = SCREEN_WIDTH / 2 + offset;
+                        return { x, y };
+                    });
+
+                    points.forEach((p: any, i: number) => {
+                        if (i === 0) {
+                            pathD += `M ${p.x} ${p.y}`;
+                        } else {
+                            const prev = points[i - 1];
+                            const c1y = prev.y + 35;
+                            const c2y = p.y - 35;
+                            pathD += ` C ${prev.x} ${c1y} ${p.x} ${c2y} ${p.x} ${p.y}`;
+                        }
+                    });
+
+                    const totalHeight = points.length > 0 ? points[points.length - 1].y + NODE_SIZE : 0;
 
                     return (
-                        <View key={topic.id}>
-                            {/* Topic Unit Header */}
+                        <View key={topic.id} style={{ marginBottom: 40 }}>
+                            {/* Unit Header - styled like kit */}
                             <Animated.View entering={FadeInDown.delay(topicIndex * 100)}>
-                                <TactileButton
-                                    onPress={() => {
-                                        const firstLesson = lessons.find((l: any) => l.status !== 'LOCKED') || lessons[0];
-                                        if (firstLesson) {
-                                            router.push(`/level?id=${firstLesson.id}`);
-                                        }
-                                    }}
-                                    backgroundColor="#F59E0B"
-                                    shadowColor="#D97706"
-                                    depth={6}
-                                    className="mx-5 mt-5 mb-4"
-                                    contentClassName="p-5 items-start"
-                                >
-                                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontWeight: '900', fontSize: 12, textTransform: 'uppercase', letterSpacing: 2 }}>
-                                        KELAS : {topicIndex + 1}
-                                    </Text>
-                                    <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 20, marginTop: 4 }}>
-                                        {topic.name}
-                                    </Text>
-                                </TactileButton>
+                                <View style={{
+                                    backgroundColor: UNIT_COLOR,
+                                    marginHorizontal: 16,
+                                    marginBottom: 32,
+                                    borderRadius: 16,
+                                    padding: 20,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowOpacity: 0.15,
+                                    shadowRadius: 8,
+                                    elevation: 6,
+                                }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <View style={{ flex: 1, paddingRight: 16 }}>
+                                            <Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: '800', fontSize: 16, textTransform: 'uppercase', marginBottom: 4 }}>
+                                                {subject.name}
+                                            </Text>
+                                            <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 20, lineHeight: 26 }}>
+                                                {topic.name}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </View>
                             </Animated.View>
 
-                            {/* Nature Path Area */}
-                            <View style={{
-                                height: totalHeight,
-                                width: PATH_WIDTH,
-                                backgroundColor: isDark ? '#1A2E1A' : '#8BC34A',
-                                position: 'relative',
-                                overflow: 'hidden',
-                            }}>
-                                {/* Background gradient at the bottom — grass */}
-                                <View style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: 80,
-                                    backgroundColor: isDark ? '#0D1F0D' : '#7CB342',
-                                    borderTopLeftRadius: 999,
-                                    borderTopRightRadius: 999,
-                                }} />
+                            {/* Path Container */}
+                            <View style={{ height: totalHeight, width: SCREEN_WIDTH, position: 'relative', alignItems: 'center' }}>
+                                {/* The Connector Line */}
+                                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: totalHeight }}>
+                                    <Svg width={SCREEN_WIDTH} height="100%">
+                                        <Path
+                                            d={pathD}
+                                            stroke={theme.border}
+                                            strokeWidth="10"
+                                            strokeLinecap="round"
+                                            fill="none"
+                                        />
+                                    </Svg>
+                                </View>
 
-                                {/* SVG Layer — path + decorations */}
-                                <Svg width={PATH_WIDTH} height={totalHeight} style={{ position: 'absolute', top: 0, left: 0 }}>
-                                    {/* Decorative elements BEHIND the path */}
-                                    {decorations.map((dec, i) => {
-                                        if (dec.type === 'tree') return <TreeSvg key={`t${i}`} x={dec.x} y={dec.y} scale={dec.scale} />;
-                                        if (dec.type === 'flower') return <FlowerSvg key={`f${i}`} x={dec.x} y={dec.y} />;
-                                        if (dec.type === 'rock') return <RockSvg key={`r${i}`} x={dec.x} y={dec.y} flip={dec.flip} />;
-                                        if (dec.type === 'cloud') return <CloudSvg key={`c${i}`} x={dec.x} y={dec.y} scale={dec.scale} />;
-                                        return null;
-                                    })}
-
-                                    {/* The winding path itself */}
-                                    {pathD && (
-                                        <>
-                                            {/* Path shadow */}
-                                            <Path
-                                                d={pathD}
-                                                fill="none"
-                                                stroke={isDark ? '#2A3A2A' : '#6D9B30'}
-                                                strokeWidth={50}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                            {/* Main path */}
-                                            <Path
-                                                d={pathD}
-                                                fill="none"
-                                                stroke={isDark ? '#3A4E3A' : '#F5E6B8'}
-                                                strokeWidth={42}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                            {/* Inner path highlight */}
-                                            <Path
-                                                d={pathD}
-                                                fill="none"
-                                                stroke={isDark ? '#4A5E4A' : '#FFF3D6'}
-                                                strokeWidth={32}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                        </>
-                                    )}
-                                </Svg>
-
-                                {/* Lesson Nodes — positioned absolutely over the SVG */}
+                                {/* The Nodes */}
                                 {lessons.map((lesson: any, index: number) => {
-                                    const node = nodes[index];
-                                    if (!node) return null;
+                                    const point = points[index];
+                                    if (!point) return null;
 
                                     const isCompleted = lesson.status === 'COMPLETED';
                                     const isCurrent = lesson.status === 'CURRENT';
                                     const isLocked = lesson.status === 'LOCKED';
+                                    
+                                    // Place label on the side with more space:
+                                    // i=0(center)->Right, i=1(right)->Left, i=2(center)->Left, i=3(left)->Right
+                                    const isLeft = (index % 4 === 0) || (index % 4 === 3);
 
-                                    let bgColor = isDark ? '#4B5563' : '#D1D5DB';
-                                    let shadowColor = isDark ? '#374151' : '#9CA3AF';
-                                    let icon = <Lock size={24} color={isDark ? '#9CA3AF' : '#FFF'} />;
+                                    let bgColor = isDark ? '#374151' : '#E5E7EB';
+                                    let shadowColor = isDark ? '#1F2937' : '#D1D5DB';
+                                    let icon = <Lock size={32} color={isDark ? '#6B7280' : '#9CA3AF'} />;
 
                                     if (isCompleted) {
                                         bgColor = '#FFC800';
-                                        shadowColor = '#E5B400';
-                                        icon = <Star size={28} color="#FFF" fill="#FFF" />;
+                                        shadowColor = '#F49000';
+                                        icon = <Check size={36} color="#FFF" />;
                                     } else if (isCurrent) {
-                                        bgColor = '#FFC800';
-                                        shadowColor = '#E5B400';
-                                        icon = <Star size={28} color="#FFF" fill="#FFF" />;
+                                        bgColor = '#58CC02';
+                                        shadowColor = '#46A302';
+                                        icon = <Star size={36} color="#FFF" fill="#FFF" />;
                                     }
 
                                     return (
@@ -330,63 +289,21 @@ export default function CourseDetailScreen() {
                                             entering={ZoomIn.delay(150 + index * 80).springify().damping(14)}
                                             style={{
                                                 position: 'absolute',
-                                                left: node.x - NODE_SIZE / 2,
-                                                top: node.y - NODE_SIZE / 2,
+                                                left: point.x - NODE_SIZE / 2,
+                                                top: point.y - NODE_SIZE / 2,
                                                 width: NODE_SIZE,
                                                 height: NODE_SIZE,
-                                                zIndex: 20,
+                                                alignItems: 'center',
+                                                zIndex: isCurrent ? 40 : 20,
                                             }}
                                         >
-                                            {/* "Learn: Beginners" popup for current lesson */}
-                                            {isCurrent && (
-                                                <Animated.View
-                                                    entering={FadeIn.delay(600)}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: -75,
-                                                        left: -40,
-                                                        width: NODE_SIZE + 80,
-                                                        backgroundColor: '#F59E0B',
-                                                        borderRadius: 16,
-                                                        padding: 12,
-                                                        alignItems: 'center',
-                                                        zIndex: 30,
-                                                        shadowColor: '#000',
-                                                        shadowOffset: { width: 0, height: 4 },
-                                                        shadowOpacity: 0.2,
-                                                        shadowRadius: 8,
-                                                        elevation: 8,
-                                                    }}
-                                                >
-                                                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                        Learn: {topic.name?.split(' ')[0] || 'Next'}
-                                                    </Text>
-                                                    <TactileButton
-                                                        onPress={() => router.push(`/level?id=${lesson.id}`)}
-                                                        backgroundColor="#FFF"
-                                                        shadowColor="#E5E5E5"
-                                                        depth={3}
-                                                        className="mt-2"
-                                                        contentClassName="px-5 py-2 items-center justify-center"
-                                                    >
-                                                        <Text style={{ color: '#F59E0B', fontWeight: '900', fontSize: 13, textTransform: 'uppercase', letterSpacing: 2 }}>
-                                                            LANJUTKAN
-                                                        </Text>
-                                                    </TactileButton>
-                                                    {/* Triangle pointer */}
-                                                    <View style={{
-                                                        position: 'absolute',
-                                                        bottom: -8,
-                                                        width: 0,
-                                                        height: 0,
-                                                        borderLeftWidth: 10,
-                                                        borderRightWidth: 10,
-                                                        borderTopWidth: 10,
-                                                        borderLeftColor: 'transparent',
-                                                        borderRightColor: 'transparent',
-                                                        borderTopColor: '#F59E0B',
-                                                    }} />
-                                                </Animated.View>
+                                            {!isLocked && (
+                                                <FloatingLabel 
+                                                    label={lesson.name || 'Lesson'}
+                                                    nodeIsLeft={isLeft}
+                                                    isCurrent={isCurrent}
+                                                    onPress={isCurrent ? () => router.push(`/level?id=${lesson.id}`) : undefined}
+                                                />
                                             )}
 
                                             <TactileButton
@@ -394,12 +311,22 @@ export default function CourseDetailScreen() {
                                                 onPress={() => router.push(`/level?id=${lesson.id}`)}
                                                 backgroundColor={bgColor}
                                                 shadowColor={shadowColor}
-                                                depth={isCurrent ? 8 : (isLocked ? 3 : 5)}
+                                                depth={isCurrent ? 8 : (isLocked ? 4 : 6)}
                                                 borderRadius={999}
                                                 style={{ width: NODE_SIZE, height: NODE_SIZE }}
-                                                contentClassName="items-center justify-center"
+                                                contentClassName="items-center justify-center w-full h-full"
                                             >
-                                                {icon}
+                                                <View style={{
+                                                    width: '100%', 
+                                                    height: '100%', 
+                                                    borderRadius: 999, 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center',
+                                                    borderWidth: (isCompleted || isCurrent) ? 4 : 0,
+                                                    borderColor: 'rgba(255,255,255,0.2)'
+                                                }}>
+                                                    {icon}
+                                                </View>
                                             </TactileButton>
                                         </Animated.View>
                                     );
@@ -410,7 +337,7 @@ export default function CourseDetailScreen() {
                 })}
 
                 {(!subject.topics || subject.topics.length === 0) && (
-                    <View className="items-center justify-center mt-10 px-6">
+                    <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 40, paddingHorizontal: 24 }}>
                         <MascotInteraction
                             state="thinking"
                             message="No units available yet! Check back later."

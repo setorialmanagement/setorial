@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Linking, SafeAreaView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Linking, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, MessageCircle, Mail, Phone, ExternalLink, ShieldQuestion, LifeBuoy, BookOpen, Send } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { SoundButton } from '../components/SoundButton';

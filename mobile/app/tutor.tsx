@@ -1,7 +1,8 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
 import { MascotInteraction } from '../components/MascotInteraction';
-import { View, Text, SafeAreaView, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Send, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';

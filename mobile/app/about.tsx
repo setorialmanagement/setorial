@@ -1,5 +1,6 @@
 import { SoundButton } from '../components/SoundButton';
-import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, useColorScheme } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, useColorScheme } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Info, HelpCircle, ShieldCheck } from "lucide-react-native";
 

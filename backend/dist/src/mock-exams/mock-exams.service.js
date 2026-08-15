@@ -139,7 +139,11 @@ let MockExamsService = MockExamsService_1 = class MockExamsService {
         if (!subjectIds || subjectIds.length === 0) {
             throw new common_1.BadRequestException('At least one subject must be selected');
         }
-        const questionsPerSubject = Math.floor(numQuestions / subjectIds.length);
+        const parsedNumQuestions = Number(numQuestions);
+        const validNumQuestions = (isNaN(parsedNumQuestions) || parsedNumQuestions <= 0) ? 50 : parsedNumQuestions;
+        const parsedDuration = Number(durationMinutes);
+        const validDuration = (isNaN(parsedDuration) || parsedDuration <= 0) ? Math.ceil(validNumQuestions * 1.5) : parsedDuration;
+        const questionsPerSubject = Math.floor(validNumQuestions / subjectIds.length);
         let allQuestions = [];
         let missingQuestionsBySubject = [];
         for (const subjectId of subjectIds) {
@@ -180,12 +184,12 @@ let MockExamsService = MockExamsService_1 = class MockExamsService {
             }
         }
         const finalQuestions = allQuestions.sort(() => 0.5 - Math.random());
-        const exactQuestions = finalQuestions.slice(0, numQuestions);
+        const exactQuestions = finalQuestions.slice(0, validNumQuestions);
         const customMock = await this.prisma.mockExam.create({
             data: {
                 title: `Custom Mock Exam`,
                 description: `A custom mock exam generated on the fly for your subjects.`,
-                durationMinutes: durationMinutes || Math.ceil(numQuestions * 1.5),
+                durationMinutes: validDuration,
                 isApproved: false,
                 isActive: true,
                 price: 0,
@@ -204,6 +208,75 @@ let MockExamsService = MockExamsService_1 = class MockExamsService {
             message: 'Custom mock generated successfully',
             totalQuestions: exactQuestions.length
         };
+    }
+    async initializePayment(userId, mockId) {
+        const secret = process.env.PAYSTACK_SECRET_KEY;
+        if (!secret)
+            throw new common_1.BadRequestException('Paystack not configured');
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new common_1.BadRequestException('User not found');
+        const mock = await this.prisma.mockExam.findUnique({ where: { id: mockId } });
+        if (!mock)
+            throw new common_1.NotFoundException('Mock exam not found');
+        if (Number(mock.price) <= 0) {
+            throw new common_1.BadRequestException('This mock exam is free. No payment required.');
+        }
+        const amount = Math.round(Number(mock.price) * 100);
+        const response = await fetch('https://api.paystack.co/transaction/initialize', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${secret}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: user.email,
+                amount,
+                metadata: {
+                    userId: user.id,
+                    mockExamId: mock.id,
+                    type: 'MOCK_EXAM',
+                },
+                callback_url: `setorial://mock-payment-callback`,
+            }),
+        });
+        const data = await response.json();
+        if (!data.status)
+            throw new common_1.BadRequestException(data.message || 'Payment initialization failed');
+        return {
+            authorization_url: data.data.authorization_url,
+            access_code: data.data.access_code,
+            reference: data.data.reference,
+        };
+    }
+    async verifyPayment(userId, reference) {
+        const secret = process.env.PAYSTACK_SECRET_KEY;
+        if (!secret)
+            throw new common_1.BadRequestException('Paystack not configured');
+        const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+            headers: { 'Authorization': `Bearer ${secret}` },
+        });
+        const data = await response.json();
+        if (!data.status || data.data.status !== 'success') {
+            throw new common_1.BadRequestException('Payment not verified or not successful');
+        }
+        const metadata = data.data.metadata;
+        if (metadata?.type !== 'MOCK_EXAM' || metadata?.userId !== userId || !metadata?.mockExamId) {
+            throw new common_1.BadRequestException('Invalid payment metadata');
+        }
+        let attempt = await this.prisma.mockAttempt.findFirst({
+            where: { userId, mockExamId: metadata.mockExamId, status: 'IN_PROGRESS' }
+        });
+        if (!attempt) {
+            attempt = await this.prisma.mockAttempt.create({
+                data: {
+                    userId,
+                    mockExamId: metadata.mockExamId,
+                    status: 'IN_PROGRESS'
+                }
+            });
+        }
+        return { status: 'success', attemptId: attempt.id, mockId: metadata.mockExamId };
     }
 };
 exports.MockExamsService = MockExamsService;

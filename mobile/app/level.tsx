@@ -1,36 +1,63 @@
-import { SoundButton } from '../components/SoundButton';
-import { TactileButton } from '../components/TactileButton';
-import { View, Text, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView, Dimensions, useColorScheme, Linking } from "react-native";
-import { ChevronLeft, CheckCircle2, XCircle, Trophy, ArrowRight, Home, BookOpen, Heart, RefreshCcw } from "lucide-react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions, useColorScheme, Linking, TextInput, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ChevronLeft, CheckCircle2, XCircle, Trophy, ArrowRight, Home, BookOpen, Heart, RefreshCcw, Flame, Timer } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useState, useEffect, useCallback } from "react";
 import { useVideoPlayer, VideoView } from 'expo-video';
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideInRight, SlideOutLeft, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeInUp, FadeOut, SlideInDown, SlideInRight, SlideOutLeft, ZoomIn, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, useDerivedValue, withDelay, useAnimatedProps, SharedValue } from 'react-native-reanimated';
 import * as SecureStore from 'expo-secure-store';
+import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
+
 import { learningApi } from "../services/api";
 import { MathText } from "../components/MathText";
 import { feedback } from "../lib/feedback";
 import { MascotInteraction } from '../components/MascotInteraction';
 import { FillInTheBlank } from '../components/FillInTheBlank';
 import { ShiningProgressBar } from '../components/ShiningProgressBar';
+import { TactileButton } from '../components/TactileButton';
+import { SoundButton } from '../components/SoundButton';
 import { useAuthStore } from '../store/authStore';
 
 const { width } = Dimensions.get('window');
 
-// Replaces the old lightweight renderer and delegates all rendering (Markdown + LaTeX)
-// to the powerful MathText component which parses it in a single unified block
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+
+function ReText({ style, text }: { style?: any; text: SharedValue<string> }) {
+  const animatedProps = useAnimatedProps(() => {
+    return {
+      text: text.value,
+    } as any;
+  });
+
+  return (
+    <AnimatedTextInput
+      underlineColorAndroid="transparent"
+      editable={false}
+      defaultValue={text.value}
+      caretHidden
+      selectionColor="transparent"
+      contextMenuHidden
+      style={style}
+      animatedProps={animatedProps}
+    />
+  );
+}
+
 function MarkdownText({ content }: { content: string }) {
     return <MathText content={content} fontSize={16} />;
 }
 
 export default function LevelScreen() {
     const router = useRouter();
+    const { user } = useAuthStore();
     const { id } = useLocalSearchParams();
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     
     const [lesson, setLesson] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const startTime = useRef(Date.now());
     const [phase, setPhase] = useState<'reading' | 'questions' | 'finished'>('reading');
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -45,14 +72,9 @@ export default function LevelScreen() {
 
     // Animation values
     const checkScale = useSharedValue(1);
-    const buttonStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: checkScale.value }]
-    }));
-
     const progress = useSharedValue(0);
-    const progressStyle = useAnimatedStyle(() => ({
-        width: `${progress.value * 100}%`
-    }));
+    const xpValue = useSharedValue(0);
+    const lottieRef = useRef<LottieView>(null);
 
     useEffect(() => {
         if (lesson?.questions?.length > 0) {
@@ -110,7 +132,6 @@ export default function LevelScreen() {
         setShowResumePrompt(false);
     };
 
-    // Save session whenever state changes
     useEffect(() => {
         if (phase === 'questions' && lesson) {
             SecureStore.setItemAsync(`lesson_session_${id}`, JSON.stringify({
@@ -120,6 +141,21 @@ export default function LevelScreen() {
             })).catch(() => {});
         }
     }, [currentIndex, answers, hearts, phase]);
+
+    const xpText = useDerivedValue(() => {
+        return `${Math.round(xpValue.value)}`;
+    });
+
+    useEffect(() => {
+        if (phase === 'finished' && result?.passed) {
+            const xp = result?.pointsEarned || 40;
+            xpValue.value = withDelay(800, withTiming(xp, { duration: 1500 }));
+            const timer = setTimeout(() => {
+                lottieRef.current?.play();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [phase, result]);
 
     const handleOptionSelect = (index: number | null) => {
         if (showNext) return;
@@ -136,7 +172,6 @@ export default function LevelScreen() {
         setIsCorrect(correct);
         setShowNext(true);
         checkScale.value = withSequence(withSpring(1.1, { damping: 10, stiffness: 200 }), withSpring(1));
-        // Duolingo-style feedback
         if (correct) {
             feedback.correctAnswer();
         } else {
@@ -169,27 +204,22 @@ export default function LevelScreen() {
             });
             setResult(res.data);
             setPhase('finished');
-            // Celebration or retry feedback
             if (res.data.passed) {
                 feedback.victory();
-                // Check for streak update and show celebration
                 try {
                     const { user, updateUser } = useAuthStore.getState();
                     const oldStreak = user?.streak || 0;
-                    // Refresh user profile to get updated streak
                     const meRes = await import('../services/api').then(m => m.authApi.getMe());
                     if (meRes.data) {
                         await updateUser(meRes.data);
                         const newStreak = meRes.data.streak || 0;
                         if (newStreak > oldStreak && newStreak >= 2) {
-                            // Navigate to streak celebration after a short delay
                             setTimeout(() => {
                                 router.push({ pathname: '/streak-celebration', params: { streak: String(newStreak) } });
                             }, 1500);
                         }
                     }
                 } catch (e) {
-                    // Silently fail - streak celebration is non-critical
                     console.log('Streak check failed:', e);
                 }
             } else {
@@ -209,8 +239,6 @@ export default function LevelScreen() {
         player.loop = false;
     });
 
-    // External YouTube links will open in YouTube/browser (not embedded in-app).
-
     if (loading) {
         return (
             <View className="flex-1 bg-white dark:bg-[#0B0D12] items-center justify-center">
@@ -222,7 +250,7 @@ export default function LevelScreen() {
     if (!lesson) {
         return (
             <View className="flex-1 bg-white dark:bg-[#0B0D12] items-center justify-center p-5">
-                <Text className="text-gray-500 dark:text-gray-400 mb-4">Lesson not found</Text>
+                <Text className="text-gray-500 dark:text-gray-400 mb-4 font-medium">Lesson not found</Text>
                 <SoundButton onPress={() => router.back()} className="bg-black px-6 py-3 rounded-full">
                     <Text className="text-white font-bold">Go Back</Text>
                 </SoundButton>
@@ -345,7 +373,7 @@ export default function LevelScreen() {
                     <MarkdownText content={lesson.content || ''} />
                     <View className="mt-8">
                         <MascotInteraction 
-                            state="thinking" 
+                            state="happy" 
                             message="Pay attention! I'll be testing you on this in a minute. 😉" 
                         />
                     </View>
@@ -372,53 +400,160 @@ export default function LevelScreen() {
     }
 
     if (phase === 'finished') {
+        const accuracy = Math.round(((result?.score || 0) / (lesson?.questions?.length || 1)) * 100);
+        const rating = result?.passed ? (accuracy === 100 ? 'Perfect' : 'Amazing') : 'Needs Work';
+        
+        const baseXp = 10;
+        const bonusXp = result?.passed ? Math.round(accuracy * 0.1) : 0;
+        const xp = baseXp + bonusXp;
+
+        const streakDays = user?.streak || 0;
+        const unitProgress = 1;
+        const unitTotal = 4;
+        const unitCompletion = Math.min(unitProgress / unitTotal, 1);
+        const elapsedMins = Math.max(1, Math.round((Date.now() - startTime.current) / 60000));
+
+        const backgroundGradient = isDark
+            ? (['#0B0F14', '#0E1319', '#111214'] as const)
+            : (['#FFFDF6', '#FFFDF6', '#FFFFFF'] as const);
+
         return (
-            <SafeAreaView className="flex-1 bg-white dark:bg-[#0B0D12]">
-                <View className="flex-1 px-8 items-center justify-center">
-                    <Animated.View entering={FadeIn} className="items-center w-full">
-                    <View className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full items-center justify-center mb-6">
-                        <Trophy size={48} color="#58CC02" />
-                    </View>
-                    <Text className="text-3xl font-black text-black dark:text-white mb-2">
-                        {result?.passed ? 'Lesson Complete!' : 'Keep Training!'}
-                    </Text>
-                    
-                    {lesson.questions?.length > 0 && (
-                        <Text className="text-gray-500 dark:text-gray-400 text-lg mb-8 font-medium">
-                            {result?.passed 
-                                ? `You scored ${result?.score} out of ${result?.total}`
-                                : `You need ${Math.ceil(result?.total * 0.6)} to unlock the next level.`
-                            }
-                        </Text>
-                    )}
+            <View style={{ flex: 1, backgroundColor: isDark ? '#0B0D12' : '#FFFFFF' }}>
+                <LinearGradient
+                    colors={backgroundGradient}
+                    style={StyleSheet.absoluteFillObject}
+                />
 
-                    <View className="bg-gray-50 dark:bg-[#1E222B] w-full p-6 rounded-[24px] mb-10 border-2 border-gray-100 dark:border-gray-800">
-                        <View className="flex-row justify-between mb-4 items-center">
-                            <Text className="text-gray-500 dark:text-gray-400 font-bold text-[15px] uppercase">XP Earned</Text>
-                            <Text className="text-[#FFC800] dark:text-[#FFD900] font-black text-xl">+{result?.pointsEarned} XP</Text>
-                        </View>
-                        <View className="h-[2px] bg-gray-200 dark:bg-[#272B36] mb-4" />
-                        <View className="flex-row justify-between items-center">
-                            <Text className="text-gray-500 dark:text-gray-400 font-bold text-[15px] uppercase">Status</Text>
-                            <Text className={`${result?.passed ? 'text-[#58CC02]' : 'text-[#FF4B4B]'} font-black text-lg`}>
-                                {result?.passed ? 'PASSED' : 'RETRY REQUIRED'}
+                {/* Confetti Layer */}
+                {result?.passed && (
+                    <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, zIndex: 10 }}>
+                        <LottieView
+                            ref={lottieRef}
+                            source={{ uri: 'https://assets9.lottiefiles.com/packages/lf20_u4yrau.json' }}
+                            autoPlay={false}
+                            loop={false}
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="cover"
+                        />
+                    </View>
+                )}
+
+                <SafeAreaView style={{ flex: 1 }}>
+                    <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 40 }}>
+                        {/* Hero Section */}
+                        <Animated.View entering={ZoomIn.duration(600)} style={{ alignItems: 'center', marginBottom: 30 }}>
+                            <View style={{ width: 200, height: 200, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                                <LottieView
+                                    source={result?.passed 
+                                        ? require('../assets/animations/Happy-mood.json') 
+                                        : require('../assets/animations/sad-mood-loop.json')
+                                    }
+                                    autoPlay
+                                    loop={true}
+                                    style={{ width: '100%', height: '100%' }}
+                                />
+                            </View>
+                            <Text style={{ fontSize: 32, fontWeight: '900', textAlign: 'center', color: isDark ? '#FFE7A3' : '#D6A500' }}>
+                                {result?.passed ? (accuracy === 100 ? 'Perfect!' : 'Well done!') : 'Keep Training!'}
                             </Text>
+                            <Text style={{ fontSize: 17, fontWeight: '600', textAlign: 'center', marginTop: 8, color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                {result?.passed ? (accuracy === 100 ? "You didn't make a single mistake!" : 'You are making great progress.') : 'Mistakes help you learn.'}
+                            </Text>
+                        </Animated.View>
+
+                        {/* XP Counter Section */}
+                        {result?.passed && (
+                            <Animated.View entering={FadeInUp.delay(400).springify()} style={{ alignItems: 'center', marginBottom: 30 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                                    <ReText
+                                        text={xpText}
+                                        style={{ color: '#FFC800', fontSize: 72, fontWeight: '900', textAlign: 'center' }}
+                                    />
+                                    <Text style={{ fontSize: 24, fontWeight: '900', marginLeft: 8, color: '#FFC800' }}>
+                                        XP
+                                    </Text>
+                                </View>
+                                <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#6B7280' : '#9CA3AF' }}>
+                                    Base {baseXp} + Bonus {bonusXp}
+                                </Text>
+                            </Animated.View>
+                        )}
+
+                        {/* 3D Stats Pillars */}
+                        <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 30 }}>
+                            <Animated.View entering={FadeInDown.delay(600).springify()} style={{ flex: 1, alignItems: 'center', paddingHorizontal: 6 }}>
+                                <View style={{ width: '100%', borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingTop: 16, paddingBottom: 12, borderBottomWidth: 6, backgroundColor: '#1CB0F6', borderBottomColor: '#1480B0' }}>
+                                    <Timer size={24} color="white" />
+                                    <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 18, marginTop: 6 }}>
+                                        {elapsedMins}m
+                                    </Text>
+                                </View>
+                                <Text style={{ fontWeight: '700', textTransform: 'uppercase', marginTop: 12, fontSize: 11, letterSpacing: 1, color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                    Focus
+                                </Text>
+                            </Animated.View>
+
+                            <Animated.View entering={FadeInDown.delay(700).springify()} style={{ flex: 1, alignItems: 'center', paddingHorizontal: 6 }}>
+                                <View style={{ width: '100%', borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingTop: 16, paddingBottom: 12, borderBottomWidth: 6, backgroundColor: '#58CC02', borderBottomColor: '#46A302' }}>
+                                    <CheckCircle2 size={24} color="white" />
+                                    <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 18, marginTop: 6 }}>
+                                        {accuracy}%
+                                    </Text>
+                                </View>
+                                <Text style={{ fontWeight: '700', textTransform: 'uppercase', marginTop: 12, fontSize: 11, letterSpacing: 1, color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                    Accuracy
+                                </Text>
+                            </Animated.View>
+
+                            <Animated.View entering={FadeInDown.delay(800).springify()} style={{ flex: 1, alignItems: 'center', paddingHorizontal: 6 }}>
+                                <View style={{ width: '100%', borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingTop: 16, paddingBottom: 12, borderBottomWidth: 6, backgroundColor: '#FF4B4B', borderBottomColor: '#D42D2D' }}>
+                                    <Heart size={24} color="white" />
+                                    <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 18, marginTop: 6 }}>
+                                        {rating}
+                                    </Text>
+                                </View>
+                                <Text style={{ fontWeight: '700', textTransform: 'uppercase', marginTop: 12, fontSize: 11, letterSpacing: 1, color: isDark ? '#9CA3AF' : '#6B7280' }}>
+                                    Rating
+                                </Text>
+                            </Animated.View>
                         </View>
+
+                        {/* Progress Bar Section */}
+                        {result?.passed && (
+                            <Animated.View entering={FadeInUp.delay(900).springify()} style={{ width: '100%', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Flame size={20} color="#FF4B4B" fill="#FF4B4B" />
+                                        <Text style={{ color: isDark ? '#FFFFFF' : '#111827', fontWeight: '800', marginLeft: 6, letterSpacing: 0.5 }}>
+                                            {streakDays} DAY STREAK
+                                        </Text>
+                                    </View>
+                                    <Text style={{ color: isDark ? '#9CA3AF' : '#6B7280', fontWeight: '700' }}>
+                                        {unitProgress}/{unitTotal}
+                                    </Text>
+                                </View>
+                                <View style={{ height: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', borderRadius: 8, overflow: 'hidden' }}>
+                                    <View style={{ width: `${Math.round(unitCompletion * 100)}%`, height: '100%', backgroundColor: '#58CC02', borderRadius: 8 }} />
+                                </View>
+                            </Animated.View>
+                        )}
                     </View>
 
-                    <TactileButton
-                        onPress={() => result?.passed ? router.back() : setPhase('questions')}
-                        backgroundColor={result?.passed ? '#58CC02' : '#1CB0F6'}
-                        shadowColor={result?.passed ? '#46A302' : '#1899D6'}
-                        contentClassName="w-full p-4 items-center justify-center"
-                    >
-                        <Text className="text-white font-bold text-[17px] uppercase tracking-wider">
-                            {result?.passed ? 'Continue' : 'Try Again'}
-                        </Text>
-                    </TactileButton>
-                </Animated.View>
-                </View>
-            </SafeAreaView>
+                    {/* Footer */}
+                    <Animated.View entering={FadeInUp.delay(1000)} style={{ paddingHorizontal: 20, paddingBottom: 40, paddingTop: 10 }}>
+                        <TactileButton
+                            onPress={() => result?.passed ? router.back() : setPhase('questions')}
+                            backgroundColor={result?.passed ? '#58CC02' : '#1CB0F6'}
+                            shadowColor={result?.passed ? '#46A302' : '#1480B0'}
+                            contentClassName="w-full p-4 items-center justify-center"
+                        >
+                            <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 17, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                                {result?.passed ? 'Continue' : 'Try Again'}
+                            </Text>
+                        </TactileButton>
+                    </Animated.View>
+                </SafeAreaView>
+            </View>
         );
     }
 
@@ -463,7 +598,7 @@ export default function LevelScreen() {
                     exiting={SlideOutLeft.duration(180)}
                     className="flex-1"
                 >
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 240 }}>
                         {isFillInTheBlank ? (
                             <FillInTheBlank 
                                 sentence={currentQuestion.text}
@@ -476,80 +611,107 @@ export default function LevelScreen() {
                             <>
                                 <MathText content={currentQuestion.text} fontSize={22} containerStyle={{ marginBottom: 32 }} />
 
-                        {currentQuestion.options.map((option: string, index: number) => {
-                            const isSelected = selectedOption === index;
-                            const isWrong = isSelected && isCorrect === false;
-                            const isRight = (isSelected && isCorrect === true) || (isCorrect !== null && index === currentQuestion.correctOption);
+                                {currentQuestion.options.map((option: string, index: number) => {
+                                    const isSelected = selectedOption === index;
+                                    const isWrong = isSelected && isCorrect === false;
+                                    const isRight = (isSelected && isCorrect === true) || (isCorrect !== null && index === currentQuestion.correctOption);
 
-                            let borderColor = isDark ? '#272B36' : '#E5E5E5';
-                            let bgColor = isDark ? '#1E222B' : 'white';
-                            let textColor = isDark ? 'white' : '#4B4B4B';
-                            let shadowColor = isDark ? '#1E222B' : '#E5E5E5';
+                                    let borderColor = isDark ? '#272B36' : '#E5E5E5';
+                                    let bgColor = isDark ? '#1E222B' : 'white';
+                                    let textColor = isDark ? 'white' : '#4B4B4B';
+                                    let shadowColor = isDark ? '#1E222B' : '#E5E5E5';
+                                    let circleColor = 'transparent';
 
-                            if (isSelected && isCorrect === null) {
-                                borderColor = '#1899D6';
-                                bgColor = isDark ? '#1CB0F625' : '#DDF4FF';
-                                textColor = '#1899D6';
-                                shadowColor = '#1899D6';
-                            } else if (isRight) {
-                                borderColor = '#58CC02';
-                                bgColor = isDark ? '#58CC0225' : '#D7FFB8';
-                                textColor = '#58CC02';
-                                shadowColor = '#58CC02';
-                            } else if (isWrong) {
-                                borderColor = '#FF4B4B';
-                                bgColor = isDark ? '#FF4B4B25' : '#FFDCDC';
-                                textColor = '#FF4B4B';
-                                shadowColor = '#FF4B4B';
-                            }
+                                    if (isSelected && isCorrect === null) {
+                                        borderColor = '#1899D6';
+                                        bgColor = isDark ? '#1CB0F625' : '#DDF4FF';
+                                        shadowColor = '#1899D6';
+                                        circleColor = '#1899D6';
+                                        textColor = isDark ? '#38BDF8' : '#1899D6';
+                                    } else if (isRight) {
+                                        borderColor = '#58CC02';
+                                        bgColor = isDark ? '#1E3A1E' : '#D7FFB8';
+                                        textColor = isDark ? '#58CC02' : '#2B7200';
+                                        shadowColor = '#46A302';
+                                        circleColor = '#58CC02';
+                                    } else if (isWrong) {
+                                        borderColor = '#FF4B4B';
+                                        bgColor = isDark ? '#3A1E1E' : '#FFDCDC';
+                                        textColor = isDark ? '#FF4B4B' : '#EA2B2B';
+                                        shadowColor = '#EA2B2B';
+                                        circleColor = '#FF4B4B';
+                                    }
 
-                            return (
-                                <Animated.View key={index}>
-                                    <TactileButton
-                                        onPress={() => handleOptionSelect(index)}
-                                        disabled={showNext}
-                                        backgroundColor={bgColor}
-                                        shadowColor={shadowColor}
-                                        depth={4}
-                                        className="mb-4"
-                                        contentClassName="flex-row items-center p-5"
-                                    >
-                                        <View style={{ borderColor: isSelected || isRight || isWrong ? 'transparent' : (isDark ? '#272B36' : '#E5E5E5'), backgroundColor: isSelected || isRight || isWrong ? textColor : 'transparent' }} className="w-8 h-8 rounded-full border-2 items-center justify-center mr-4">
-                                            {(isSelected || isRight || isWrong) ? (
-                                                <View className="w-2 h-2 bg-white rounded-full" />
-                                            ) : (
-                                                <Text className="text-[#AFAFAF] font-bold text-sm">{index + 1}</Text>
-                                            )}
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <MathText content={option} color={textColor} fontSize={17} />
-                                        </View>
-                                    </TactileButton>
-                                </Animated.View>
-                            );
-                        })}
+                                    return (
+                                        <Animated.View key={index}>
+                                            <TactileButton
+                                                onPress={() => handleOptionSelect(index)}
+                                                disabled={false}
+                                                backgroundColor={bgColor}
+                                                shadowColor={shadowColor}
+                                                depth={4}
+                                                className="mb-4"
+                                                contentClassName="flex-row items-center p-5"
+                                            >
+                                                <View style={{ borderColor: isSelected || isRight || isWrong ? 'transparent' : (isDark ? '#272B36' : '#E5E5E5'), backgroundColor: isSelected || isRight || isWrong ? circleColor : 'transparent' }} className="w-8 h-8 rounded-full border-2 items-center justify-center mr-4">
+                                                    {(isSelected || isRight || isWrong) ? (
+                                                        <View className="w-2.5 h-2.5 bg-white rounded-full" />
+                                                    ) : (
+                                                        <Text className="text-[#AFAFAF] font-bold text-sm">{index + 1}</Text>
+                                                    )}
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <MathText content={option} color={textColor} fontSize={17} />
+                                                </View>
+                                            </TactileButton>
+                                        </Animated.View>
+                                    );
+                                })}
                             </>
                         )}
                     </ScrollView>
                 </Animated.View>
             </View>
 
+            {/* Bottom Feedback Banner & Action Button */}
             <View className={`pt-4 px-5 pb-8 border-t-2 border-gray-100 dark:border-gray-800 ${isCorrect === true ? 'bg-[#D7FFB8] dark:bg-[#1A2E1A]' : isCorrect === false ? 'bg-[#FFDCDC] dark:bg-[#2E1A1A]' : 'bg-white dark:bg-[#0B0D12]'}`}>
+                {isCorrect === true && (
+                    <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 250, zIndex: 10, overflow: 'hidden' }}>
+                        <LottieView
+                            source={{ uri: 'https://assets9.lottiefiles.com/packages/lf20_u4yrau.json' }}
+                            autoPlay={true}
+                            loop={false}
+                            style={{ width: '100%', height: '100%', transform: [{ scale: 1.2 }] }}
+                            resizeMode="cover"
+                        />
+                    </View>
+                )}
                 {isCorrect !== null && (
-                    <Animated.View entering={SlideInDown} className="mb-6 flex-row items-center">
-                        <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${isCorrect ? 'bg-[#58CC02]' : 'bg-[#FF4B4B]'}`}>
-                            {isCorrect ? <CheckCircle2 size={28} color="white" /> : <XCircle size={28} color="white" />}
-                        </View>
-                        <View>
-                            <Text className={`font-black text-2xl ${isCorrect ? 'text-[#58CC02]' : 'text-[#FF4B4B]'}`}>
-                                {isCorrect ? 'Amazing!' : 'Incorrect'}
-                            </Text>
-                            {!isCorrect && (
-                                <View className="mt-1">
-                                    <MathText content={`Correct: ${currentQuestion.options[currentQuestion.correctOption]}`} color="#FF4B4B" fontSize={14} />
+                    <Animated.View entering={SlideInDown} className="mb-4 -ml-2">
+                        <MascotInteraction
+                            state={isCorrect ? 'happy' : 'crying'}
+                            size={90}
+                            noEntryAnimation={true}
+                            messageNode={
+                                <View style={{ minHeight: 40, justifyContent: 'center' }}>
+                                    <Text style={{ fontSize: 20, fontWeight: '900', color: isCorrect ? (isDark ? '#58CC02' : '#2B7200') : (isDark ? '#FF6B6B' : '#EA2B2B'), marginBottom: 2 }}>
+                                        {isCorrect ? 'Well done!' : 'Incorrect'}
+                                    </Text>
+                                    {!isCorrect && (
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+                                            <Text style={{ color: isDark ? '#FF8080' : '#EA2B2B', fontWeight: '700', fontSize: 15 }}>
+                                                Correct answer:{' '}
+                                            </Text>
+                                            <MathText 
+                                                content={currentQuestion.options[currentQuestion.correctOption]} 
+                                                color={isDark ? '#FF8080' : '#EA2B2B'} 
+                                                fontSize={15} 
+                                            />
+                                        </View>
+                                    )}
                                 </View>
-                            )}
-                        </View>
+                            }
+                        />
                     </Animated.View>
                 )}
 
@@ -558,22 +720,22 @@ export default function LevelScreen() {
                         onPress={showNext ? handleNext : handleCheck}
                         disabled={selectedOption === null || submitting}
                         backgroundColor={
-                            selectedOption === null || submitting 
-                                ? (isDark ? '#272B36' : '#E5E5E5')
-                                : isCorrect === true ? '#58CC02' : isCorrect === false ? '#FF4B4B' : '#F59E0B'
+                            showNext
+                                ? (isCorrect === true ? '#58CC02' : '#FF4B4B')
+                                : (selectedOption === null || submitting ? (isDark ? '#272B36' : '#E5E5E5') : '#58CC02')
                         }
                         shadowColor={
-                            selectedOption === null || submitting
-                                ? (isDark ? '#1E222B' : '#CECECE')
-                                : isCorrect === true ? '#46A302' : isCorrect === false ? '#EA2B2B' : '#D97706'
+                            showNext
+                                ? (isCorrect === true ? '#46A302' : '#EA2B2B')
+                                : (selectedOption === null || submitting ? (isDark ? '#1E222B' : '#CECECE') : '#46A302')
                         }
                         contentClassName="p-4 items-center justify-center"
                     >
                         {submitting ? (
                             <ActivityIndicator color="#FFF" />
                         ) : (
-                            <Text className={`font-black text-[17px] uppercase tracking-widest ${selectedOption === null || submitting ? 'text-[#AFAFAF]' : 'text-white'}`}>
-                                {showNext ? (currentIndex === lesson.questions.length - 1 ? 'Finish' : 'Continue') : 'Check'}
+                            <Text className={`font-black text-[17px] uppercase tracking-widest ${selectedOption === null && !showNext ? 'text-[#AFAFAF]' : 'text-white'}`}>
+                                {showNext ? (currentIndex === lesson.questions.length - 1 ? 'Finish' : (isCorrect ? 'Excellent! Continue' : 'Continue')) : 'Check'}
                             </Text>
                         )}
                     </TactileButton>

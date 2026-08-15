@@ -117,7 +117,7 @@ export default function RootLayout() {
                     className="absolute inset-0 z-[1000] bg-white dark:bg-[#0B0D12] items-center justify-center p-8"
                 >
                     <MascotInteraction 
-                        state="sad" 
+                        state="crying" 
                         message="Oops! The Pride needs a signal. Please check your internet connection." 
                     />
                 </Animated.View>
@@ -164,6 +164,7 @@ export default function RootLayout() {
                                         key={lang.code}
                                         onPress={() => {
                                             i18n.changeLanguage(lang.code);
+                                            SecureStore.setItemAsync('language', lang.code);
                                             setLangModalOpen(false);
                                         }}
                                         className={`flex-row items-center justify-between p-5 rounded-2xl border-2 ${active ? 'border-[#1CB0F6] bg-blue-50 dark:bg-blue-900/20' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40'}`}

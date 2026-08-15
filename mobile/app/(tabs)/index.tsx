@@ -319,6 +319,9 @@ export default function HomeScreen() {
                         <Text className="text-[#AFAFAF] font-bold text-[17px] text-center py-10">{t('common.loading')}</Text>
                     )}
                 </View>
+                
+                {/* Scroll spacer */}
+                <View style={{ height: 80 }} />
             </ScrollView>
         </SafeAreaView>
     );

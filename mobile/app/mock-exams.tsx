@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { mockApi, walletApi, learningApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { SoundButton } from '../components/SoundButton';
+import * as WebBrowser from 'expo-web-browser';
 
 export default function MockExamsScreen() {
     const router = useRouter();
@@ -43,13 +44,26 @@ export default function MockExamsScreen() {
     };
 
     const handleStartMock = async (mock: any) => {
+        if (mock.price === 0 || mock.price === '0') {
+            try {
+                setLoading(true);
+                const res = await mockApi.start(mock.id);
+                router.push({ pathname: '/active-mock', params: { attemptId: res.data.attemptId, mockId: mock.id } });
+            } catch (error: any) {
+                Alert.alert('Error', error.response?.data?.message || 'Failed to start mock');
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+
         Alert.alert(
             "Start Mock Exam",
-            `This exam costs ₦${mock.price}. You have ₦${balance}. Are you sure you want to purchase and start? Time starts immediately.`,
+            `This exam costs ₦${mock.price}. How would you like to pay? (Wallet: ₦${balance})`,
             [
                 { text: "Cancel", style: "cancel" },
                 {
-                    text: "Start Exam",
+                    text: "Pay with Wallet",
                     onPress: async () => {
                         try {
                             setLoading(true);
@@ -61,9 +75,33 @@ export default function MockExamsScreen() {
                             setLoading(false);
                         }
                     }
+                },
+                {
+                    text: "Pay with Card",
+                    onPress: () => handlePaystackPayment(mock.id)
                 }
             ]
         );
+    };
+
+    const handlePaystackPayment = async (mockId: string) => {
+        try {
+            setLoading(true);
+            const initRes = await mockApi.initializePayment(mockId);
+            const { authorization_url, reference } = initRes.data;
+
+            const result = await WebBrowser.openAuthSessionAsync(authorization_url, 'setorial://mock-payment-callback');
+            
+            // Re-fetch to verify regardless of result type, as users sometimes close the browser manually after paying
+            const verifyRes = await mockApi.verifyPayment(reference);
+            if (verifyRes.data.status === 'success') {
+                router.push({ pathname: '/active-mock', params: { attemptId: verifyRes.data.attemptId, mockId: verifyRes.data.mockId } });
+            }
+        } catch (error: any) {
+             Alert.alert('Payment Error', error.response?.data?.message || 'An error occurred during payment verification. If you were charged, please contact support.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const toggleSubject = (id: string) => {

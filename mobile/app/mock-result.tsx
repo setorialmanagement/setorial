@@ -1,6 +1,7 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
-import { View, Text, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Dimensions } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Trophy, CheckCircle2, XCircle, ArrowLeft, Home } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, SafeAreaView, StyleSheet, useColorScheme, Image } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme, Image } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, { 
     FadeIn, 
