@@ -35,8 +35,12 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 
+# Copy startup script
+COPY --from=builder /app/startup.sh ./startup.sh
+RUN chmod +x startup.sh
+
 # Expose the API port
 EXPOSE 3000
 
-# Default command (can be overridden by Procfile)
-CMD ["npm", "run", "start:prod"]
+# Default command
+CMD ["sh", "startup.sh"]
