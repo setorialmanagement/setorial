@@ -1,6 +1,6 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
-import Animated, { SlideInDown } from 'react-native-reanimated';
+import Animated, { SlideInDown, Easing } from 'react-native-reanimated';
 import { View, Text, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Check, Crown, Shield, Star, Zap } from 'lucide-react-native';
@@ -290,7 +290,7 @@ export default function SubscriptionScreen() {
 
                         return (
                             <Animated.View
-                                entering={SlideInDown.delay(index * 100).springify().damping(15)}
+                                entering={SlideInDown.delay(index * 100).duration(500).easing(Easing.out(Easing.cubic))}
                                 key={tier.name}
                                 className={`mb-6 p-6 rounded-[32px] border-2 border-b-4 ${isActive ? 'border-black bg-black dark:border-white dark:bg-[#13151A]' : 'border-gray-100 bg-white dark:border-[#272B36] dark:bg-[#1E222B]'}`}
                             >

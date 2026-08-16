@@ -1,6 +1,6 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
-import Animated, { SlideInRight, SlideInDown } from 'react-native-reanimated';
+import Animated, { SlideInRight, SlideInDown, Easing } from 'react-native-reanimated';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Flame, BookOpen, Trophy, Star, Crown, Target, Zap, Award, Lock } from 'lucide-react-native';
@@ -56,7 +56,7 @@ export default function AchievementsScreen() {
 
             <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
                 {/* Summary */}
-                <Animated.View entering={SlideInDown.springify().damping(14)} className="bg-black dark:bg-[#1E222B] p-8 rounded-[40px] mb-10 items-center border-2 border-b-4 border-gray-800 dark:border-[#272B36]">
+                <Animated.View entering={SlideInDown.duration(500).easing(Easing.out(Easing.cubic))} className="bg-black dark:bg-[#1E222B] p-8 rounded-[40px] mb-10 items-center border-2 border-b-4 border-gray-800 dark:border-[#272B36]">
                     <Text className="text-gray-400 font-bold text-sm uppercase tracking-widest mb-2">Badges Earned</Text>
                     <Text className="text-white font-black text-[56px] tracking-tighter">{badges.length}</Text>
                     <View className="flex-row items-center mt-2">
@@ -77,7 +77,7 @@ export default function AchievementsScreen() {
                                 const Icon = ICON_MAP[badge.icon] || Award;
                                 const isDark = false; // We can't access hook here easily, but we can assume light theme default or let NativeWind handle text colors
                                 return (
-                                    <Animated.View key={badge.id} entering={SlideInRight.delay(index * 100).springify()} style={{ width: '47%' }}>
+                                    <Animated.View key={badge.id} entering={SlideInRight.delay(index * 100).duration(500).easing(Easing.out(Easing.cubic))} style={{ width: '47%' }}>
                                         <TactileButton
                                             backgroundColor="#FFFFFF"
                                             shadowColor="#E5E5E5"
@@ -101,7 +101,7 @@ export default function AchievementsScreen() {
                         </View>
                     </>
                 ) : (
-                    <Animated.View entering={SlideInDown.delay(200).springify()} className="items-center justify-center py-16">
+                    <Animated.View entering={SlideInDown.delay(200).duration(500).easing(Easing.out(Easing.cubic))} className="items-center justify-center py-16">
                         <View className="w-20 h-20 bg-gray-100 dark:bg-[#1E222B] rounded-full items-center justify-center mb-4 border-2 border-b-4 border-[#E5E5E5] dark:border-[#272B36]">
                             <Lock size={36} color="#CECECE" />
                         </View>
