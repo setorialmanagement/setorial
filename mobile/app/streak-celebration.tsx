@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, useColorScheme, Image } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, { 
@@ -16,7 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { TactileButton } from '../components/TactileButton';
 import { feedback } from '../lib/feedback';
-import { LION_IMAGES } from '../lib/lionMood';
+import LottieView from 'lottie-react-native';
 
 export default function StreakCelebrationScreen() {
     const router = useRouter();
@@ -25,53 +25,9 @@ export default function StreakCelebrationScreen() {
     const isDark = colorScheme === 'dark';
     const streakCount = parseInt(streak || '1', 10);
 
-    // Animated flame glow
-    const glowScale = useSharedValue(1);
-    const glowOpacity = useSharedValue(0.6);
-    const lionRotate = useSharedValue(0);
-
     useEffect(() => {
         feedback.victory();
-
-        // Pulsing glow effect
-        glowScale.value = withRepeat(
-            withSequence(
-                withTiming(1.3, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-                withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) })
-            ),
-            -1,
-            true
-        );
-
-        glowOpacity.value = withRepeat(
-            withSequence(
-                withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-                withTiming(0.4, { duration: 1200, easing: Easing.inOut(Easing.ease) })
-            ),
-            -1,
-            true
-        );
-
-        // Subtle lion wiggle
-        lionRotate.value = withRepeat(
-            withSequence(
-                withTiming(-5, { duration: 300 }),
-                withTiming(5, { duration: 300 }),
-                withTiming(0, { duration: 300 })
-            ),
-            3,
-            false
-        );
     }, []);
-
-    const glowStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: glowScale.value }],
-        opacity: glowOpacity.value,
-    }));
-
-    const lionStyle = useAnimatedStyle(() => ({
-        transform: [{ rotate: `${lionRotate.value}deg` }],
-    }));
 
     // Milestone messages
     const getMessage = (count: number): string => {
@@ -99,29 +55,21 @@ export default function StreakCelebrationScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0B0D12' : '#FFFFFF' }]}>  
             <View style={styles.content}>
-                {/* Animated Glow Behind Lion */}
-                <Animated.View entering={ZoomIn.delay(200).springify().damping(12)} style={styles.lionWrapper}>
-                    {/* Glow ring */}
-                    <Animated.View style={[styles.glowRing, glowStyle, { 
-                        borderColor: accent,
-                        shadowColor: accent,
-                    }]} />
-                    
-                    {/* Fire emoji overlay */}
-                    <View style={styles.fireContainer}>
-                        <Text style={styles.fireEmoji}>🔥</Text>
-                    </View>
+                {/* Animated Lottie Wrapper */}
+                <Animated.View entering={ZoomIn.delay(200).duration(500).easing(Easing.out(Easing.cubic))} style={styles.lionWrapper}>
 
-                    {/* Lion Image */}
-                    <Animated.Image
-                        source={LION_IMAGES.happy}
-                        style={[styles.lionImage, lionStyle]}
-                        resizeMode="contain"
+                    {/* Happy Lottie Animation */}
+                    <LottieView
+                        source={require('../assets/animations/Happy-mood.json')}
+                        autoPlay
+                        loop
+                        style={styles.lionImage}
+                        speed={1}
                     />
                 </Animated.View>
 
                 {/* Streak Count */}
-                <Animated.View entering={SlideInDown.delay(400).springify().damping(14)} style={styles.countContainer}>
+                <Animated.View entering={SlideInDown.delay(400).duration(500).easing(Easing.out(Easing.cubic))} style={styles.countContainer}>
                     <Text style={[styles.countNumber, { color: accent }]}>
                         {streakCount}
                     </Text>
@@ -139,7 +87,7 @@ export default function StreakCelebrationScreen() {
 
                 {/* Milestone badges */}
                 {(streakCount === 7 || streakCount === 14 || streakCount === 30 || streakCount === 100 || streakCount === 365) && (
-                    <Animated.View entering={ZoomIn.delay(800).springify()} style={[styles.milestoneBadge, { borderColor: accent + '40', backgroundColor: accent + '15' }]}>
+                    <Animated.View entering={ZoomIn.delay(800).duration(500).easing(Easing.out(Easing.cubic))} style={[styles.milestoneBadge, { borderColor: accent + '40', backgroundColor: accent + '15' }]}>
                         <Text style={[styles.milestoneText, { color: accent }]}>
                             🏅 {streakCount}-Day Milestone Achieved!
                         </Text>
@@ -148,7 +96,7 @@ export default function StreakCelebrationScreen() {
             </View>
 
             {/* Continue Button */}
-            <Animated.View entering={SlideInDown.delay(800).springify().damping(15)} style={styles.buttonContainer}>
+            <Animated.View entering={SlideInDown.delay(800).duration(500).easing(Easing.out(Easing.cubic))} style={styles.buttonContainer}>
                 <TactileButton
                     onPress={() => router.back()}
                     backgroundColor={accent}
@@ -179,17 +127,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
-    },
-    glowRing: {
-        position: 'absolute',
-        width: 220,
-        height: 220,
-        borderRadius: 110,
-        borderWidth: 4,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 30,
-        elevation: 20,
     },
     fireContainer: {
         position: 'absolute',

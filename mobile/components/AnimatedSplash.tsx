@@ -61,7 +61,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
                     style={styles.lottie}
                     speed={1}
                 />
-                <Animated.Text style={[styles.appName, textStyle]}>SETORIAL</Animated.Text>
+                {!isDark && <Animated.Text style={[styles.appName, textStyle]}>SETORIAL</Animated.Text>}
             </View>
         </Animated.View>
     );

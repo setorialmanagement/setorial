@@ -30,7 +30,7 @@
           "image": "./assets/splash-icon.png",
           "dark": {
             "image": "./assets/splash-icon-dark.png",
-            "backgroundColor": "#FFFFFF"
+            "backgroundColor": "#0B0D12"
           },
           "imageWidth": 450
         }
