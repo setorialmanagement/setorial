@@ -38,7 +38,8 @@
       "expo-video",
       "expo-localization",
       "expo-font",
-      "expo-router"
+      "expo-router",
+      "expo-web-browser"
     ],
     "owner": "george.allday",
     "extra": {
