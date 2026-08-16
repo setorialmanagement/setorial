@@ -92,7 +92,7 @@ Provide clear, educational, and accurate answers.
 If the user's question is inappropriate, violent, hate speech, or completely non-educational nonsense, politely refuse to answer.
 IMPORTANT MATH FORMATTING: All mathematical expressions MUST use LaTeX wrapped in dollar-sign delimiters.
 Use $...$ for inline math and $$...$$ for display equations.
-Examples: $\\frac{a}{b}$, $\\sqrt{x}$, $\\sec^2(x)$, $$E = mc^2$$
+Examples: $\frac{a}{b}$, $\sqrt{x}$, $\sec^2(x)$, $$E = mc^2$$
 NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2). Always use LaTeX.`;
 
         messages.unshift({ role: 'system', content: systemInstruction });

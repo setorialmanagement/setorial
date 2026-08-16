@@ -9,9 +9,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { LION_IMAGES } from '../lib/lionMood';
+import LottieView from 'lottie-react-native';
 import EventSource from 'react-native-sse';
 import Markdown from 'react-native-markdown-display';
 import { tutorApi } from '../services/api';
+import { MathText } from '../components/MathText';
 
 type ChatMessage = {
     id: string;
@@ -186,8 +188,6 @@ export default function TutorScreen() {
                     <ChevronLeft size={24} color="#AFAFAF" />
                 </SoundButton>
                 <View className="flex-row items-center">
-                    <Image source={LION_IMAGES.happy} style={{ width: 28, height: 28, marginRight: 8 }} resizeMode="contain" />
-                    <Text className="text-black dark:text-white font-bold text-xl">Personal Tutor</Text>
                 </View>
                 <TouchableOpacity onPress={() => { setChat([]); setSessionId(null); }} className="w-10 h-10 items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full">
                     <RefreshCw size={18} color="#AFAFAF" />
@@ -215,11 +215,12 @@ export default function TutorScreen() {
                             >
                                 {(msg.role === 'assistant' || msg.role === 'tutor') && (
                                     <View className="mr-3 mt-1">
-                                        <View className="w-10 h-10 rounded-full bg-yellow-100 items-center justify-center overflow-hidden">
-                                            <Image
-                                                source={LION_IMAGES.happy}
-                                                style={{ width: 44, height: 44, borderRadius: 22 }}
-                                                resizeMode="cover"
+                                        <View className="w-12 h-12 items-center justify-center mt-[-8px]">
+                                            <LottieView
+                                                source={require('../assets/animations/Happy-mood.json')}
+                                                autoPlay
+                                                loop
+                                                style={{ width: 56, height: 56 }}
                                             />
                                         </View>
                                     </View>
@@ -237,16 +238,11 @@ export default function TutorScreen() {
                                         </Text>
                                     ) : (
                                         msg.text ? (
-                                            <Markdown
-                                                style={{
-                                                    body: { color: isDark ? '#FFFFFF' : '#333333', fontSize: 16 },
-                                                    code_inline: { backgroundColor: '#f0f0f0', color: '#e83e8c', borderRadius: 4, padding: 2 },
-                                                    code_block: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 },
-                                                    fence: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 }
-                                                }}
-                                            >
-                                                {msg.text}
-                                            </Markdown>
+                                            <MathText
+                                                content={msg.text}
+                                                color={isDark ? '#FFFFFF' : '#333333'}
+                                                fontSize={16}
+                                            />
                                         ) : (
                                             <ActivityIndicator size="small" color="#EAB308" />
                                         )
