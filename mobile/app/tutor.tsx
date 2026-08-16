@@ -1,7 +1,7 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
 import { MascotInteraction } from '../components/MascotInteraction';
-import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image, TouchableOpacity, useColorScheme } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Send, Sparkles, StopCircle, RefreshCw } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -31,6 +31,8 @@ export default function TutorScreen() {
     const esRef = useRef<EventSource | null>(null);
 
     const isGold = user?.tier === 'GOLD';
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
 
     useEffect(() => {
         if (!isGold) return;
@@ -184,7 +186,7 @@ export default function TutorScreen() {
                     <ChevronLeft size={24} color="#AFAFAF" />
                 </SoundButton>
                 <View className="flex-row items-center">
-                    <Sparkles size={20} color="#EAB308" className="mr-2" />
+                    <Image source={LION_IMAGES.happy} style={{ width: 28, height: 28, marginRight: 8 }} resizeMode="contain" />
                     <Text className="text-black dark:text-white font-bold text-xl">Personal Tutor</Text>
                 </View>
                 <TouchableOpacity onPress={() => { setChat([]); setSessionId(null); }} className="w-10 h-10 items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full">
@@ -237,7 +239,7 @@ export default function TutorScreen() {
                                         msg.text ? (
                                             <Markdown
                                                 style={{
-                                                    body: { color: '#000', fontSize: 16 },
+                                                    body: { color: isDark ? '#FFFFFF' : '#333333', fontSize: 16 },
                                                     code_inline: { backgroundColor: '#f0f0f0', color: '#e83e8c', borderRadius: 4, padding: 2 },
                                                     code_block: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 },
                                                     fence: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 }
