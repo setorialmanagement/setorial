@@ -208,8 +208,8 @@ export declare class AdminController {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }>;
     legacyUpdateMock(id: string, data: any, req: any): Promise<{
@@ -231,8 +231,8 @@ export declare class AdminController {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }>;
     getMock(id: string): Promise<({
@@ -254,8 +254,8 @@ export declare class AdminController {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }) | null>;
     deleteMock(id: string): Promise<{
@@ -265,8 +265,8 @@ export declare class AdminController {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }>;
     patchMock(id: string, data: any, req: any): Promise<{
@@ -288,8 +288,8 @@ export declare class AdminController {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }>;
     approveMock(id: string): Promise<{
@@ -299,8 +299,8 @@ export declare class AdminController {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }>;
     getSupportMessages(): Promise<({

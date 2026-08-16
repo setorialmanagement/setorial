@@ -5,7 +5,8 @@
     "streak": "Streak",
     "history": "History",
     "upgrade": "Upgrade Now",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "select_language": "Select Language"
   },
   "home": {
     "gold_status": "Premium Status",

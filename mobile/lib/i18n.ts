@@ -31,11 +31,4 @@ i18n
     },
   });
 
-// Async load saved language
-SecureStore.getItemAsync('language').then(savedLang => {
-    if (savedLang && savedLang !== i18n.language) {
-        i18n.changeLanguage(savedLang);
-    }
-});
-
 export default i18n;

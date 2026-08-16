@@ -71,8 +71,8 @@ export declare class LearningController {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }>;
     regenerateLesson(id: string, req: any): Promise<{

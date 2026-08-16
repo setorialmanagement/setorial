@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LearningService } from './learning.service';
 import { LearningController } from './learning.controller';
+import { TutorController } from './tutor.controller';
 import { PrismaService } from '../prisma.service';
 import { GamificationModule } from '../gamification/gamification.module';
 import { StoreModule } from '../store/store.module';
@@ -17,7 +18,7 @@ import { AiContentProcessor } from './ai-content.processor';
     BullModule.registerQueue({ name: 'ai-content' })
   ],
   providers: [LearningService, PrismaService, AiContentService, AiContentProcessor],
-  controllers: [LearningController],
+  controllers: [LearningController, TutorController],
   exports: [LearningService, AiContentService],
 })
 export class LearningModule { }

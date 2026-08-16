@@ -29,9 +29,12 @@ export class LearningController {
         return this.aiContentService.queueFullSyllabusGeneration(dto.subjectId, dto.numTopics, req.user.role);
     }
 
-    @Roles(Role.ADMIN, Role.TUTOR)
+    @Roles(Role.ADMIN, Role.TUTOR, Role.STUDENT)
     @Post('ai/generate-mock')
     async generateAiMock(@Body() dto: { subjectId: string, title: string, numQuestions?: number, durationMinutes?: number }, @Request() req: any) {
+        if (req.user.role === Role.STUDENT && req.user.tier === 'FREE') {
+            throw new BadRequestException('Custom AI Mocks are only available for paying users.');
+        }
         return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions, dto.durationMinutes, req.user.role);
     }
 

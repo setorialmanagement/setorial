@@ -163,8 +163,7 @@ export default function RootLayout() {
                                     <TouchableOpacity 
                                         key={lang.code}
                                         onPress={() => {
-                                            i18n.changeLanguage(lang.code);
-                                            SecureStore.setItemAsync('language', lang.code);
+                                            useAuthStore.getState().setLanguage(lang.code);
                                             setLangModalOpen(false);
                                         }}
                                         className={`flex-row items-center justify-between p-5 rounded-2xl border-2 ${active ? 'border-[#1CB0F6] bg-blue-50 dark:bg-blue-900/20' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40'}`}

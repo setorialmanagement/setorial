@@ -1,7 +1,7 @@
 import { SoundButton } from '../components/SoundButton';
 import { View, Text, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, User, Bell, Shield, CircleHelp, Volume2, Vibrate } from 'lucide-react-native';
+import { ChevronLeft, User, Bell, Shield, CircleHelp, Volume2, Vibrate, Globe } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
@@ -28,11 +28,17 @@ export default function SettingsScreen() {
                 <Animated.Text entering={FadeInUp.delay(60).springify()} className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Account</Animated.Text>
                 <SettingRow
                     index={0}
+                    icon={<Globe size={20} color="#000" />}
+                    label="Language"
+                    onPress={() => useAuthStore.getState().setLangModalOpen(true)}
+                />
+                <SettingRow
+                    index={1}
                     icon={<User size={20} color="#000" />}
                     label="Edit Profile"
                     onPress={() => router.push('/edit-profile')}
                 />
-                <SettingRow index={1} icon={<Bell size={20} color="#000" />} label="Notifications">
+                <SettingRow index={2} icon={<Bell size={20} color="#000" />} label="Notifications">
                     <Switch
                         value={notifications}
                         onValueChange={setNotifications}

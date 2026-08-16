@@ -101,3 +101,9 @@ export const supportApi = {
     sendMessage: (data: { subject: string, message: string }) => api.post('/support/message', data),
     getMyMessages: () => api.get('/support/my-messages'),
 };
+
+export const tutorApi = {
+    getSessions: () => api.get('/learning/tutor/sessions'),
+    getMessages: (id: string) => api.get(`/learning/tutor/sessions/${id}/messages`),
+    getChatUrl: () => `${API_URL}/learning/tutor/chat`,
+};

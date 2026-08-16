@@ -1,45 +1,149 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
 import { MascotInteraction } from '../components/MascotInteraction';
-import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, Send, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, Send, Sparkles, StopCircle, RefreshCw } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { LION_IMAGES } from '../lib/lionMood';
+import EventSource from 'react-native-sse';
+import Markdown from 'react-native-markdown-display';
+import { tutorApi } from '../services/api';
+
+type ChatMessage = {
+    id: string;
+    role: 'user' | 'assistant' | 'tutor';
+    text: string;
+};
 
 export default function TutorScreen() {
     const router = useRouter();
-    const { user } = useAuthStore();
+    const { user, token } = useAuthStore();
     const [message, setMessage] = useState('');
-    const [chat, setChat] = useState<{ role: 'user' | 'tutor', text: string }[]>([
-        { role: 'tutor', text: `Hello ${user?.name || 'Scholar'}! I'm your Personal Tutor. How can I help you today?` }
-    ]);
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [chat, setChat] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(false);
+    const [initialFetch, setInitialFetch] = useState(true);
     const scrollViewRef = useRef<ScrollView>(null);
+    const esRef = useRef<EventSource | null>(null);
 
     const isGold = user?.tier === 'GOLD';
 
-    const handleSend = async () => {
+    useEffect(() => {
+        if (!isGold) return;
+        loadLatestSession();
+    }, [isGold]);
+
+    const loadLatestSession = async () => {
+        try {
+            const sessions = await tutorApi.getSessions();
+            if (sessions.data.length > 0) {
+                const latestSession = sessions.data[0];
+                setSessionId(latestSession.id);
+                const messages = await tutorApi.getMessages(latestSession.id);
+                setChat(messages.data.map((m: any) => ({
+                    id: m.id,
+                    role: m.role === 'user' ? 'user' : 'assistant',
+                    text: m.content
+                })));
+            } else {
+                setChat([
+                    { id: 'greeting', role: 'assistant', text: `Hello ${user?.name || 'Scholar'}! I'm your Personal Tutor. How can I help you today?` }
+                ]);
+            }
+        } catch (error) {
+            console.error('Failed to load sessions:', error);
+            setChat([
+                { id: 'greeting', role: 'assistant', text: `Hello ${user?.name || 'Scholar'}! I'm your Personal Tutor. How can I help you today?` }
+            ]);
+        } finally {
+            setInitialFetch(false);
+        }
+    };
+
+    const handleSend = () => {
         if (!message.trim() || loading || !isGold) return;
 
         const userMsg = message.trim();
         setMessage('');
-        setChat(prev => [...prev, { role: 'user', text: userMsg }]);
+        const tempId = Date.now().toString();
+        const assistantTempId = tempId + '_assistant';
+        
+        setChat(prev => [
+            ...prev, 
+            { id: tempId, role: 'user', text: userMsg },
+            { id: assistantTempId, role: 'assistant', text: '' }
+        ]);
         setLoading(true);
 
-        // Mock AI response for now - in production this would call an AI endpoint
-        setTimeout(() => {
-            setChat(prev => [...prev, { role: 'tutor', text: `That's a great question about "${userMsg}". As your personal tutor, I'm here to guide you through it! (AI Integration pending)` }]);
+        const url = tutorApi.getChatUrl();
+        const eventSource = new EventSource(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                sessionId: sessionId,
+                message: userMsg
+            }),
+            pollingInterval: 0
+        });
+
+        esRef.current = eventSource;
+
+        eventSource.addEventListener('session' as any, (event: any) => {
+            if (event.data) {
+                const data = JSON.parse(event.data);
+                if (data.sessionId) setSessionId(data.sessionId);
+            }
+        });
+
+        eventSource.addEventListener('message', (event: any) => {
+            if (event.data) {
+                if (event.data === '[DONE]') {
+                    setLoading(false);
+                    eventSource.close();
+                    return;
+                }
+                try {
+                    const parsed = JSON.parse(event.data);
+                    const newText = parsed.text || '';
+                    if (newText) {
+                        setChat(prev => {
+                            const newChat = [...prev];
+                            const lastIndex = newChat.length - 1;
+                            newChat[lastIndex].text += newText;
+                            return newChat;
+                        });
+                        scrollViewRef.current?.scrollToEnd({ animated: false });
+                    }
+                } catch (e) {
+                    console.error('SSE Parse Error', e);
+                }
+            }
+        });
+
+        eventSource.addEventListener('error', (event: any) => {
+            console.error('SSE Error:', event);
             setLoading(false);
-        }, 1500);
+            eventSource.close();
+        });
+    };
+
+    const handleStop = () => {
+        if (esRef.current) {
+            esRef.current.close();
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
-    }, [chat]);
+    }, [chat.length, initialFetch]);
 
     if (!isGold) {
         return (
@@ -83,7 +187,9 @@ export default function TutorScreen() {
                     <Sparkles size={20} color="#EAB308" className="mr-2" />
                     <Text className="text-black dark:text-white font-bold text-xl">Personal Tutor</Text>
                 </View>
-                <View className="w-10" />
+                <TouchableOpacity onPress={() => { setChat([]); setSessionId(null); }} className="w-10 h-10 items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full">
+                    <RefreshCw size={18} color="#AFAFAF" />
+                </TouchableOpacity>
             </View>
 
             <KeyboardAvoidingView 
@@ -96,45 +202,58 @@ export default function TutorScreen() {
                     className="flex-1 px-5 pt-4"
                     contentContainerStyle={{ paddingBottom: 20 }}
                 >
-                    {chat.map((msg, i) => (
-                        <Animated.View 
-                            key={i} 
-                            entering={msg.role === 'user' ? SlideInRight : FadeIn}
-                            className={`mb-6 flex-row ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            {msg.role === 'tutor' && (
-                                <View className="mr-3 mt-1">
-                                    <View className="w-10 h-10 rounded-full bg-yellow-100 items-center justify-center overflow-hidden">
-                                        <Image
-                                            source={LION_IMAGES.happy}
-                                            style={{ width: 44, height: 44, borderRadius: 22 }}
-                                            resizeMode="cover"
-                                        />
-                                    </View>
-                                </View>
-                            )}
-                            <View 
-                                className={`max-w-[80%] p-4 rounded-2xl border-2 border-b-4 ${
-                                    msg.role === 'user' 
-                                    ? 'bg-[#1CB0F6] border-[#1899D6] rounded-tr-none' 
-                                    : 'bg-white dark:bg-[#1E222B] border-gray-100 dark:border-[#272B36] rounded-tl-none'
-                                }`}
+                    {initialFetch ? (
+                        <ActivityIndicator size="large" color="#EAB308" className="mt-20" />
+                    ) : (
+                        chat.map((msg, i) => (
+                            <Animated.View 
+                                key={msg.id} 
+                                entering={msg.role === 'user' ? SlideInRight : FadeIn}
+                                className={`mb-6 flex-row ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
-                                <Text className={`font-bold text-[16px] ${msg.role === 'user' ? 'text-white' : 'text-black dark:text-white'}`}>
-                                    {msg.text}
-                                </Text>
-                            </View>
-                        </Animated.View>
-                    ))}
-                    {loading && (
-                        <View className="flex-row justify-start mb-6">
-                            <View className="mr-3">
-                                <View className="w-10 h-10 rounded-full bg-yellow-100 items-center justify-center">
-                                    <ActivityIndicator size="small" color="#EAB308" />
+                                {(msg.role === 'assistant' || msg.role === 'tutor') && (
+                                    <View className="mr-3 mt-1">
+                                        <View className="w-10 h-10 rounded-full bg-yellow-100 items-center justify-center overflow-hidden">
+                                            <Image
+                                                source={LION_IMAGES.happy}
+                                                style={{ width: 44, height: 44, borderRadius: 22 }}
+                                                resizeMode="cover"
+                                            />
+                                        </View>
+                                    </View>
+                                )}
+                                <View 
+                                    className={`max-w-[85%] p-4 rounded-2xl border-2 border-b-4 ${
+                                        msg.role === 'user' 
+                                        ? 'bg-[#1CB0F6] border-[#1899D6] rounded-tr-none' 
+                                        : 'bg-white dark:bg-[#1E222B] border-gray-100 dark:border-[#272B36] rounded-tl-none'
+                                    }`}
+                                >
+                                    {msg.role === 'user' ? (
+                                        <Text className="font-bold text-[16px] text-white">
+                                            {msg.text}
+                                        </Text>
+                                    ) : (
+                                        msg.text ? (
+                                            <Markdown
+                                                style={{
+                                                    body: { color: '#000', fontSize: 16 },
+                                                    code_inline: { backgroundColor: '#f0f0f0', color: '#e83e8c', borderRadius: 4, padding: 2 },
+                                                    code_block: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 },
+                                                    fence: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 }
+                                                }}
+                                            >
+                                                {msg.text}
+                                            </Markdown>
+                                        ) : (
+                                            <ActivityIndicator size="small" color="#EAB308" />
+                                        )
+                                    )}
                                 </View>
-                            </View>
-                        </View>
+                            </Animated.View>
+                        ))
                     )}
+                    <View className="h-4" />
                 </ScrollView>
 
                 {/* Input Area */}
@@ -149,18 +268,32 @@ export default function TutorScreen() {
                             multiline
                         />
                         <View className="ml-2 w-12 h-12">
-                            <TactileButton 
-                                onPress={handleSend}
-                                disabled={!message.trim() || loading}
-                                backgroundColor={message.trim() ? '#1CB0F6' : '#E5E5E5'}
-                                shadowColor={message.trim() ? '#1899D6' : '#CECECE'}
-                                depth={4}
-                                borderRadius={999}
-                                style={{ width: 40, height: 40 }}
-                                contentClassName="w-10 h-10 items-center justify-center"
-                            >
-                                <Send size={18} color={message.trim() ? '#FFF' : '#AFAFAF'} />
-                            </TactileButton>
+                            {loading ? (
+                                <TactileButton 
+                                    onPress={handleStop}
+                                    backgroundColor="#EF4444"
+                                    shadowColor="#B91C1C"
+                                    depth={4}
+                                    borderRadius={999}
+                                    style={{ width: 40, height: 40 }}
+                                    contentClassName="w-10 h-10 items-center justify-center"
+                                >
+                                    <StopCircle size={18} color="#FFF" />
+                                </TactileButton>
+                            ) : (
+                                <TactileButton 
+                                    onPress={handleSend}
+                                    disabled={!message.trim()}
+                                    backgroundColor={message.trim() ? '#1CB0F6' : '#E5E5E5'}
+                                    shadowColor={message.trim() ? '#1899D6' : '#CECECE'}
+                                    depth={4}
+                                    borderRadius={999}
+                                    style={{ width: 40, height: 40 }}
+                                    contentClassName="w-10 h-10 items-center justify-center"
+                                >
+                                    <Send size={18} color={message.trim() ? '#FFF' : '#AFAFAF'} />
+                                </TactileButton>
+                            )}
                         </View>
                     </View>
                 </View>

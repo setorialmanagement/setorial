@@ -46,7 +46,7 @@ export const MascotInteraction: React.FC<MascotInteractionProps> = ({
             {/* Lion Image — slides up from its own boundary */}
             <View style={[styles.lionContainer, { width: size, height: size }]}>
                 <Animated.View
-                    entering={noEntryAnimation ? undefined : SlideInUp.delay(100).springify().damping(14).stiffness(100)}
+                    entering={noEntryAnimation ? undefined : SlideInUp.delay(100).springify().damping(22).stiffness(100).mass(0.8)}
                     style={styles.lionInner}
                 >
                     {hasLottie ? (
@@ -69,7 +69,7 @@ export const MascotInteraction: React.FC<MascotInteractionProps> = ({
             {/* Speech Bubble */}
             {(message || messageNode) && (
                 <Animated.View 
-                    entering={noEntryAnimation ? undefined : FadeInRight.delay(400).springify().damping(14)}
+                    entering={noEntryAnimation ? undefined : FadeInRight.delay(400).springify().damping(22).stiffness(100).mass(0.8)}
                     style={styles.bubble}
                     className="bg-white dark:bg-[#1E222B] border-2 border-b-4 border-gray-100 dark:border-[#272B36]"
                 >

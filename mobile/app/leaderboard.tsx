@@ -1,15 +1,17 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
 import Animated, { SlideInLeft, SlideInUp } from 'react-native-reanimated';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, Trophy, Crown, Medal, LayoutGrid } from "lucide-react-native";
+import { ChevronLeft, Crown, Medal } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { gamificationApi, learningApi } from "../services/api";
+import { useAuthStore } from '../store/authStore';
 
 function LeaderboardScreen() {
     const router = useRouter();
+    const { user } = useAuthStore();
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const [subjects, setSubjects] = useState<any[]>([]);
     const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -55,7 +57,12 @@ function LeaderboardScreen() {
     }
 
     const topThree = leaderboard.slice(0, 3);
-    const others = leaderboard.slice(3);
+    const others = leaderboard.slice(3, 15);
+    
+    const userRankIndex = leaderboard.findIndex(u => u.id === user?.id);
+    const userRank = userRankIndex !== -1 ? userRankIndex + 1 : null;
+    const isUserOutsideTop15 = userRank !== null && userRank > 15;
+    const currentUserData = isUserOutsideTop15 ? leaderboard[userRankIndex] : null;
 
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-[#0B0D12]">
@@ -110,6 +117,7 @@ function LeaderboardScreen() {
                                 height={140}
                                 color="bg-gray-100 dark:bg-zinc-800"
                                 icon={<Medal size={20} color="#94A3B8" />}
+                                isCurrentUser={topThree[1].id === user?.id}
                             />
                         )}
                         {/* 1st Place */}
@@ -120,6 +128,7 @@ function LeaderboardScreen() {
                                 height={180}
                                 color="bg-yellow-100"
                                 icon={<Crown size={24} color="#EAB308" />}
+                                isCurrentUser={topThree[0].id === user?.id}
                             />
                         )}
                         {/* 3rd Place */}
@@ -130,51 +139,87 @@ function LeaderboardScreen() {
                                 height={120}
                                 color="bg-orange-50"
                                 icon={<Medal size={20} color="#92400E" />}
+                                isCurrentUser={topThree[2].id === user?.id}
                             />
                         )}
                     </View>
 
-                    {/* Others List */}
-                    <View className="bg-white dark:bg-[#0B0D12] p-6 mb-10 min-h-[400px]">
+                    {/* Others List 4-15 */}
+                    <View className="bg-white dark:bg-[#0B0D12] p-6 mb-4 min-h-[400px]">
                         <Text className="text-[#AFAFAF] dark:text-gray-500 font-bold mb-6 text-sm uppercase tracking-widest text-center">Top Performers</Text>
-                        {others.map((item, index) => (
-                            <Animated.View key={item.id} entering={SlideInLeft.delay(index * 100).springify()}>
+                        {others.map((item, index) => {
+                            const actualRank = index + 4;
+                            const isCurrentUser = item.id === user?.id;
+                            const isLastItem = index === others.length - 1 && others.length >= 12;
+                            return (
+                                <Animated.View key={item.id} entering={SlideInLeft.delay(index * 100).springify()} style={{ opacity: isLastItem ? 0.4 : 1 }}>
+                                    <TactileButton
+                                        backgroundColor={isCurrentUser ? "#FEF3C7" : "#FFFFFF"}
+                                        shadowColor={isCurrentUser ? "#FDE68A" : "#E5E5E5"}
+                                        depth={4}
+                                        style={{ width: '100%', marginBottom: 12 }}
+                                        contentClassName="p-4 flex-row items-center justify-between"
+                                    >
+                                        <View className="flex-row items-center">
+                                            <Text className={`${isCurrentUser ? 'text-amber-500' : 'text-[#AFAFAF]'} font-black w-6 text-lg`}>{actualRank}</Text>
+                                            <View className={`w-12 h-12 rounded-full bg-[#F5F5F5] mr-4 overflow-hidden border-2 ${isCurrentUser ? 'border-amber-400' : 'border-[#E5E5E5]'}`}>
+                                                <Image source={{ uri: item.avatarUrl || `https://i.pravatar.cc/100?u=${item.id}` }} className="w-full h-full rounded-full" />
+                                            </View>
+                                            <View>
+                                                <Text className={`${isCurrentUser ? 'text-amber-700' : 'text-[#4B4B4B]'} font-bold text-[17px] uppercase tracking-wider`}>{isCurrentUser ? 'You' : (item.name || 'Student')}</Text>
+                                                <Text className={`${isCurrentUser ? 'text-amber-500' : 'text-[#AFAFAF]'} text-xs font-bold uppercase`}>Rank #{actualRank}</Text>
+                                            </View>
+                                        </View>
+                                        <View className={`${isCurrentUser ? 'bg-amber-400 border-amber-500' : 'bg-[#FFC800] border-[#E5B400]'} px-4 py-2 rounded-xl border-b-4`}>
+                                            <Text className={`${isCurrentUser ? 'text-white' : 'text-yellow-900'} font-extrabold uppercase tracking-widest`}>{item.points} pts</Text>
+                                        </View>
+                                    </TactileButton>
+                                </Animated.View>
+                            );
+                        })}
+                    </View>
+
+                    {/* Current User Floating Rank (if outside top 15) */}
+                    {isUserOutsideTop15 && currentUserData && (
+                        <View className="px-6 pb-10">
+                            <Text className="text-center text-gray-400 font-bold mb-4 uppercase tracking-widest text-xs">Your Rank</Text>
+                            <Animated.View entering={SlideInUp.springify()}>
                                 <TactileButton
-                                    backgroundColor="#FFFFFF"
-                                    shadowColor="#E5E5E5"
+                                    backgroundColor="#FEF3C7"
+                                    shadowColor="#FDE68A"
                                     depth={4}
-                                    style={{ width: '100%', marginBottom: 12 }}
+                                    style={{ width: '100%' }}
                                     contentClassName="p-4 flex-row items-center justify-between"
                                 >
                                     <View className="flex-row items-center">
-                                        <Text className="text-[#AFAFAF] font-black w-6 text-lg">{index + 4}</Text>
-                                        <View className="w-12 h-12 rounded-full bg-[#F5F5F5] mr-4 overflow-hidden border-2 border-[#E5E5E5]">
-                                            <Image source={{ uri: item.avatarUrl || `https://i.pravatar.cc/100?u=${item.id}` }} className="w-full h-full rounded-full" />
+                                        <Text className="text-amber-500 font-black w-10 text-lg text-center">{userRank}</Text>
+                                        <View className="w-12 h-12 rounded-full bg-[#F5F5F5] mr-4 overflow-hidden border-2 border-amber-400">
+                                            <Image source={{ uri: currentUserData.avatarUrl || `https://i.pravatar.cc/100?u=${currentUserData.id}` }} className="w-full h-full rounded-full" />
                                         </View>
                                         <View>
-                                            <Text className="text-[#4B4B4B] font-bold text-[17px] uppercase tracking-wider">{item.name || 'Student'}</Text>
-                                            <Text className="text-[#AFAFAF] text-xs font-bold uppercase">Rank #{index + 4}</Text>
+                                            <Text className="text-amber-700 font-bold text-[17px] uppercase tracking-wider">You</Text>
+                                            <Text className="text-amber-500 text-xs font-bold uppercase">Rank #{userRank}</Text>
                                         </View>
                                     </View>
-                                    <View className="bg-[#FFC800] px-4 py-2 rounded-xl border-b-4 border-[#E5B400]">
-                                        <Text className="text-yellow-900 font-extrabold uppercase tracking-widest">{item.points} pts</Text>
+                                    <View className="bg-amber-400 px-4 py-2 rounded-xl border-b-4 border-amber-500">
+                                        <Text className="text-white font-extrabold uppercase tracking-widest">{currentUserData.points} pts</Text>
                                     </View>
                                 </TactileButton>
                             </Animated.View>
-                        ))}
-                    </View>
+                        </View>
+                    )}
                 </ScrollView>
             </View>
         </SafeAreaView>
     );
 }
 
-function PodiumItem({ user, rank, height, color, icon }: any) {
+function PodiumItem({ user, rank, height, color, icon, isCurrentUser }: any) {
     const isWinner = rank === 1;
     return (
-        <Animated.View entering={SlideInUp.delay(rank * 100).springify().damping(12)} className="items-center mx-2 w-28">
+        <Animated.View entering={SlideInUp.delay(rank * 100).springify().damping(22).stiffness(100).mass(0.8)} className="items-center mx-2 w-28">
             <View className="relative mb-4 z-10">
-                <View className={`w-16 h-16 rounded-full border-4 border-white overflow-hidden shadow-sm ${color}`}>
+                <View className={`w-16 h-16 rounded-full border-4 ${isCurrentUser ? 'border-amber-400' : 'border-white'} overflow-hidden shadow-sm ${color}`}>
                     <Image source={{ uri: user.avatarUrl || `https://i.pravatar.cc/100?u=${user.id}` }} className="w-full h-full" />
                 </View>
                 <View className="absolute top-[-20] self-center bg-white dark:bg-zinc-950 rounded-full p-1 border-2 border-[#E5E5E5]">
@@ -185,9 +230,9 @@ function PodiumItem({ user, rank, height, color, icon }: any) {
                 style={{ height }}
                 className={`${color} w-full rounded-t-3xl items-center pt-8 border-2 border-b-0 ${isWinner ? 'border-[#E5B400] z-0' : 'border-[#CECECE] opacity-90 -mt-8'}`}
             >
-                <Text className="text-black dark:text-white/60 font-black uppercase tracking-widest text-sm mb-1">{rank === 1 ? 'Winner' : rank === 2 ? 'Silver' : 'Bronze'}</Text>
+                <Text className="text-black dark:text-white/60 font-black uppercase tracking-widest text-sm mb-1">#{rank}</Text>
                 <Text className="text-black dark:text-white font-extrabold text-2xl">{user.points}</Text>
-                <Text className="text-black dark:text-white/50 text-[11px] font-black mt-2 uppercase tracking-wide">{user.name?.split(' ')[0] || 'User'}</Text>
+                <Text className={`${isCurrentUser ? 'text-amber-500 font-black' : 'text-black dark:text-white/50 font-bold'} text-[11px] mt-2 uppercase tracking-wide`}>{isCurrentUser ? 'You' : (user.name?.split(' ')[0] || 'User')}</Text>
             </View>
         </Animated.View>
     );

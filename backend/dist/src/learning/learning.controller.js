@@ -36,6 +36,9 @@ let LearningController = class LearningController {
         return this.aiContentService.queueFullSyllabusGeneration(dto.subjectId, dto.numTopics, req.user.role);
     }
     async generateAiMock(dto, req) {
+        if (req.user.role === client_1.Role.STUDENT && req.user.tier === 'FREE') {
+            throw new common_1.BadRequestException('Custom AI Mocks are only available for paying users.');
+        }
         return this.aiContentService.generateMockExam(dto.subjectId, dto.title, dto.numQuestions, dto.durationMinutes, req.user.role);
     }
     async regenerateLesson(id, req) {
@@ -116,7 +119,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "generateFullSubject", null);
 __decorate([
-    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR),
+    (0, roles_decorator_1.Roles)(client_1.Role.ADMIN, client_1.Role.TUTOR, client_1.Role.STUDENT),
     (0, common_1.Post)('ai/generate-mock'),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),

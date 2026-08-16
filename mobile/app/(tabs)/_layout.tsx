@@ -6,19 +6,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { getTierColors } from '../../utils/theme';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const ICON_SIZE = 20;
 
 const TAB_CONFIG = [
-  { name: 'index', label: 'Home', Icon: Home, color: '#F59E0B' },
-  { name: 'courses', label: 'Discover', Icon: Search, color: '#1CB0F6' },
-  { name: 'statistics', label: 'Wallet', Icon: Wallet, color: '#FFC800' },
-  { name: 'store', label: 'Store', Icon: ShoppingBag, color: '#CE82FF' },
-  { name: 'profile', label: 'More', Icon: MoreHorizontal, color: '#FF4B4B' },
+  { name: 'index', labelKey: 'tabs.home', fallback: 'Home', Icon: Home, color: '#F59E0B' },
+  { name: 'courses', labelKey: 'tabs.discover', fallback: 'Discover', Icon: Search, color: '#1CB0F6' },
+  { name: 'statistics', labelKey: 'tabs.wallet', fallback: 'Wallet', Icon: Wallet, color: '#FFC800' },
+  { name: 'store', labelKey: 'tabs.store', fallback: 'Store', Icon: ShoppingBag, color: '#CE82FF' },
+  { name: 'profile', labelKey: 'tabs.more', fallback: 'More', Icon: MoreHorizontal, color: '#FF4B4B' },
 ];
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { t } = useTranslation();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
@@ -85,7 +87,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                   ]}
                   numberOfLines={1}
                 >
-                  {config.label}
+                  {t(config.labelKey, { defaultValue: config.fallback }) as string}
                 </Text>
               )}
             </SoundButton>

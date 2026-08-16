@@ -32,6 +32,8 @@ interface AuthState {
     setSoundEnabled: (enabled: boolean) => Promise<void>;
     isLangModalOpen: boolean;
     setLangModalOpen: (open: boolean) => void;
+    currentLanguage: string;
+    setLanguage: (lang: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -39,8 +41,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     token: null,
     isLoading: true,
     hapticsEnabled: true,
-    soundEnabled: true,
+    soundEnabled: false,
     isLangModalOpen: false,
+    currentLanguage: 'en',
 
     setAuth: async (user, token) => {
         await SecureStore.setItemAsync('userToken', token);
@@ -72,6 +75,13 @@ export const useAuthStore = create<AuthState>((set) => ({
             // Restore preference flags
             const hapticsPref = await SecureStore.getItemAsync('hapticsEnabled');
             const soundPref = await SecureStore.getItemAsync('soundEnabled');
+            const langPref = await SecureStore.getItemAsync('language');
+
+            if (langPref) {
+                const i18n = require('../lib/i18n').default;
+                i18n.changeLanguage(langPref);
+                set({ currentLanguage: langPref });
+            }
 
             if (token && userData) {
                 // Validate the token is still valid against the API
@@ -85,7 +95,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                         user: res.data ?? JSON.parse(userData),
                         isLoading: false,
                         hapticsEnabled: hapticsPref === null ? true : hapticsPref === 'true',
-                        soundEnabled: soundPref === null ? true : soundPref === 'true',
+                        soundEnabled: soundPref === null ? false : soundPref === 'true',
                     });
                 } catch (apiError: any) {
                     // Token is invalid/expired — clear it
@@ -100,7 +110,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                             user: JSON.parse(userData),
                             isLoading: false,
                             hapticsEnabled: hapticsPref === null ? true : hapticsPref === 'true',
-                            soundEnabled: soundPref === null ? true : soundPref === 'true',
+                            soundEnabled: soundPref === null ? false : soundPref === 'true',
                         });
                     }
                 }
@@ -126,4 +136,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (e) { }
     },
     setLangModalOpen: (open: boolean) => set({ isLangModalOpen: open }),
+
+    setLanguage: async (lang: string) => {
+        const i18n = require('../lib/i18n').default;
+        i18n.changeLanguage(lang);
+        set({ currentLanguage: lang });
+        try {
+            await SecureStore.setItemAsync('language', lang);
+        } catch (e) { }
+    },
 }));

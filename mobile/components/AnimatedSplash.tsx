@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useColorScheme } from 'react-native';
 import Animated, { 
     useSharedValue, 
     useAnimatedStyle, 
@@ -19,6 +19,8 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     const opacity = useSharedValue(1);
     const textOpacity = useSharedValue(0);
     const lottieRef = useRef<LottieView>(null);
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
 
     const finishSplash = () => {
         opacity.value = withTiming(0, { duration: 600 }, (finished) => {
@@ -49,7 +51,7 @@ export default function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     }));
 
     return (
-        <Animated.View style={[styles.container, containerStyle]}>
+        <Animated.View style={[styles.container, { backgroundColor: isDark ? '#0B0D12' : '#FFFFFF' }, containerStyle]}>
             <View style={styles.content}>
                 <LottieView
                     ref={lottieRef}

@@ -5,7 +5,8 @@
     "streak": "Série",
     "history": "Historique",
     "upgrade": "Mettre à jour",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "select_language": "Choisir la langue"
   },
   "home": {
     "gold_status": "Statut Premium",

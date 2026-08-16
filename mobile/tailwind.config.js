@@ -26,6 +26,16 @@ module.exports = {
           gold: '#FFD700',
         }
       },
+      fontSize: {
+        xs: ['10px', '14px'],
+        sm: ['12px', '18px'],
+        base: ['14px', '22px'],
+        lg: ['16px', '26px'],
+        xl: ['18px', '26px'],
+        '2xl': ['22px', '30px'],
+        '3xl': ['28px', '34px'],
+        '4xl': ['34px', '38px'],
+      },
     },
   },
   plugins: [],

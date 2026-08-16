@@ -154,6 +154,8 @@ Respond ONLY with valid JSON:
             const prompt = `Create a professional standardized mock exam for the subject "${subject.name}".
 Generate exactly ${batchSize} diverse, high-quality multiple choice questions.
 
+GUARDRAILS: If the subject "${subject.name}" is not academic, educational, or professional in nature (e.g., hate speech, violence, meaningless nonsense, purely non-academic pop culture), you MUST return an empty array: { "questions": [] }. Do not generate educational-looking questions for inappropriate topics.
+
 IMPORTANT MATH FORMATTING: All mathematical expressions MUST use LaTeX wrapped in dollar-sign delimiters.
 Use $...$ for inline math and $$...$$ for display equations.
 Examples: $\\frac{a}{b}$, $\\sqrt{x}$, $\\sec^2(x)$, $$E = mc^2$$
@@ -180,6 +182,10 @@ Respond ONLY with valid JSON:
                 // Continue to save what we have if a batch fails, or you could throw.
             }
             questionsRemaining -= batchSize;
+        }
+
+        if (allQuestions.length === 0) {
+            throw new Error('AI refused to generate mock exam. Please provide a valid educational subject.');
         }
 
         return this.prisma.mockExam.create({

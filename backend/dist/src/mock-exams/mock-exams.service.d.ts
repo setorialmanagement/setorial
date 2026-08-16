@@ -17,6 +17,7 @@ export declare class MockExamsService {
             questions: number;
         };
         isActive: boolean;
+        title: string;
         questions: {
             id: string;
             createdAt: Date;
@@ -29,7 +30,6 @@ export declare class MockExamsService {
             explanation: string | null;
         }[];
         price: import("@prisma/client-runtime-utils").Decimal;
-        title: string;
         durationMinutes: number;
     }[] | {
         price: number;
@@ -40,6 +40,7 @@ export declare class MockExamsService {
             questions: number;
         };
         isActive: boolean;
+        title: string;
         questions: {
             id: string;
             createdAt: Date;
@@ -51,7 +52,6 @@ export declare class MockExamsService {
             correctOption: number;
             explanation: string | null;
         }[];
-        title: string;
         durationMinutes: number;
     }[]>;
     getMockDetails(mockId: string): Promise<({
@@ -67,8 +67,8 @@ export declare class MockExamsService {
         updatedAt: Date;
         description: string | null;
         isActive: boolean;
-        price: import("@prisma/client-runtime-utils").Decimal;
         title: string;
+        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
     }) | null>;
     startMock(userId: string, mockId: string): Promise<{
