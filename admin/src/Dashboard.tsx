@@ -50,19 +50,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: { icon: any;
     </button>
 );
 
-                                    {analyticsModalUser.videoPlayBreakdown && analyticsModalUser.videoPlayBreakdown.length > 0 && (
-                                        <div className="p-8">
-                                            <h4 className="text-sm font-semibold text-zinc-700 mb-3">Top Lessons by Plays</h4>
-                                            <div className="space-y-2">
-                                                {analyticsModalUser.videoPlayBreakdown.map((b: any) => (
-                                                    <div key={b.lessonId} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
-                                                        <div className="text-sm text-zinc-700 font-medium">{b.lessonName}</div>
-                                                        <div className="text-sm font-bold text-zinc-900">{b.count}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+
 const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) => (
     <div className="card">
         <div className="flex items-center space-x-4 mb-2 -mt-1">
@@ -345,11 +333,17 @@ export default function AdminDashboard() {
     };
 
     const handleShowAnalytics = async (id: string) => {
+        // Open modal immediately so user sees feedback
+        setAnalyticsModalUser({});
         setAnalyticsLoading(true);
         try {
+            console.log('Fetching analytics for', id);
             const res = await adminApi.getUserAnalytics(id);
+            console.log('Analytics response', res);
             setAnalyticsModalUser(res.data);
         } catch (err: any) {
+            console.error('Failed to load analytics', err);
+            setAnalyticsModalUser(null);
             alert(err.response?.data?.message || 'Failed to load analytics');
         } finally {
             setAnalyticsLoading(false);
