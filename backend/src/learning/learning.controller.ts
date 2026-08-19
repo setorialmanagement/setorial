@@ -145,4 +145,9 @@ export class LearningController {
     async approveLesson(@Param('id') id: string) {
         return this.learningService.approveLesson(id);
     }
+
+    @Post('lessons/:id/play')
+    async recordPlay(@Param('id') id: string, @Request() req: any) {
+        return this.learningService.recordVideoPlay(req.user.userId, id);
+    }
 }

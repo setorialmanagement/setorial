@@ -62,6 +62,7 @@ export const learningApi = {
     getSubjects: () => api.get('/learning/subjects'),
     getSubject: (id: string) => api.get(`/learning/subjects/${id}`),
     getLesson: (id: string) => api.get(`/learning/lessons/${id}`),
+    recordVideoPlay: (lessonId: string) => api.post(`/learning/lessons/${lessonId}/play`),
     submitLesson: (data: any) => api.post('/learning/lessons/submit', data),
     search: (q: string) => api.get(`/learning/search?q=${q}`),
     regenerateLesson: (id: string) => api.post(`/learning/lessons/${id}/regenerate`),

@@ -50,6 +50,19 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: { icon: any;
     </button>
 );
 
+                                    {analyticsModalUser.videoPlayBreakdown && analyticsModalUser.videoPlayBreakdown.length > 0 && (
+                                        <div className="p-8">
+                                            <h4 className="text-sm font-semibold text-zinc-700 mb-3">Top Lessons by Plays</h4>
+                                            <div className="space-y-2">
+                                                {analyticsModalUser.videoPlayBreakdown.map((b: any) => (
+                                                    <div key={b.lessonId} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
+                                                        <div className="text-sm text-zinc-700 font-medium">{b.lessonName}</div>
+                                                        <div className="text-sm font-bold text-zinc-900">{b.count}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 const StatCard = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) => (
     <div className="card">
         <div className="flex items-center space-x-4 mb-2 -mt-1">
@@ -111,6 +124,8 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState<any>(null);
     const [kycRequests, setKycRequests] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
+    const [analyticsModalUser, setAnalyticsModalUser] = useState<any>(null);
+    const [analyticsLoading, setAnalyticsLoading] = useState(false);
     const [payoutBatches, setPayoutBatches] = useState<any[]>([]);
     const [pricingList, setPricingList] = useState<any[]>([]);
     const [regionalStats, setRegionalStats] = useState<any[]>([]);
@@ -179,6 +194,8 @@ export default function AdminDashboard() {
     const [targetUserId, setTargetUserId] = useState('');
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
+    const [useSpecificEmails, setUseSpecificEmails] = useState(false);
+    const [specificEmails, setSpecificEmails] = useState('');
 
     // Pricing Modal
     const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
@@ -325,6 +342,18 @@ export default function AdminDashboard() {
             await adminApi.freezeUser(id, !currentStatus);
             fetchData();
         } catch (err) { alert('Failed to update freeze status'); }
+    };
+
+    const handleShowAnalytics = async (id: string) => {
+        setAnalyticsLoading(true);
+        try {
+            const res = await adminApi.getUserAnalytics(id);
+            setAnalyticsModalUser(res.data);
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to load analytics');
+        } finally {
+            setAnalyticsLoading(false);
+        }
     };
 
     const handleFlagUser = async (id: string, currentStatus: boolean) => {
@@ -516,6 +545,20 @@ export default function AdminDashboard() {
         }
     };
 
+    // Theme toggle
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('admin_theme') === 'dark' ? 'dark' : 'light'));
+
+    useEffect(() => {
+        const root = document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+            localStorage.setItem('admin_theme', 'dark');
+        } else {
+            root.classList.remove('dark');
+            localStorage.setItem('admin_theme', 'light');
+        }
+    }, [theme]);
+
     const handleEditTopic = (topic: any) => {
         setEditingTopic(topic);
         setTopicForm({
@@ -633,15 +676,24 @@ export default function AdminDashboard() {
             alert('Please enter both subject and body for the email broadcast.');
             return;
         }
+        const targetDesc = useSpecificEmails ? 'the specified email list' : 'all verified students';
+        if (!confirm(`Are you sure you want to send this email to ${targetDesc}?`)) return;
 
-        if (!confirm(`Are you sure you want to send this email to all verified students?`)) return;
+        const payload: any = { subject: emailSubject, body: emailBody };
+        if (useSpecificEmails) {
+            const emails = specificEmails.split(',').map(s => s.trim()).filter(Boolean);
+            if (emails.length === 0) { alert('Enter at least one email address.'); return; }
+            payload.emails = emails;
+        }
 
         setLoading(true);
         try {
-            await adminApi.sendEmailBroadcast({ subject: emailSubject, body: emailBody });
+            await adminApi.sendEmailBroadcast(payload);
             alert('Email broadcast sent successfully!');
             setEmailSubject('');
             setEmailBody('');
+            setSpecificEmails('');
+            setUseSpecificEmails(false);
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to send email broadcast');
         } finally {
@@ -1207,6 +1259,13 @@ export default function AdminDashboard() {
                                                         >
                                                             <ShieldCheck size={16} />
                                                         </button>
+                                                            <button
+                                                                onClick={() => handleShowAnalytics(u.id)}
+                                                                className="p-1.5 rounded-lg border bg-white border-zinc-200 text-zinc-400 hover:text-zinc-700"
+                                                                title="View Analytics"
+                                                            >
+                                                                <TrendingUp size={16} />
+                                                            </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1616,6 +1675,24 @@ export default function AdminDashboard() {
                                             onChange={(e) => setEmailBody(e.target.value)}
                                         ></textarea>
                                     </div>
+                                    <div className="flex items-start space-x-3">
+                                        <label className="inline-flex items-center mt-1">
+                                            <input type="checkbox" className="mr-2" checked={useSpecificEmails} onChange={e => setUseSpecificEmails(e.target.checked)} />
+                                            <span className="text-sm text-zinc-500">Send to specific emails</span>
+                                        </label>
+                                    </div>
+
+                                    {useSpecificEmails && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider ml-1">Recipient Emails (comma separated)</label>
+                                            <textarea
+                                                className="input-field min-h-[120px] py-3"
+                                                placeholder="user1@example.com, user2@example.com"
+                                                value={specificEmails}
+                                                onChange={(e) => setSpecificEmails(e.target.value)}
+                                            />
+                                        </div>
+                                    )}
                                     <button
                                         onClick={handleSendEmailBroadcast}
                                         className="w-full h-12 bg-zinc-900 text-white font-bold rounded-xl hover:bg-zinc-800 transition-all flex items-center justify-center space-x-2"
@@ -1737,6 +1814,57 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                         )}
+                        {/* Analytics Modal */}
+                        {analyticsModalUser && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-zinc-950/20 backdrop-blur-sm">
+                                <div className="bg-white rounded-2xl shadow-xl ring-1 ring-zinc-950/5 w-full max-w-2xl overflow-hidden">
+                                    <div className="px-8 py-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+                                        <h3 className="text-lg font-semibold text-zinc-900">Analytics • {analyticsModalUser.user.name || analyticsModalUser.user.email}</h3>
+                                        <button onClick={() => setAnalyticsModalUser(null)} className="text-zinc-400 hover:text-zinc-600">Close</button>
+                                    </div>
+                                    <div className="p-8 space-y-4">
+                                        {analyticsLoading ? (
+                                            <div>Loading...</div>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Created</div>
+                                                    <div className="font-bold text-zinc-900">{new Date(analyticsModalUser.user.createdAt).toLocaleString()}</div>
+                                                </div>
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Last Active</div>
+                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.user.lastActiveAt ? new Date(analyticsModalUser.user.lastActiveAt).toLocaleString() : '—'}</div>
+                                                </div>
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Lessons Completed</div>
+                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.lessonsCompleted}</div>
+                                                </div>
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Mock Attempts</div>
+                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.mockAttempts} ({analyticsModalUser.mockCompleted} completed)</div>
+                                                </div>
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Total Points</div>
+                                                    <div className="font-bold text-zinc-900">{Number(analyticsModalUser.totalPoints).toLocaleString()}</div>
+                                                </div>
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Total Earned</div>
+                                                    <div className="font-bold text-zinc-900">₦{Number(analyticsModalUser.totalEarned).toLocaleString()}</div>
+                                                </div>
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Total Payouts</div>
+                                                    <div className="font-bold text-zinc-900">₦{Number(analyticsModalUser.totalPayouts).toLocaleString()}</div>
+                                                </div>
+                                                <div className="card p-4">
+                                                    <div className="text-sm text-zinc-500">Support Tickets</div>
+                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.supportTickets}</div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
 
@@ -1794,10 +1922,19 @@ export default function AdminDashboard() {
                     )}
                 </nav>
 
-                <button onClick={() => { localStorage.removeItem('admin_token'); window.location.reload(); }} className="mt-auto w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all">
-                    <LogOut size={18} />
-                    <span className="text-sm">Log out</span>
-                </button>
+                <div className="mt-auto space-y-3">
+                    <div className="px-3">
+                        <label className="flex items-center space-x-3 px-3 py-2 rounded-lg font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all cursor-pointer">
+                            <input type="checkbox" checked={theme === 'dark'} onChange={e => setTheme(e.target.checked ? 'dark' : 'light')} />
+                            <span className="text-sm">Dark Mode</span>
+                        </label>
+                    </div>
+
+                    <button onClick={() => { localStorage.removeItem('admin_token'); window.location.reload(); }} className="w-full flex items-center space-x-3 px-3 py-2 rounded-lg font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all">
+                        <LogOut size={18} />
+                        <span className="text-sm">Log out</span>
+                    </button>
+                </div>
             </aside>
 
             {/* Main Content */}

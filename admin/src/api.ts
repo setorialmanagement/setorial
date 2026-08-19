@@ -39,6 +39,7 @@ export const adminApi = {
     approveKyc: (id: string) => api.post(`/admin/kyc/${id}/approve`),
     rejectKyc: (id: string, reason: string) => api.post(`/admin/kyc/${id}/reject`, { reason }),
     getUsers: (params: any) => api.get('/admin/users', { params }),
+    getUserAnalytics: (id: string) => api.get(`/admin/users/${id}/analytics`),
     freezeUser: (id: string, isFrozen: boolean) => api.post(`/admin/users/${id}/freeze`, { isFrozen }),
     flagUser: (id: string, isFlagged: boolean) => api.post(`/admin/users/${id}/flag`, { isFlagged }),
     createTutor: (data: any) => api.post('/admin/users/tutor', data),
@@ -99,7 +100,7 @@ export const adminApi = {
     // Notifications
     sendNotification: (data: { userId?: string, recentOnly?: boolean, title: string, body: string, data?: any }) => 
         api.post('/admin/notifications/send', data),
-    sendEmailBroadcast: (data: { subject: string, body: string }) => 
+    sendEmailBroadcast: (data: { subject: string, body: string, emails?: string[] }) => 
         api.post('/admin/notifications/email', data),
 
     // Approvals

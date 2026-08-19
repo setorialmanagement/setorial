@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions, useColorScheme, Linking, TextInput, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Dimensions, useColorScheme, Linking, TextInput, StyleSheet, Image } from "react-native";
+import { WebView } from 'react-native-webview';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, CheckCircle2, XCircle, Trophy, ArrowRight, Home, BookOpen, Heart, RefreshCcw, Flame, Timer } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -235,9 +236,37 @@ export default function LevelScreen() {
 
     const isYouTube = lesson?.videoUrl && /youtube\.com|youtu\.be/.test(lesson.videoUrl);
 
+    const extractYouTubeId = (url: string | undefined) => {
+        if (!url) return null;
+        // common formats: https://www.youtube.com/watch?v=VIDEOID or https://youtu.be/VIDEOID
+        const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+        if (shortMatch && shortMatch[1]) return shortMatch[1];
+        const longMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+        if (longMatch && longMatch[1]) return longMatch[1];
+        // embed url
+        const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+        if (embedMatch && embedMatch[1]) return embedMatch[1];
+        return null;
+    };
+
+    const youTubeId = extractYouTubeId(lesson?.videoUrl);
+
     const player = useVideoPlayer((!isYouTube ? (lesson?.videoUrl || '') : ''), (player) => {
         player.loop = false;
     });
+
+    const [videoStarted, setVideoStarted] = useState(false);
+
+    const handleRecordPlay = async () => {
+        if (videoStarted) return;
+        setVideoStarted(true);
+        try {
+            await learningApi.recordVideoPlay(id as string);
+        } catch (e) {
+            // ignore failures silently
+            console.log('record play failed', e);
+        }
+    };
 
     if (loading) {
         return (
@@ -351,18 +380,47 @@ export default function LevelScreen() {
                     {lesson.videoUrl && (
                         <View className="mb-6 rounded-2xl overflow-hidden border-2 border-gray-100 dark:border-gray-800 bg-black">
                             {isYouTube ? (
-                                <View style={{ width: '100%', height: 210, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-                                    <TouchableOpacity onPress={() => Linking.openURL(lesson.videoUrl)} className="px-4 py-3 rounded-md bg-red-600">
-                                        <Text className="text-white font-bold">Open in YouTube</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                youTubeId ? (
+                                    videoStarted ? (
+                                        <WebView
+                                            style={{ width: '100%', height: 210, backgroundColor: '#000' }}
+                                            originWhitelist={["*"]}
+                                            source={{ html: `<!doctype html><html><head><meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0" /></head><body style="margin:0;background-color:#000"><iframe width="100%" height="100%" src="https://www.youtube.com/embed/${youTubeId}?rel=0&modestbranding=1&playsinline=1&autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></body></html>` }}
+                                            javaScriptEnabled={true}
+                                            domStorageEnabled={true}
+                                            allowsInlineMediaPlayback={true}
+                                            mediaPlaybackRequiresUserAction={false}
+                                        />
+                                    ) : (
+                                        <TouchableOpacity activeOpacity={0.9} onPress={handleRecordPlay} style={{ width: '100%', height: 210, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+                                            <Image source={{ uri: `https://img.youtube.com/vi/${youTubeId}/hqdefault.jpg` }} style={{ width: '100%', height: 210, position: 'absolute', left: 0, top: 0 }} />
+                                            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+                                                <Text style={{ color: '#fff', fontSize: 32, fontWeight: '900' }}>▶</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    )
+                                ) : (
+                                    <View style={{ width: '100%', height: 210, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+                                        <TouchableOpacity onPress={() => Linking.openURL(lesson.videoUrl)} className="px-4 py-3 rounded-md bg-red-600">
+                                            <Text className="text-white font-bold">Open in YouTube</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )
                             ) : (
-                                <VideoView
-                                    player={player}
-                                    style={{ width: '100%', height: 210 }}
-                                    contentFit="contain"
-                                    allowsFullscreen
-                                />
+                                videoStarted ? (
+                                    <VideoView
+                                        player={player}
+                                        style={{ width: '100%', height: 210 }}
+                                        contentFit="contain"
+                                        allowsFullscreen
+                                    />
+                                ) : (
+                                    <TouchableOpacity activeOpacity={0.9} onPress={handleRecordPlay} style={{ width: '100%', height: 210, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+                                        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Text style={{ color: '#fff', fontSize: 32, fontWeight: '900' }}>▶</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                )
                             )}
                         </View>
                     )}

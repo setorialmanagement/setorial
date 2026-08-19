@@ -19,6 +19,7 @@ type ChatMessage = {
     id: string;
     role: 'user' | 'assistant' | 'tutor';
     text: string;
+    done?: boolean;
 };
 
 export default function TutorScreen() {
@@ -51,17 +52,18 @@ export default function TutorScreen() {
                 setChat(messages.data.map((m: any) => ({
                     id: m.id,
                     role: m.role === 'user' ? 'user' : 'assistant',
-                    text: m.content
+                    text: m.content,
+                    done: true
                 })));
             } else {
                 setChat([
-                    { id: 'greeting', role: 'assistant', text: `Hello ${user?.name || 'Scholar'}! I'm your Personal Tutor. How can I help you today?` }
+                    { id: 'greeting', role: 'assistant', text: `Hello ${user?.name || 'Scholar'}! I'm your Personal Tutor. How can I help you today?`, done: true }
                 ]);
             }
         } catch (error) {
             console.error('Failed to load sessions:', error);
             setChat([
-                { id: 'greeting', role: 'assistant', text: `Hello ${user?.name || 'Scholar'}! I'm your Personal Tutor. How can I help you today?` }
+                { id: 'greeting', role: 'assistant', text: `Hello ${user?.name || 'Scholar'}! I'm your Personal Tutor. How can I help you today?`, done: true }
             ]);
         } finally {
             setInitialFetch(false);
@@ -78,8 +80,8 @@ export default function TutorScreen() {
         
         setChat(prev => [
             ...prev, 
-            { id: tempId, role: 'user', text: userMsg },
-            { id: assistantTempId, role: 'assistant', text: '' }
+            { id: tempId, role: 'user', text: userMsg, done: true },
+            { id: assistantTempId, role: 'assistant', text: '', done: false }
         ]);
         setLoading(true);
 
@@ -110,6 +112,14 @@ export default function TutorScreen() {
             if (event.data) {
                 if (event.data === '[DONE]') {
                     setLoading(false);
+                    setChat(prev => {
+                        const newChat = [...prev];
+                        if (newChat.length > 0) {
+                            const lastIndex = newChat.length - 1;
+                            newChat[lastIndex] = { ...newChat[lastIndex], done: true };
+                        }
+                        return newChat;
+                    });
                     eventSource.close();
                     return;
                 }
@@ -120,7 +130,7 @@ export default function TutorScreen() {
                         setChat(prev => {
                             const newChat = [...prev];
                             const lastIndex = newChat.length - 1;
-                            newChat[lastIndex].text += newText;
+                            newChat[lastIndex] = { ...newChat[lastIndex], text: newChat[lastIndex].text + newText };
                             return newChat;
                         });
                         scrollViewRef.current?.scrollToEnd({ animated: false });
@@ -134,6 +144,18 @@ export default function TutorScreen() {
         eventSource.addEventListener('error', (event: any) => {
             console.error('SSE Error:', event);
             setLoading(false);
+            setChat(prev => {
+                const newChat = [...prev];
+                if (newChat.length > 0) {
+                    const lastIndex = newChat.length - 1;
+                    if (!newChat[lastIndex].text) {
+                        newChat[lastIndex] = { ...newChat[lastIndex], text: "Sorry, I couldn't connect to the server. Please try again.", done: true };
+                    } else {
+                        newChat[lastIndex] = { ...newChat[lastIndex], done: true };
+                    }
+                }
+                return newChat;
+            });
             eventSource.close();
         });
     };
@@ -142,6 +164,14 @@ export default function TutorScreen() {
         if (esRef.current) {
             esRef.current.close();
             setLoading(false);
+            setChat(prev => {
+                const newChat = [...prev];
+                if (newChat.length > 0) {
+                    const lastIndex = newChat.length - 1;
+                    newChat[lastIndex] = { ...newChat[lastIndex], done: true };
+                }
+                return newChat;
+            });
         }
     };
 
@@ -229,7 +259,7 @@ export default function TutorScreen() {
                                     className={`max-w-[85%] p-4 rounded-2xl border-2 border-b-4 ${
                                         msg.role === 'user' 
                                         ? 'bg-[#1CB0F6] border-[#1899D6] rounded-tr-none' 
-                                        : 'bg-white dark:bg-[#1E222B] border-gray-100 dark:border-[#272B36] rounded-tl-none'
+                                        : 'w-full bg-white dark:bg-[#1E222B] border-gray-100 dark:border-[#272B36] rounded-tl-none'
                                     }`}
                                 >
                                     {msg.role === 'user' ? (
@@ -238,11 +268,24 @@ export default function TutorScreen() {
                                         </Text>
                                     ) : (
                                         msg.text ? (
-                                            <MathText
-                                                content={msg.text}
-                                                color={isDark ? '#FFFFFF' : '#333333'}
-                                                fontSize={16}
-                                            />
+                                            msg.done ? (
+                                                <MathText
+                                                    content={msg.text}
+                                                    color={isDark ? '#FFFFFF' : '#333333'}
+                                                    fontSize={16}
+                                                />
+                                            ) : (
+                                                <Markdown
+                                                    style={{
+                                                        body: { color: isDark ? '#FFFFFF' : '#333333', fontSize: 16 },
+                                                        code_inline: { backgroundColor: '#f0f0f0', color: '#e83e8c', borderRadius: 4, padding: 2 },
+                                                        code_block: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 },
+                                                        fence: { backgroundColor: '#1E1E1E', color: '#D4D4D4', padding: 10, borderRadius: 8 }
+                                                    }}
+                                                >
+                                                    {msg.text}
+                                                </Markdown>
+                                            )
                                         ) : (
                                             <ActivityIndicator size="small" color="#EAB308" />
                                         )

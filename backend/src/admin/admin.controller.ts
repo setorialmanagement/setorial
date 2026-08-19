@@ -438,12 +438,66 @@ export class AdminController {
     }
 
     @Post('notifications/email')
-    async sendEmailBroadcast(@Body() data: { subject: string, body: string }) {
-        const users = await this.prisma.user.findMany({
-            where: { role: 'STUDENT', isEmailVerified: true },
-            select: { email: true },
-        });
-        const emails = users.map(u => u.email);
+    async sendEmailBroadcast(@Body() data: { subject: string, body: string, emails?: string[] }) {
+        let emails: string[] = [];
+
+        if (data.emails && Array.isArray(data.emails) && data.emails.length > 0) {
+            emails = data.emails;
+        } else {
+            const users = await this.prisma.user.findMany({
+                where: { role: 'STUDENT', isEmailVerified: true },
+                select: { email: true },
+            });
+            emails = users.map(u => u.email);
+        }
+
         return this.notificationsService.sendBroadcastEmail(emails, data.subject, data.body);
+    }
+
+    @Get('users/:id/analytics')
+    async getUserAnalytics(@Param('id') id: string) {
+        const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, createdAt: true, lastActiveAt: true } });
+        if (!user) throw new BadRequestException('User not found');
+
+        const [lessonsCompleted, mockAttempts, mockCompleted, walletEarnedAgg, walletPayoutAgg, pointsAgg, supportCount, tutorSessionsCount, videoPlaysCount] = await Promise.all([
+            this.prisma.userProgress.count({ where: { userId: id } }),
+            this.prisma.mockAttempt.count({ where: { userId: id } }),
+            this.prisma.mockAttempt.count({ where: { userId: id, status: 'COMPLETED' } }),
+            this.prisma.walletLedger.aggregate({ where: { userId: id, type: 'EARN' }, _sum: { amount: true } }),
+            this.prisma.walletLedger.aggregate({ where: { userId: id, type: 'PAYOUT' }, _sum: { amount: true } }),
+            this.prisma.pointsLedger.aggregate({ where: { userId: id }, _sum: { points: true } }),
+            this.prisma.supportMessage.count({ where: { userId: id } }),
+            this.prisma.tutorSession.count({ where: { userId: id } }),
+            this.prisma.videoPlay.count({ where: { userId: id } }),
+        ]);
+
+        // Per-lesson breakdown for video plays
+        const breakdownRaw = await this.prisma.videoPlay.groupBy({
+            by: ['lessonId'],
+            where: { userId: id },
+            _count: { _all: true },
+            orderBy: { _count: { _all: 'desc' } }
+        });
+
+        const lessonIds = breakdownRaw.map(b => b.lessonId);
+        const lessons = lessonIds.length > 0 ? await this.prisma.lesson.findMany({ where: { id: { in: lessonIds } }, select: { id: true, name: true } }) : [];
+
+        const lessonMap = lessons.reduce((acc, l) => { acc[l.id] = l; return acc; }, {} as any);
+
+        const videoPlayBreakdown = breakdownRaw.map(b => ({ lessonId: b.lessonId, lessonName: lessonMap[b.lessonId]?.name ?? 'Unknown', count: b._count._all }));
+
+        return {
+            user,
+            lessonsCompleted,
+            mockAttempts,
+            mockCompleted,
+            totalEarned: Number(walletEarnedAgg._sum.amount ?? 0),
+            totalPayouts: Number(walletPayoutAgg._sum.amount ?? 0),
+            totalPoints: Number(pointsAgg._sum.points ?? 0),
+            supportTickets: supportCount,
+            tutorSessions: tutorSessionsCount,
+            videoPlays: videoPlaysCount,
+            videoPlayBreakdown,
+        };
     }
 }
