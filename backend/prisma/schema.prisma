@@ -48,13 +48,13 @@ model User {
   emailOtpExpiresAt DateTime?
   avatarUrl         String?
   role              Role          @default(STUDENT)
-  tier           Tier          @default(FREE)
-  isVerified     Boolean       @default(false)
-  kycStatus      KycStatus     @default(UNVERIFIED)
-  payoutMethod   PayoutMethod?
-  payoutAccount  Json? // { "bankName": "...", "accountNumber": "..." }
-  billingCountry String? // ISO 3166-1 code, locked after KYC
-  countryLocked  Boolean       @default(false)
+  tier              Tier          @default(FREE)
+  isVerified        Boolean       @default(false)
+  kycStatus         KycStatus     @default(UNVERIFIED)
+  payoutMethod      PayoutMethod?
+  payoutAccount     Json? // { "bankName": "...", "accountNumber": "..." }
+  billingCountry    String? // ISO 3166-1 code, locked after KYC
+  countryLocked     Boolean       @default(false)
 
   // Monetization & Activity Rules
   lastActiveAt           DateTime?
@@ -71,16 +71,16 @@ model User {
   // Notifications
   expoPushToken String? // Expo push notification token
 
-  pointsLedgers  PointsLedger[]
-  subscriptions  SubscriptionRecord[]
-  walletLedgers  WalletLedger[]
-  userBadges     UserBadge[]
-  mockAttempts   MockAttempt[]
-  userPowerUps   UserPowerUp[]
-  userProgresses UserProgress[] // Tracks completed lessons/levels
-  videoPlays     VideoPlay[]
+  pointsLedgers   PointsLedger[]
+  subscriptions   SubscriptionRecord[]
+  walletLedgers   WalletLedger[]
+  userBadges      UserBadge[]
+  mockAttempts    MockAttempt[]
+  userPowerUps    UserPowerUp[]
+  userProgresses  UserProgress[] // Tracks completed lessons/levels
+  videoPlays      VideoPlay[]
   supportMessages SupportMessage[]
-  tutorSessions  TutorSession[]
+  tutorSessions   TutorSession[]
 }
 
 model Badge {
@@ -120,7 +120,7 @@ model Subject {
 model Topic {
   id          String   @id @default(uuid())
   name        String
-  description String? 
+  description String?
   order       Int      @default(1)
   subjectId   String
   subject     Subject  @relation(fields: [subjectId], references: [id])
@@ -372,23 +372,24 @@ model DiscountCode {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
+
 enum SupportStatus {
   OPEN
   RESOLVED
 }
 
 model SupportMessage {
-  id           String        @id @default(uuid())
-  userId       String
-  user         User          @relation(fields: [userId], references: [id])
-  subject      String
-  message      String
-  status       SupportStatus @default(OPEN)
-  adminReply   String?
-  repliedAt    DateTime?
-  repliedBy    String?       // Admin name/id
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id         String        @id @default(uuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  subject    String
+  message    String
+  status     SupportStatus @default(OPEN)
+  adminReply String?
+  repliedAt  DateTime?
+  repliedBy  String? // Admin name/id
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -401,8 +402,8 @@ model TutorSession {
   title     String?  @default("New Chat")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  messages  TutorMessage[]
+
+  messages TutorMessage[]
 
   @@index([userId])
 }
@@ -411,7 +412,7 @@ model TutorMessage {
   id        String       @id @default(uuid())
   sessionId String
   session   TutorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  role      String       // 'user', 'assistant' or 'system'
+  role      String // 'user', 'assistant' or 'system'
   content   String
   createdAt DateTime     @default(now())
 
@@ -424,8 +425,8 @@ model VideoPlay {
   lessonId  String
   createdAt DateTime @default(now())
 
-  user    User   @relation(fields: [userId], references: [id])
-  lesson  Lesson @relation(fields: [lessonId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
 
   @@index([userId])
   @@index([lessonId])

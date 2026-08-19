@@ -475,8 +475,8 @@ export class AdminController {
         const breakdownRaw = await this.prisma.videoPlay.groupBy({
             by: ['lessonId'],
             where: { userId: id },
-            _count: { _all: true },
-            orderBy: { _count: { _all: 'desc' } }
+            _count: { lessonId: true },
+            orderBy: { _count: { lessonId: 'desc' } }
         });
 
         const lessonIds = breakdownRaw.map(b => b.lessonId);
@@ -484,7 +484,7 @@ export class AdminController {
 
         const lessonMap = lessons.reduce((acc, l) => { acc[l.id] = l; return acc; }, {} as any);
 
-        const videoPlayBreakdown = breakdownRaw.map(b => ({ lessonId: b.lessonId, lessonName: lessonMap[b.lessonId]?.name ?? 'Unknown', count: b._count._all }));
+        const videoPlayBreakdown = breakdownRaw.map(b => ({ lessonId: b.lessonId, lessonName: lessonMap[b.lessonId]?.name ?? 'Unknown', count: (b._count && (b._count as any).lessonId) || 0 }));
 
         return {
             user,
