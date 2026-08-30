@@ -183,7 +183,9 @@ Respond ONLY with valid JSON:
                     allQuestions = allQuestions.concat(batchData.questions);
                 }
             } catch (err) {
-                this.logger.error(`Batch generation failed: ${err.message}`);
+                const msg = err instanceof Error ? err.message : String(err);
+                const stack = err instanceof Error ? err.stack : undefined;
+                this.logger.error(`Batch generation failed: ${msg}`, stack);
                 // Continue to save what we have if a batch fails, or you could throw.
             }
             questionsRemaining -= batchSize;
@@ -232,7 +234,9 @@ Respond ONLY with a JSON object:
                 const topicResult = await this.generateLevelsForTopic(subjectId, topicName, 3, userRole);
                 results.push(topicResult);
             } catch (err) {
-                this.logger.error(`Failed to generate levels for topic ${topicName}: ${err.message}`);
+                const msg = err instanceof Error ? err.message : String(err);
+                const stack = err instanceof Error ? err.stack : undefined;
+                this.logger.error(`Failed to generate levels for topic ${topicName}: ${msg}`, stack);
             }
         }
 
@@ -240,7 +244,9 @@ Respond ONLY with a JSON object:
         try {
             await this.generateMockExam(subjectId, `${subject.name} - Standardized Pro Mock`, 30, undefined, userRole);
         } catch (err) {
-            this.logger.error(`Failed to generate subject mock exam: ${err.message}`);
+            const msg = err instanceof Error ? err.message : String(err);
+            const stack = err instanceof Error ? err.stack : undefined;
+            this.logger.error(`Failed to generate subject mock exam: ${msg}`, stack);
         }
 
         return { subject, topics: results };
@@ -269,7 +275,11 @@ Respond ONLY with a JSON object:
             const data = JSON.parse(text);
             return await saveCallback(data);
         } catch (error) {
-            this.logger.error(`AI Generation failed: ${error.message}`, error.stack);
+            if (error instanceof Error) {
+                this.logger.error(`AI Generation failed: ${error.message}`, error.stack);
+            } else {
+                this.logger.error(`AI Generation failed: ${String(error)}`);
+            }
             throw new Error('Failed to generate AI content');
         }
     }
@@ -306,8 +316,10 @@ Respond ONLY with valid JSON:
                 if (batchData?.questions && Array.isArray(batchData.questions)) {
                     allQuestions = allQuestions.concat(batchData.questions);
                 }
-            } catch (err: any) {
-                this.logger.error(`Batch generation failed for ${subjectName}: ${err.message}`);
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                const stack = err instanceof Error ? err.stack : undefined;
+                this.logger.error(`Batch generation failed for ${subjectName}: ${msg}`, stack);
             }
             questionsRemaining -= batchSize;
         }
