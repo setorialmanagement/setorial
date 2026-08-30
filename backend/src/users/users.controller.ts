@@ -86,6 +86,12 @@ export class UsersController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Get('me/stats')
+    async getMyStats(@Request() req: any) {
+        return this.usersService.getUserStats(req.user.userId);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get('me/progress')
     async getProgress(@Request() req: any) {
         return this.usersService.getLearningProgress(req.user.userId);

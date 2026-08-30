@@ -56,16 +56,19 @@ const roles_guard_1 = require("../auth/roles.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const client_1 = require("@prisma/client");
 const bcrypt = __importStar(require("bcrypt"));
+const users_service_1 = require("../users/users.service");
 let AdminController = class AdminController {
     payoutsService;
     prisma;
     mockExamsService;
     notificationsService;
-    constructor(payoutsService, prisma, mockExamsService, notificationsService) {
+    usersService;
+    constructor(payoutsService, prisma, mockExamsService, notificationsService, usersService) {
         this.payoutsService = payoutsService;
         this.prisma = prisma;
         this.mockExamsService = mockExamsService;
         this.notificationsService = notificationsService;
+        this.usersService = usersService;
     }
     async getDashboardStats() {
         const earnAggregate = await this.prisma.walletLedger.aggregate({
@@ -240,6 +243,16 @@ let AdminController = class AdminController {
     async getConfigs() {
         return this.prisma.globalConfig.findMany();
     }
+    async getPublicConfig(key) {
+        const SAFE_KEYS = ['mascot_mood_override', 'public_branding'];
+        if (!SAFE_KEYS.includes(key)) {
+            return { error: 'not_allowed' };
+        }
+        const cfg = await this.prisma.globalConfig.findUnique({ where: { key } });
+        if (!cfg)
+            return { key, value: null };
+        return { key: cfg.key, value: cfg.value };
+    }
     async updateConfig(key, value, description) {
         return this.prisma.globalConfig.upsert({
             where: { key },
@@ -374,12 +387,260 @@ let AdminController = class AdminController {
         }
     }
     async sendEmailBroadcast(data) {
-        const users = await this.prisma.user.findMany({
-            where: { role: 'STUDENT', isEmailVerified: true },
-            select: { email: true },
-        });
-        const emails = users.map(u => u.email);
+        let emails = [];
+        if (data.emails && Array.isArray(data.emails) && data.emails.length > 0) {
+            emails = data.emails;
+        }
+        else {
+            const users = await this.prisma.user.findMany({
+                where: { role: 'STUDENT', isEmailVerified: true },
+                select: { email: true },
+            });
+            emails = users.map(u => u.email);
+        }
         return this.notificationsService.sendBroadcastEmail(emails, data.subject, data.body);
+    }
+    async getUserStats(id) {
+        return this.usersService.getUserStats(id);
+    }
+    async getUserAnalytics(id) {
+        const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, createdAt: true, lastActiveAt: true } });
+        if (!user)
+            throw new common_1.BadRequestException('User not found');
+        const [lessonsCompleted, mockAttempts, mockCompleted, walletEarnedAgg, walletPayoutAgg, pointsAgg, supportCount, tutorSessionsCount, videoPlaysCount] = await Promise.all([
+            this.prisma.userProgress.count({ where: { userId: id } }),
+            this.prisma.mockAttempt.count({ where: { userId: id } }),
+            this.prisma.mockAttempt.count({ where: { userId: id, status: 'COMPLETED' } }),
+            this.prisma.walletLedger.aggregate({ where: { userId: id, type: 'EARN' }, _sum: { amount: true } }),
+            this.prisma.walletLedger.aggregate({ where: { userId: id, type: 'PAYOUT' }, _sum: { amount: true } }),
+            this.prisma.pointsLedger.aggregate({ where: { userId: id }, _sum: { points: true } }),
+            this.prisma.supportMessage.count({ where: { userId: id } }),
+            this.prisma.tutorSession.count({ where: { userId: id } }),
+            this.prisma.videoPlay.count({ where: { userId: id } }),
+        ]);
+        const stats = await this.usersService.getUserStats(id);
+        const breakdownRaw = await this.prisma.videoPlay.groupBy({
+            by: ['lessonId'],
+            where: { userId: id },
+            _count: { lessonId: true },
+            orderBy: { _count: { lessonId: 'desc' } }
+        });
+        const lessonIds = breakdownRaw.map(b => b.lessonId);
+        const lessons = lessonIds.length > 0 ? await this.prisma.lesson.findMany({ where: { id: { in: lessonIds } }, select: { id: true, name: true } }) : [];
+        const lessonMap = lessons.reduce((acc, l) => { acc[l.id] = l; return acc; }, {});
+        const videoPlayBreakdown = breakdownRaw.map(b => ({ lessonId: b.lessonId, lessonName: lessonMap[b.lessonId]?.name ?? 'Unknown', count: (b._count && b._count.lessonId) || 0 }));
+        return {
+            user,
+            ...stats,
+            lessonsCompleted,
+            mockAttempts,
+            mockCompleted,
+            totalEarned: Number(walletEarnedAgg._sum.amount ?? 0),
+            totalPayouts: Number(walletPayoutAgg._sum.amount ?? 0),
+            totalPoints: Number(pointsAgg._sum.points ?? 0),
+            supportTickets: supportCount,
+            tutorSessions: tutorSessionsCount,
+            videoPlays: videoPlaysCount,
+            videoPlayBreakdown,
+        };
+    }
+    async getCohortOverview() {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+        startOfWeek.setHours(0, 0, 0, 0);
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const [students, pointRows, freezeRows, lessonCount] = await Promise.all([
+            this.prisma.user.findMany({
+                where: { role: 'STUDENT' },
+                select: {
+                    id: true,
+                    tier: true,
+                    createdAt: true,
+                    lastActiveAt: true,
+                    currentStreak: true,
+                    assessmentPassed: true,
+                    isVerified: true,
+                },
+            }),
+            this.prisma.pointsLedger.groupBy({ by: ['userId'], _sum: { points: true } }),
+            this.prisma.userPowerUp.findMany({
+                where: { powerUp: { type: 'STREAK_FREEZE' } },
+                select: { userId: true, isActive: true },
+            }),
+            this.prisma.lesson.count({ where: { isApproved: true } }),
+        ]);
+        const totalsByTier = { FREE: 0, BRONZE: 0, SILVER: 0, GOLD: 0 };
+        students.forEach(user => {
+            const tier = user.tier || 'FREE';
+            totalsByTier[tier] = (totalsByTier[tier] ?? 0) + 1;
+        });
+        const activeToday = students.filter(user => user.lastActiveAt && user.lastActiveAt >= startOfToday).length;
+        const activeThisWeek = students.filter(user => user.lastActiveAt && user.lastActiveAt >= startOfWeek).length;
+        const activeThisMonth = students.filter(user => user.lastActiveAt && user.lastActiveAt >= startOfMonth).length;
+        const dormant24h = students.filter(user => user.lastActiveAt && user.lastActiveAt < new Date(now.getTime() - 24 * 60 * 60 * 1000)).length;
+        const dormant3d = students.filter(user => user.lastActiveAt && user.lastActiveAt < new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)).length;
+        const dormant7d = students.filter(user => user.lastActiveAt && user.lastActiveAt < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)).length;
+        const freezeUsers = new Set(freezeRows.map(item => item.userId)).size;
+        const freezesRemaining = freezeRows.filter(item => item.isActive).length;
+        const eligiblePayoutUsers = await this.prisma.user.count({
+            where: {
+                role: 'STUDENT',
+                tier: { in: ['SILVER', 'GOLD'] },
+                isVerified: true,
+                assessmentPassed: true,
+            }
+        });
+        const payoutAgg = await this.prisma.walletLedger.aggregate({
+            where: { type: 'ELIGIBLE_MOVE' },
+            _sum: { amount: true },
+        });
+        const averageStreak = students.length > 0
+            ? students.reduce((sum, user) => sum + (user.currentStreak || 0), 0) / students.length
+            : 0;
+        const avgCompletionRate = students.length > 0
+            ? (await Promise.all(students.map(async (user) => {
+                const lessonsCompleted = await this.prisma.userProgress.count({ where: { userId: user.id } });
+                const completionRate = lessonCount > 0 ? (lessonsCompleted / lessonCount) * 100 : 0;
+                return completionRate;
+            }))).reduce((sum, rate) => sum + rate, 0) / students.length
+            : 0;
+        const cohortRetention = async (days) => {
+            const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+            const cohort = await this.prisma.user.findMany({
+                where: { role: 'STUDENT', createdAt: { lte: cutoff } },
+                select: { id: true, createdAt: true, lastActiveAt: true },
+            });
+            if (cohort.length === 0)
+                return 0;
+            const retained = cohort.filter(user => {
+                const expectedDate = new Date(user.createdAt);
+                expectedDate.setDate(expectedDate.getDate() + days);
+                return user.lastActiveAt && user.lastActiveAt >= expectedDate;
+            }).length;
+            return Number(((retained / cohort.length) * 100).toFixed(2));
+        };
+        const signups = await this.prisma.user.findMany({
+            where: { role: 'STUDENT' },
+            select: { createdAt: true },
+            orderBy: { createdAt: 'asc' },
+        });
+        const dailyTrend = Array.from({ length: 30 }, (_, index) => {
+            const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - index));
+            const key = date.toISOString().slice(0, 10);
+            return { date: key, count: signups.filter(user => user.createdAt && user.createdAt.toISOString().slice(0, 10) === key).length };
+        });
+        const weeklyTrend = Array.from({ length: 8 }, (_, index) => {
+            const start = new Date(now);
+            start.setDate(now.getDate() - (7 * (7 - index)));
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            const count = signups.filter(user => {
+                if (!user.createdAt)
+                    return false;
+                return user.createdAt >= start && user.createdAt <= end;
+            }).length;
+            return { period: `${start.toISOString().slice(0, 10)} to ${end.toISOString().slice(0, 10)}`, count };
+        });
+        const topPerformers = pointRows
+            .map(item => ({ userId: item.userId, points: Number(item._sum.points ?? 0) }))
+            .sort((a, b) => b.points - a.points)
+            .slice(0, 10)
+            .map(async (item) => {
+            const user = await this.prisma.user.findUnique({
+                where: { id: item.userId },
+                select: { name: true, avatarUrl: true, tier: true },
+            });
+            return {
+                userId: item.userId,
+                name: user?.name || 'Student',
+                avatarUrl: user?.avatarUrl || null,
+                tier: user?.tier || 'FREE',
+                points: item.points,
+            };
+        });
+        const atRisk = students.filter(user => {
+            const daysSinceActive = user.lastActiveAt ? Math.floor((now.getTime() - new Date(user.lastActiveAt).getTime()) / 86400000) : null;
+            return daysSinceActive !== null && daysSinceActive >= 2 && daysSinceActive <= 7 && (user.currentStreak || 0) < 5;
+        }).map(user => ({
+            userId: user.id,
+            lastActiveAt: user.lastActiveAt,
+            currentStreak: user.currentStreak || 0,
+        }));
+        return {
+            totalRegisteredUsers: students.length,
+            planTierBreakdown: totalsByTier,
+            active: {
+                today: activeToday,
+                thisWeek: activeThisWeek,
+                thisMonth: activeThisMonth,
+            },
+            dormantUsers: {
+                last24Hours: dormant24h,
+                last3Days: dormant3d,
+                last7Days: dormant7d,
+            },
+            streakFreezeUsage: {
+                usersWhoUsedFreeze: freezeUsers,
+                freezesRemaining,
+            },
+            learnAndEarn: {
+                eligibleUsers: eligiblePayoutUsers,
+                totalAmountOwed: Number(payoutAgg._sum.amount ?? 0),
+            },
+            averageStreakLength: Number(averageStreak.toFixed(2)),
+            averageLessonCompletionRate: Number(avgCompletionRate.toFixed(2)),
+            retentionRate: {
+                day1: await cohortRetention(1),
+                day7: await cohortRetention(7),
+                day30: await cohortRetention(30),
+            },
+            newSignupsTrend: {
+                daily: dailyTrend,
+                weekly: weeklyTrend,
+            },
+            atRiskUsers: atRisk,
+            topPerformers: await Promise.all(topPerformers),
+        };
+    }
+    async exportAnalyticsCsv() {
+        const users = await this.prisma.user.findMany({
+            where: { role: 'STUDENT' },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                tier: true,
+                createdAt: true,
+                lastActiveAt: true,
+                currentStreak: true,
+                longestStreak: true,
+                totalActiveDays: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        const rows = await Promise.all(users.map(async (user) => {
+            const points = await this.prisma.pointsLedger.aggregate({ where: { userId: user.id }, _sum: { points: true } });
+            const lessons = await this.prisma.userProgress.count({ where: { userId: user.id } });
+            return {
+                id: user.id,
+                name: user.name || '',
+                email: user.email,
+                tier: user.tier,
+                dateJoined: user.createdAt.toISOString(),
+                lastActiveAt: user.lastActiveAt ? user.lastActiveAt.toISOString() : '',
+                currentStreak: user.currentStreak,
+                longestStreak: user.longestStreak,
+                totalActiveDays: user.totalActiveDays,
+                totalLessonsCompleted: lessons,
+                totalPoints: Number(points._sum.points ?? 0),
+            };
+        }));
+        const headers = ['id', 'name', 'email', 'tier', 'dateJoined', 'lastActiveAt', 'currentStreak', 'longestStreak', 'totalActiveDays', 'totalLessonsCompleted', 'totalPoints'];
+        const csvRows = [headers.join(',')].concat(rows.map(row => headers.map(header => `"${String(row[header] ?? '').replace(/"/g, '""')}"`).join(',')));
+        return { csv: csvRows.join('\n') };
     }
 };
 exports.AdminController = AdminController;
@@ -448,6 +709,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getConfigs", null);
+__decorate([
+    (0, common_1.Get)('public/configs/:key'),
+    __param(0, (0, common_1.Param)('key')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getPublicConfig", null);
 __decorate([
     (0, common_1.Post)('configs/:key'),
     __param(0, (0, common_1.Param)('key')),
@@ -580,6 +848,32 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "sendEmailBroadcast", null);
+__decorate([
+    (0, common_1.Get)('users/:id/stats'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getUserStats", null);
+__decorate([
+    (0, common_1.Get)('users/:id/analytics'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getUserAnalytics", null);
+__decorate([
+    (0, common_1.Get)('analytics/overview'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "getCohortOverview", null);
+__decorate([
+    (0, common_1.Get)('analytics/export'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "exportAnalyticsCsv", null);
 exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
@@ -587,6 +881,7 @@ exports.AdminController = AdminController = __decorate([
     __metadata("design:paramtypes", [payouts_service_1.PayoutsService,
         prisma_service_1.PrismaService,
         mock_exams_service_1.MockExamsService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        users_service_1.UsersService])
 ], AdminController);
 //# sourceMappingURL=admin.controller.js.map

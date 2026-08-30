@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
 import { stateToMood, LION_IMAGES, type LionMood } from '../lib/lionMood';
+import { useConfigStore } from '../store/configStore';
 
 interface MascotInteractionProps {
     message?: string;
@@ -29,7 +30,8 @@ export const MascotInteraction: React.FC<MascotInteractionProps> = ({
     noEntryAnimation = false,
 }) => {
     // Determine which lion to show
-    const lionMood = mood || stateToMood(state);
+    const override = useConfigStore((s) => s.mascotOverride);
+    const lionMood = (override && override.enabled && override.mood) ? (override.mood as LionMood) : (mood || stateToMood(state));
     const lionImage = LION_IMAGES[lionMood];
     
     // Check if mood has a Lottie animation

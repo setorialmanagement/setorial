@@ -19,6 +19,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { SupportController } from './support/support.controller';
+import { PublicController } from './public/public.controller';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -75,7 +76,7 @@ import { PrismaService } from './prisma.service';
     StoreModule,
     NotificationsModule,
   ],
-  controllers: [AppController, SupportController],
+  controllers: [AppController, SupportController, PublicController],
   providers: [AppService, PrismaService],
 })
 export class AppModule { }

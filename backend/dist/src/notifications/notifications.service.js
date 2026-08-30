@@ -72,25 +72,56 @@ let NotificationsService = NotificationsService_1 = class NotificationsService {
         this.sendToTokens(tokens, title, body, data);
     }
     async sendToTokens(tokens, title, body, data = {}) {
-        const messages = tokens.map(token => ({
-            to: token,
-            sound: 'default',
-            title,
-            body,
-            data,
-        }));
-        try {
-            await axios_1.default.post('https://exp.host/--/api/v2/push/send', messages, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Accept-encoding': 'gzip, deflate',
-                    'Content-Type': 'application/json',
-                },
-            });
-            this.logger.log(`Push notification job completed for ${tokens.length} tokens.`);
+        const expoTokens = tokens.filter(t => typeof t === 'string' && (t.startsWith('ExponentPushToken') || t.startsWith('ExpoPushToken')));
+        const fcmTokens = tokens.filter(t => typeof t === 'string' && !expoTokens.includes(t));
+        if (expoTokens.length > 0) {
+            const messages = expoTokens.map(token => ({
+                to: token,
+                sound: 'default',
+                title,
+                body,
+                data,
+            }));
+            try {
+                await axios_1.default.post('https://exp.host/--/api/v2/push/send', messages, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Accept-encoding': 'gzip, deflate',
+                        'Content-Type': 'application/json',
+                    },
+                });
+                this.logger.log(`Expo push notification job completed for ${expoTokens.length} tokens.`);
+            }
+            catch (error) {
+                this.logger.error(`Failed to send push notifications via Expo: ${error.response?.data?.message || error.message}`);
+            }
         }
-        catch (error) {
-            this.logger.error(`Failed to send push notifications via Expo: ${error.response?.data?.message || error.message}`);
+        if (fcmTokens.length > 0) {
+            const fcmKey = process.env.FCM_SERVER_KEY;
+            if (!fcmKey) {
+                this.logger.warn('FCM_SERVER_KEY not set; skipping FCM push for non-Expo tokens.');
+                return;
+            }
+            const payload = {
+                registration_ids: fcmTokens,
+                notification: {
+                    title,
+                    body,
+                },
+                data,
+            };
+            try {
+                await axios_1.default.post('https://fcm.googleapis.com/fcm/send', payload, {
+                    headers: {
+                        'Authorization': `key=${fcmKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                this.logger.log(`FCM notification job completed for ${fcmTokens.length} tokens.`);
+            }
+            catch (error) {
+                this.logger.error(`Failed to send push notifications via FCM: ${error.response?.data || error.message}`);
+            }
         }
     }
     generateSetorialHtml(title, messageHtml) {

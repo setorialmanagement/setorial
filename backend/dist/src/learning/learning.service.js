@@ -96,13 +96,19 @@ let LearningService = class LearningService {
     async createLesson(dto, user) {
         try {
             const isApproved = user?.role === 'TUTOR' ? false : true;
+            let order = dto.order;
+            if (order === undefined || order === null) {
+                const agg = await this.prisma.lesson.aggregate({ where: { topicId: dto.topicId }, _max: { order: true } });
+                const maxOrder = agg._max.order ?? 0;
+                order = maxOrder + 1;
+            }
             return await this.prisma.lesson.create({
                 data: {
                     name: dto.name,
                     topicId: dto.topicId,
                     content: dto.content,
                     videoUrl: dto.videoUrl,
-                    order: dto.order ?? 1,
+                    order,
                     rewardPoints: dto.rewardPoints ?? 10,
                     isApproved,
                     questions: {
@@ -371,6 +377,30 @@ let LearningService = class LearningService {
             where: { id },
             data: { isApproved: true }
         });
+    }
+    async recordVideoPlay(userId, lessonId) {
+        const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+        if (!lesson)
+            throw new common_1.NotFoundException('Lesson not found');
+        const thresholdSeconds = 30;
+        const recent = await this.prisma.videoPlay.findFirst({
+            where: { userId, lessonId },
+            orderBy: { createdAt: 'desc' },
+        });
+        if (recent) {
+            const ageMs = Date.now() - recent.createdAt.getTime();
+            if (ageMs < thresholdSeconds * 1000) {
+                return { success: true, deduped: true, lastPlayAt: recent.createdAt };
+            }
+        }
+        const created = await this.prisma.videoPlay.create({
+            data: {
+                userId,
+                lessonId,
+            }
+        });
+        await this.prisma.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
+        return { success: true, deduped: false, playId: created.id };
     }
 };
 exports.LearningService = LearningService;

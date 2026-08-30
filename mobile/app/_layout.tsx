@@ -11,6 +11,7 @@ import { useColorScheme as useTailwindColorScheme } from 'nativewind';
 import { StyleSheet, View, Text, TouchableOpacity, Modal } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { MascotInteraction } from "../components/MascotInteraction";
+import { useConfigStore } from '../store/configStore';
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { Globe, X, Check } from "lucide-react-native";
@@ -42,6 +43,13 @@ export default function RootLayout() {
         checkSession();
         // Clear any previously saved manual theme override left over from old settings
         SecureStore.deleteItemAsync('theme').catch(() => {});
+        // Load mascot override from public configs
+        useConfigStore.getState().loadMascotOverride().catch(() => {});
+        // Poll for updates every 15 seconds while the app is running
+        const poll = setInterval(() => {
+            useConfigStore.getState().loadMascotOverride().catch(() => {});
+        }, 15000);
+        return () => clearInterval(poll);
     }, []);
 
     // Tell NativeWind to follow the system theme

@@ -14,6 +14,7 @@ import {
     DollarSign,
     UserCheck,
     Globe,
+    CalendarDays,
     Map,
     Edit2,
     Edit3,
@@ -31,6 +32,7 @@ import {
     Send
 } from 'lucide-react';
 import { adminApi } from './api';
+import { SignupsTrendChart, RetentionCurveChart } from './components/Charts';
 
 /* ─── Reusable Components ──────────────────────────────────────────────────── */
 
@@ -110,6 +112,7 @@ export default function AdminDashboard() {
 
     const [activeTab, setActiveTab] = useState(userRole === 'TUTOR' ? 'learning' : 'overview');
     const [stats, setStats] = useState<any>(null);
+    const [cohortStats, setCohortStats] = useState<any>(null);
     const [kycRequests, setKycRequests] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [analyticsModalUser, setAnalyticsModalUser] = useState<any>(null);
@@ -267,8 +270,12 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             if (activeTab === 'overview') {
-                const res = await adminApi.getDashboardStats();
-                setStats(res.data);
+                const [dashboardRes, cohortRes] = await Promise.all([
+                    adminApi.getDashboardStats(),
+                    adminApi.getCohortOverview(),
+                ]);
+                setStats(dashboardRes.data);
+                setCohortStats(cohortRes.data);
             } else if (activeTab === 'kyc') {
                 const res = await adminApi.getPendingKyc();
                 setKycRequests(res.data);
@@ -333,20 +340,39 @@ export default function AdminDashboard() {
     };
 
     const handleShowAnalytics = async (id: string) => {
-        // Open modal immediately so user sees feedback
         setAnalyticsModalUser({});
         setAnalyticsLoading(true);
         try {
-            console.log('Fetching analytics for', id);
-            const res = await adminApi.getUserAnalytics(id);
-            console.log('Analytics response', res);
-            setAnalyticsModalUser(res.data);
+            const [statsRes, analyticsRes] = await Promise.all([
+                adminApi.getUserStats(id),
+                adminApi.getUserAnalytics(id),
+            ]);
+            setAnalyticsModalUser({
+                ...analyticsRes.data,
+                ...statsRes.data,
+                user: analyticsRes.data.user,
+            });
         } catch (err: any) {
             console.error('Failed to load analytics', err);
             setAnalyticsModalUser(null);
             alert(err.response?.data?.message || 'Failed to load analytics');
         } finally {
             setAnalyticsLoading(false);
+        }
+    };
+
+    const handleExportAnalyticsCsv = async () => {
+        try {
+            const res = await adminApi.exportAnalyticsCsv();
+            const blob = new Blob([res.data.csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'setorial-cohort-export.csv';
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'CSV export failed');
         }
     };
 
@@ -542,6 +568,33 @@ export default function AdminDashboard() {
     // Theme toggle
     const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('admin_theme') === 'dark' ? 'dark' : 'light'));
 
+    // Mascot mood manual override (stored in globalConfig via admin API)
+    const [mascotOverrideEnabled, setMascotOverrideEnabled] = useState<boolean>(false);
+    const [mascotMood, setMascotMood] = useState<string>('happy');
+
+    const loadMascotConfig = async () => {
+        try {
+            const res = await adminApi.getConfigs();
+            const configs = res.data as Array<any>;
+            const entry = configs.find((c: any) => c.key === 'mascot_mood_override');
+            if (entry && entry.value) {
+                try {
+                    const parsed = typeof entry.value === 'string' ? JSON.parse(entry.value) : entry.value;
+                    setMascotOverrideEnabled(Boolean(parsed.enabled));
+                    setMascotMood(parsed.mood || 'happy');
+                } catch (e) {
+                    // value might be plain string mood
+                    setMascotOverrideEnabled(true);
+                    setMascotMood(String(entry.value));
+                }
+            } else {
+                setMascotOverrideEnabled(false);
+            }
+        } catch (err) {
+            // ignore silently — non-critical
+        }
+    };
+
     useEffect(() => {
         const root = document.documentElement;
         if (theme === 'dark') {
@@ -552,6 +605,24 @@ export default function AdminDashboard() {
             localStorage.setItem('admin_theme', 'light');
         }
     }, [theme]);
+
+    useEffect(() => {
+        // load mascot config once on mount
+        loadMascotConfig();
+    }, []);
+
+    const saveMascotConfig = async (enabled: boolean, mood: string) => {
+        try {
+            const payload = JSON.stringify({ enabled, mood });
+            await adminApi.updateConfig('mascot_mood_override', payload, 'Manual mascot mood override set from admin');
+            setMascotOverrideEnabled(enabled);
+            setMascotMood(mood);
+            alert('Mascot override saved');
+        } catch (err: any) {
+            console.error('Failed to save mascot config', err);
+            alert(err.response?.data?.message || 'Failed to save mascot override');
+        }
+    };
 
     const handleEditTopic = (topic: any) => {
         setEditingTopic(topic);
@@ -799,6 +870,16 @@ export default function AdminDashboard() {
                                 <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Learning Journeys</h2>
                                 <p className="text-sm text-zinc-500 mt-1">Manage subjects, topics, and automatically generate lessons via AI.</p>
                             </div>
+                            <div className="px-6 pb-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                <div className="card p-4">
+                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">Signups (last 30 days)</h4>
+                                    <SignupsTrendChart data={(cohortStats?.newSignupsTrend?.daily ?? [])} />
+                                </div>
+                                <div className="card p-4">
+                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">Retention Curve (D1 / D7 / D30)</h4>
+                                    <RetentionCurveChart retention={cohortStats?.retentionRate ?? {}} />
+                                </div>
+                            </div>
                             <button
                                 onClick={handleCreateSubject}
                                 className="btn-primary h-10 px-6 text-sm"
@@ -1036,6 +1117,79 @@ export default function AdminDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <StatCard icon={UserCheck} label="Approved KYC" value={stats?.approvedKycCount ?? 0} />
                             <StatCard icon={DollarSign} label="Reward Pool Cap" value={`₦${(stats?.rewardPoolCap ?? 0).toLocaleString()}`} />
+                        </div>
+
+                        <div className="card !p-0 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/60 flex items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-zinc-900">Cohort Analytics</h3>
+                                    <p className="text-xs text-zinc-500 mt-1">Live student growth, retention, and engagement snapshot.</p>
+                                </div>
+                                <button onClick={handleExportAnalyticsCsv} className="btn-secondary h-9 px-3 text-xs">Export CSV</button>
+                            </div>
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                <StatCard icon={Users} label="Registered Users" value={cohortStats?.totalRegisteredUsers ?? 0} />
+                                <StatCard icon={TrendingUp} label="Active Today" value={cohortStats?.active?.today ?? 0} />
+                                <StatCard icon={Clock} label="Active This Week" value={cohortStats?.active?.thisWeek ?? 0} />
+                                <StatCard icon={CalendarDays} label="Active This Month" value={cohortStats?.active?.thisMonth ?? 0} />
+                            </div>
+                            <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                <div className="card p-4">
+                                    <div className="text-xs text-zinc-500">Avg streak</div>
+                                    <div className="mt-2 text-2xl font-semibold text-zinc-900">{Number(cohortStats?.averageStreakLength ?? 0).toFixed(1)}</div>
+                                </div>
+                                <div className="card p-4">
+                                    <div className="text-xs text-zinc-500">Avg lesson rate</div>
+                                    <div className="mt-2 text-2xl font-semibold text-zinc-900">{Number(cohortStats?.averageLessonCompletionRate ?? 0).toFixed(1)}%</div>
+                                </div>
+                                <div className="card p-4">
+                                    <div className="text-xs text-zinc-500">Retention (D7)</div>
+                                    <div className="mt-2 text-2xl font-semibold text-zinc-900">{Number(cohortStats?.retentionRate?.day7 ?? 0).toFixed(1)}%</div>
+                                </div>
+                                <div className="card p-4">
+                                    <div className="text-xs text-zinc-500">Payout eligible</div>
+                                    <div className="mt-2 text-2xl font-semibold text-zinc-900">{cohortStats?.learnAndEarn?.eligibleUsers ?? 0}</div>
+                                </div>
+                            </div>
+                            <div className="px-6 pb-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                <div className="card p-4">
+                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">Tier distribution</h4>
+                                    <div className="space-y-3">
+                                        {Object.entries(cohortStats?.planTierBreakdown ?? { FREE: 0, BRONZE: 0, SILVER: 0, GOLD: 0 }).map(([tier, count]) => (
+                                            <div key={tier} className="flex items-center justify-between text-sm">
+                                                <span className="text-zinc-600">{tier}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-24 h-2 rounded-full bg-zinc-100 overflow-hidden">
+                                                        <div className="h-full rounded-full bg-zinc-900" style={{ width: `${((Number(count) / Math.max(1, cohortStats?.totalRegisteredUsers ?? 1)) * 100).toFixed(0)}%` }} />
+                                                    </div>
+                                                    <span className="font-medium text-zinc-900">{Number(count)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="card p-4">
+                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">At-risk + top performers</h4>
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex items-center justify-between text-zinc-700">
+                                            <span>At-risk users</span>
+                                            <span className="font-semibold text-zinc-900">{(cohortStats?.atRiskUsers ?? []).length}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-zinc-700">
+                                            <span>Top performers</span>
+                                            <span className="font-semibold text-zinc-900">{(cohortStats?.topPerformers ?? []).length}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-zinc-700">
+                                            <span>Streak freezes used</span>
+                                            <span className="font-semibold text-zinc-900">{cohortStats?.streakFreezeUsage?.usersWhoUsedFreeze ?? 0}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-zinc-700">
+                                            <span>Eligible payout amount</span>
+                                            <span className="font-semibold text-zinc-900">₦{Number(cohortStats?.learnAndEarn?.totalAmountOwed ?? 0).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {stats?.alert === 'LIABILITY EXCEEDS SAFE THRESHOLD' && (
@@ -1820,38 +1974,102 @@ export default function AdminDashboard() {
                                         {analyticsLoading ? (
                                             <div>Loading...</div>
                                         ) : (
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Created</div>
-                                                    <div className="font-bold text-zinc-900">{new Date(analyticsModalUser.user.createdAt).toLocaleString()}</div>
+                                            <div className="space-y-6">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Plan Tier</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.tier || analyticsModalUser.planTier || (analyticsModalUser.user?.tier)}</div>
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Date Joined</div>
+                                                        <div className="font-bold text-zinc-900">{new Date(analyticsModalUser.dateJoined || analyticsModalUser.user.createdAt).toLocaleString()}</div>
+                                                    </div>
+
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Current Streak</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.currentStreak ?? analyticsModalUser.user?.currentStreak ?? 0}</div>
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Longest Streak</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.longestStreak ?? analyticsModalUser.user?.longestStreak ?? 0}</div>
+                                                    </div>
+
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Last Active</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.lastActiveDate || analyticsModalUser.user?.lastActiveAt ? new Date(analyticsModalUser.lastActiveDate || analyticsModalUser.user?.lastActiveAt).toLocaleString() : '—'}</div>
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Last Lesson Completed</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.lastLessonCompleted ? `${analyticsModalUser.lastLessonCompleted.lessonName} • ${new Date(analyticsModalUser.lastLessonCompleted.completedAt).toLocaleString()}` : '—'}</div>
+                                                    </div>
                                                 </div>
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Last Active</div>
-                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.user.lastActiveAt ? new Date(analyticsModalUser.user.lastActiveAt).toLocaleString() : '—'}</div>
+
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Lessons Completed (All / Week / Today)</div>
+                                                        <div className="font-bold text-zinc-900">{(analyticsModalUser.lessonsCompleted?.allTime ?? analyticsModalUser.lessonsCompleted) || 0} / {(analyticsModalUser.lessonsCompleted?.thisWeek) ?? 0} / {(analyticsModalUser.lessonsCompleted?.today) ?? 0}</div>
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Lesson Completion Rate</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.lessonCompletionRate ?? analyticsModalUser.lessonCompletionRate ?? '—'}%</div>
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Missed Days (Total / Week / Month)</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.missedDays?.total ?? 0} / {analyticsModalUser.missedDays?.thisWeek ?? 0} / {analyticsModalUser.missedDays?.thisMonth ?? 0}</div>
+                                                    </div>
                                                 </div>
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Lessons Completed</div>
-                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.lessonsCompleted}</div>
+
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Streak Freezes (Used / Remaining)</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.streakFreezes?.used ?? 0} / {analyticsModalUser.streakFreezes?.remaining ?? 0}</div>
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Total Points / Level</div>
+                                                        <div className="font-bold text-zinc-900">{Number(analyticsModalUser.totalPoints ?? analyticsModalUser.totalPoints ?? 0).toLocaleString()} • Lv. {analyticsModalUser.currentLevel ?? analyticsModalUser.currentLevel ?? '—'}</div>
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Learn & Earn (Points / Payable / Paid)</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.learnAndEarn?.pointsEarned ?? analyticsModalUser.totalPoints ?? 0} pts • ₦{Number(analyticsModalUser.learnAndEarn?.amountPayable ?? analyticsModalUser.amountPayable ?? 0).toLocaleString()} • ₦{Number(analyticsModalUser.learnAndEarn?.totalEverPaidOut ?? analyticsModalUser.totalPaidOut ?? 0).toLocaleString()}</div>
+                                                    </div>
                                                 </div>
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Mock Attempts</div>
-                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.mockAttempts} ({analyticsModalUser.mockCompleted} completed)</div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Monetization Eligibility</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.monetization?.eligible ? 'Yes' : 'No'}</div>
+                                                        {analyticsModalUser.monetization?.reason && (<div className="text-xs text-zinc-500 mt-2">{analyticsModalUser.monetization.reason}</div>)}
+                                                    </div>
+                                                    <div className="card p-4">
+                                                        <div className="text-sm text-zinc-500">Average Daily Time Spent</div>
+                                                        <div className="font-bold text-zinc-900">{analyticsModalUser.averageDailyTimeSpent?.minutes ?? analyticsModalUser.averageDailyTimeSpent?.seconds ?? 0} mins</div>
+                                                    </div>
                                                 </div>
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Total Points</div>
-                                                    <div className="font-bold text-zinc-900">{Number(analyticsModalUser.totalPoints).toLocaleString()}</div>
+
+                                                <div className="space-y-3">
+                                                    <div className="text-sm text-zinc-500 font-semibold">Recent Mock Exams</div>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {(analyticsModalUser.mockExamHistory || []).slice(0,5).map((m: any, idx: number) => (
+                                                            <div key={idx} className="p-3 border rounded-lg bg-white">
+                                                                <div className="font-bold">{m.examTitle}</div>
+                                                                <div className="text-sm text-zinc-500">Score: {m.score} • {m.completedAt ? new Date(m.completedAt).toLocaleString() : '—'}</div>
+                                                            </div>
+                                                        ))}
+                                                        {(!analyticsModalUser.mockExamHistory || analyticsModalUser.mockExamHistory.length === 0) && <div className="text-sm text-zinc-500">No mock exam history.</div>}
+                                                    </div>
                                                 </div>
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Total Earned</div>
-                                                    <div className="font-bold text-zinc-900">₦{Number(analyticsModalUser.totalEarned).toLocaleString()}</div>
-                                                </div>
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Total Payouts</div>
-                                                    <div className="font-bold text-zinc-900">₦{Number(analyticsModalUser.totalPayouts).toLocaleString()}</div>
-                                                </div>
-                                                <div className="card p-4">
-                                                    <div className="text-sm text-zinc-500">Support Tickets</div>
-                                                    <div className="font-bold text-zinc-900">{analyticsModalUser.supportTickets}</div>
+
+                                                <div>
+                                                    <div className="text-sm text-zinc-500 font-semibold mb-2">Badges & Achievements</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(analyticsModalUser.badges || []).map((b: any) => (
+                                                            <div key={b.id} className="px-3 py-2 rounded-lg border bg-white text-sm">
+                                                                <div className="font-semibold">{b.name}</div>
+                                                                <div className="text-xs text-zinc-500">{b.awardedAt ? new Date(b.awardedAt).toLocaleDateString() : ''}</div>
+                                                            </div>
+                                                        ))}
+                                                        {(analyticsModalUser.badges || []).length === 0 && <div className="text-sm text-zinc-500">No badges yet.</div>}
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -1918,6 +2136,35 @@ export default function AdminDashboard() {
 
                 <div className="mt-auto space-y-3">
                     <div className="px-3">
+                        <div className="mb-2 px-3 py-2 rounded-lg bg-zinc-50">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-sm font-medium text-zinc-700">Mascot Override</div>
+                                <label className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={mascotOverrideEnabled}
+                                        onChange={e => {
+                                            const enabled = e.target.checked;
+                                            // if enabling and no mood selected, default to happy
+                                            const moodToSave = mascotMood || 'happy';
+                                            saveMascotConfig(enabled, moodToSave);
+                                        }}
+                                    />
+                                </label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <select className="input-field text-sm" value={mascotMood} onChange={e => setMascotMood(e.target.value)}>
+                                    <option value="happy">happy</option>
+                                    <option value="angry">angry</option>
+                                    <option value="freezing">freezing</option>
+                                    <option value="crying">crying</option>
+                                    <option value="sad">sad</option>
+                                    <option value="sleeping">sleeping</option>
+                                    <option value="formal">formal</option>
+                                </select>
+                                <button className="btn-secondary h-9 px-3 text-xs" onClick={() => saveMascotConfig(mascotOverrideEnabled, mascotMood)}>Save</button>
+                            </div>
+                        </div>
                         <label className="flex items-center space-x-3 px-3 py-2 rounded-lg font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all cursor-pointer">
                             <input type="checkbox" checked={theme === 'dark'} onChange={e => setTheme(e.target.checked ? 'dark' : 'light')} />
                             <span className="text-sm">Dark Mode</span>

@@ -98,6 +98,9 @@ let LearningController = class LearningController {
     async approveLesson(id) {
         return this.learningService.approveLesson(id);
     }
+    async recordPlay(id, req) {
+        return this.learningService.recordVideoPlay(req.user.userId, id);
+    }
 };
 exports.LearningController = LearningController;
 __decorate([
@@ -262,6 +265,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], LearningController.prototype, "approveLesson", null);
+__decorate([
+    (0, common_1.Post)('lessons/:id/play'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], LearningController.prototype, "recordPlay", null);
 exports.LearningController = LearningController = __decorate([
     (0, common_1.Controller)('learning'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),

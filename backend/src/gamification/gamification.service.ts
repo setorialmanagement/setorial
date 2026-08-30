@@ -43,6 +43,7 @@ export class GamificationService implements OnModuleDestroy, OnModuleInit {
         const lastActive = await this.redis.hget(key, 'lastActive');
 
         let currentStreak = parseInt(await this.redis.hget(key, 'count') || '0', 10);
+        let newActiveDay = false;
 
         if (lastActive === today) {
             return currentStreak; // Already incremented today
@@ -54,6 +55,7 @@ export class GamificationService implements OnModuleDestroy, OnModuleInit {
 
         if (lastActive === yesterdayStr) {
             currentStreak++;
+            newActiveDay = true;
         } else {
             // Check for streak freeze before resetting
             const hasFreezeActive = await this.redis.get(`streak_freeze:${userId}`);
@@ -61,13 +63,31 @@ export class GamificationService implements OnModuleDestroy, OnModuleInit {
                 // Freeze consumed — keep the streak alive, remove the freeze
                 await this.redis.del(`streak_freeze:${userId}`);
                 currentStreak++; // They're back, so increment
+                newActiveDay = true;
             } else {
                 currentStreak = 1; // Reset streak
+                newActiveDay = true;
             }
         }
 
         await this.redis.hset(key, 'count', currentStreak);
         await this.redis.hset(key, 'lastActive', today);
+
+        // Sync with PostgreSQL
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { longestStreak: true } });
+        if (user) {
+            const longestStreak = Math.max(user.longestStreak || 0, currentStreak);
+            await this.prisma.user.update({
+                where: { id: userId },
+                data: {
+                    currentStreak,
+                    longestStreak,
+                    ...(newActiveDay && { totalActiveDays: { increment: 1 } }),
+                    lastActiveAt: new Date(),
+                }
+            });
+        }
+
         return currentStreak;
     }
 

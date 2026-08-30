@@ -34,6 +34,213 @@ export class UsersService {
         return result._sum.points || 0;
     }
 
+    private getStartOfDay(date: Date) {
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
+        return start;
+    }
+
+    private getStartOfWeek(date: Date) {
+        const start = this.getStartOfDay(date);
+        const day = start.getDay();
+        const diff = (day === 0 ? -6 : 1 - day);
+        start.setDate(start.getDate() + diff);
+        return start;
+    }
+
+    private getStartOfMonth(date: Date) {
+        return new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+
+    async getUserStats(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                tier: true,
+                createdAt: true,
+                lastActiveAt: true,
+                currentStreak: true,
+                longestStreak: true,
+                totalActiveDays: true,
+                isVerified: true,
+                assessmentPassed: true,
+                kycStatus: true,
+                monetizationEligibleAt: true,
+            },
+        });
+
+        if (!user) throw new BadRequestException('User not found');
+
+        const now = new Date();
+        const startOfToday = this.getStartOfDay(now);
+        const startOfWeek = this.getStartOfWeek(now);
+        const startOfMonth = this.getStartOfMonth(now);
+        const daysSinceJoin = Math.max(0, Math.ceil((now.getTime() - new Date(user.createdAt).getTime()) / 86400000));
+
+        const [
+            pointsAgg,
+            walletEarnedAgg,
+            walletPayableAgg,
+            walletPayoutAgg,
+            lessonsCompletedAll,
+            lessonsCompletedThisWeek,
+            lessonsCompletedToday,
+            totalLessonsAvailable,
+            lastLessonProgress,
+            freezePowerUps,
+            mockAttempts,
+            userBadges,
+            timeSpentAgg,
+            activeThisWeek,
+            activeThisMonth,
+            leaderboard,
+        ] = await Promise.all([
+            this.prisma.pointsLedger.aggregate({ where: { userId }, _sum: { points: true } }),
+            this.prisma.walletLedger.aggregate({ where: { userId, type: 'EARN' }, _sum: { amount: true } }),
+            this.prisma.walletLedger.aggregate({ where: { userId, type: 'ELIGIBLE_MOVE' }, _sum: { amount: true } }),
+            this.prisma.walletLedger.aggregate({ where: { userId, type: 'PAYOUT' }, _sum: { amount: true } }),
+            this.prisma.userProgress.count({ where: { userId } }),
+            this.prisma.userProgress.count({ where: { userId, completedAt: { gte: startOfWeek } } }),
+            this.prisma.userProgress.count({ where: { userId, completedAt: { gte: startOfToday } } }),
+            this.prisma.lesson.count({ where: { isApproved: true } }),
+            this.prisma.userProgress.findFirst({
+                where: { userId },
+                orderBy: { completedAt: 'desc' },
+                select: { completedAt: true, lesson: { select: { name: true } } },
+            }),
+            this.prisma.userPowerUp.findMany({
+                where: { userId },
+                include: { powerUp: true },
+            }),
+            this.prisma.mockAttempt.findMany({
+                where: { userId, status: 'COMPLETED' },
+                orderBy: { completedAt: 'desc' },
+                include: { mockExam: { select: { title: true } } },
+            }),
+            this.prisma.userBadge.findMany({
+                where: { userId },
+                include: { badge: true },
+                orderBy: { awardedAt: 'desc' },
+            }),
+            this.prisma.userActivityLog.aggregate({ where: { userId }, _sum: { timeSpent: true } }),
+            this.prisma.userActivityLog.count({ where: { userId, date: { gte: startOfWeek } } }),
+            this.prisma.userActivityLog.count({ where: { userId, date: { gte: startOfMonth } } }),
+            this.prisma.pointsLedger.groupBy({
+                by: ['userId'],
+                _sum: { points: true },
+            }),
+        ]);
+
+        const totalPoints = Number(pointsAgg._sum.points ?? 0);
+        const totalEarned = Number(walletEarnedAgg._sum.amount ?? 0);
+        const amountPayable = Number(walletPayableAgg._sum.amount ?? 0);
+        const totalPaidOut = Number(walletPayoutAgg._sum.amount ?? 0);
+        const completionRate = totalLessonsAvailable > 0 ? Number(((lessonsCompletedAll / totalLessonsAvailable) * 100).toFixed(2)) : 0;
+
+        const freezeCount = freezePowerUps.length;
+        const usedFreezeCount = freezePowerUps.filter((item: any) => !item.isActive).length;
+        const remainingFreezeCount = freezePowerUps.filter((item: any) => item.isActive).length;
+
+        const rank = leaderboard
+            .map((item: any) => ({ userId: item.userId, points: Number(item._sum.points ?? 0) }))
+            .sort((a: any, b: any) => b.points - a.points)
+            .findIndex((item: any) => item.userId === userId) + 1 || 0;
+
+        const monetizationEligible = ['SILVER', 'GOLD'].includes(user.tier)
+            && user.isVerified
+            && user.assessmentPassed
+            && (user.kycStatus === 'APPROVED' || user.isVerified);
+
+        const consistencyGap = Math.max(0, 90 - (user.totalActiveDays || 0));
+        const monetizationReason = monetizationEligible
+            ? 'eligible'
+            : [
+                !['SILVER', 'GOLD'].includes(user.tier) ? 'upgrade to Silver or Gold' : null,
+                !user.isVerified ? 'complete KYC verification' : null,
+                !user.assessmentPassed ? 'pass the assessment' : null,
+                consistencyGap > 0 ? `needs ${consistencyGap} more consistent days` : null,
+            ].filter(Boolean).join('; ') || 'not yet eligible';
+
+        const missedTotal = Math.max(0, daysSinceJoin - (user.totalActiveDays || 0));
+        const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const missedThisWeek = Math.max(0, 7 - activeThisWeek);
+        const missedThisMonth = Math.max(0, daysInCurrentMonth - activeThisMonth);
+
+        const mockExamHistory = mockAttempts.map((attempt: any) => ({
+            examTitle: attempt.mockExam?.title || 'Unknown mock exam',
+            score: attempt.score ?? 0,
+            completedAt: attempt.completedAt,
+        }));
+
+        const averageDailyTimeSpentSeconds = (user.totalActiveDays || 0) > 0
+            ? Number((Number(timeSpentAgg._sum.timeSpent ?? 0) / (user.totalActiveDays || 1)).toFixed(0))
+            : 0;
+
+        return {
+            userId: user.id,
+            email: user.email,
+            name: user.name,
+            planTier: user.tier,
+            tier: user.tier,
+            dateJoined: user.createdAt,
+            currentStreak: user.currentStreak,
+            longestStreak: user.longestStreak,
+            lastActiveDate: user.lastActiveAt,
+            lastLessonCompleted: lastLessonProgress
+                ? {
+                    lessonName: lastLessonProgress.lesson?.name ?? 'Unknown lesson',
+                    completedAt: lastLessonProgress.completedAt,
+                }
+                : null,
+            lessonsCompleted: {
+                allTime: lessonsCompletedAll,
+                thisWeek: lessonsCompletedThisWeek,
+                today: lessonsCompletedToday,
+            },
+            lessonCompletionRate: completionRate,
+            missedDays: {
+                total: missedTotal,
+                thisWeek: missedThisWeek,
+                thisMonth: missedThisMonth,
+            },
+            streakFreezes: {
+                used: usedFreezeCount,
+                remaining: remainingFreezeCount,
+                total: freezeCount,
+            },
+            totalPoints,
+            currentLevel: Math.max(1, Math.floor(totalPoints / 1000) + 1),
+            rank,
+            learnAndEarn: {
+                pointsEarned: totalPoints,
+                amountPayable,
+                totalEverPaidOut: totalPaidOut,
+                totalEarned,
+            },
+            monetization: {
+                eligible: monetizationEligible,
+                reason: monetizationReason,
+            },
+            mockExamHistory,
+            averageDailyTimeSpent: {
+                seconds: averageDailyTimeSpentSeconds,
+                minutes: Number((averageDailyTimeSpentSeconds / 60).toFixed(2)),
+                hours: Number((averageDailyTimeSpentSeconds / 3600).toFixed(2)),
+            },
+            badges: userBadges.map((item: any) => ({
+                id: item.badge.id,
+                name: item.badge.name,
+                icon: item.badge.icon,
+                description: item.badge.description,
+                color: item.badge.color,
+                awardedAt: item.awardedAt,
+            })),
+        };
+    }
+
     async updateProfile(userId: string, data: { name?: string, billingCountry?: string, expoPushToken?: string, avatarUrl?: string }) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new BadRequestException('User not found');

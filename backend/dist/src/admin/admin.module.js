@@ -13,12 +13,13 @@ const payouts_module_1 = require("../payouts/payouts.module");
 const prisma_module_1 = require("../prisma.module");
 const mock_exams_module_1 = require("../mock-exams/mock-exams.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const users_module_1 = require("../users/users.module");
 let AdminModule = class AdminModule {
 };
 exports.AdminModule = AdminModule;
 exports.AdminModule = AdminModule = __decorate([
     (0, common_1.Module)({
-        imports: [payouts_module_1.PayoutsModule, prisma_module_1.PrismaModule, mock_exams_module_1.MockExamsModule, notifications_module_1.NotificationsModule],
+        imports: [payouts_module_1.PayoutsModule, prisma_module_1.PrismaModule, mock_exams_module_1.MockExamsModule, notifications_module_1.NotificationsModule, users_module_1.UsersModule],
         controllers: [admin_controller_1.AdminController],
     })
 ], AdminModule);

@@ -72,8 +72,8 @@ export declare class LearningController {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }>;
     regenerateLesson(id: string, req: any): Promise<{
         questions: {
@@ -307,5 +307,16 @@ export declare class LearningController {
         videoUrl: string | null;
         rewardPoints: number;
         topicId: string;
+    }>;
+    recordPlay(id: string, req: any): Promise<{
+        success: boolean;
+        deduped: boolean;
+        lastPlayAt: Date;
+        playId?: undefined;
+    } | {
+        success: boolean;
+        deduped: boolean;
+        playId: string;
+        lastPlayAt?: undefined;
     }>;
 }

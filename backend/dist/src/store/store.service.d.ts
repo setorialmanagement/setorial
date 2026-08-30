@@ -12,8 +12,8 @@ export declare class StoreService {
         updatedAt: Date;
         description: string;
         type: import("@prisma/client").$Enums.PowerUpType;
-        icon: string;
         price: import("@prisma/client-runtime-utils").Decimal;
+        icon: string;
         durationDays: number | null;
     }[]>;
     initializePurchase(userId: string, powerUpType: string): Promise<{
@@ -38,8 +38,8 @@ export declare class StoreService {
             updatedAt: Date;
             description: string;
             type: import("@prisma/client").$Enums.PowerUpType;
-            icon: string;
             price: import("@prisma/client-runtime-utils").Decimal;
+            icon: string;
             durationDays: number | null;
         };
     } & {

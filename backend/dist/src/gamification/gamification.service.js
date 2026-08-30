@@ -46,6 +46,7 @@ let GamificationService = class GamificationService {
         const today = new Date().toISOString().split('T')[0];
         const lastActive = await this.redis.hget(key, 'lastActive');
         let currentStreak = parseInt(await this.redis.hget(key, 'count') || '0', 10);
+        let newActiveDay = false;
         if (lastActive === today) {
             return currentStreak;
         }
@@ -54,19 +55,35 @@ let GamificationService = class GamificationService {
         const yesterdayStr = yesterday.toISOString().split('T')[0];
         if (lastActive === yesterdayStr) {
             currentStreak++;
+            newActiveDay = true;
         }
         else {
             const hasFreezeActive = await this.redis.get(`streak_freeze:${userId}`);
             if (hasFreezeActive) {
                 await this.redis.del(`streak_freeze:${userId}`);
                 currentStreak++;
+                newActiveDay = true;
             }
             else {
                 currentStreak = 1;
+                newActiveDay = true;
             }
         }
         await this.redis.hset(key, 'count', currentStreak);
         await this.redis.hset(key, 'lastActive', today);
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { longestStreak: true } });
+        if (user) {
+            const longestStreak = Math.max(user.longestStreak || 0, currentStreak);
+            await this.prisma.user.update({
+                where: { id: userId },
+                data: {
+                    currentStreak,
+                    longestStreak,
+                    ...(newActiveDay && { totalActiveDays: { increment: 1 } }),
+                    lastActiveAt: new Date(),
+                }
+            });
+        }
         return currentStreak;
     }
     async applyStreakFreeze(userId) {

@@ -85,10 +85,13 @@ let TutorController = class TutorController {
         const systemInstruction = dto.systemPrompt || `You are an expert AI tutor for the Setorial learning platform. 
 Provide clear, educational, and accurate answers.
 If the user's question is inappropriate, violent, hate speech, or completely non-educational nonsense, politely refuse to answer.
-IMPORTANT MATH FORMATTING: All mathematical expressions MUST use LaTeX wrapped in dollar-sign delimiters.
-Use $...$ for inline math and $$...$$ for display equations.
-Examples: $\\frac{a}{b}$, $\\sqrt{x}$, $\\sec^2(x)$, $$E = mc^2$$
-NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2). Always use LaTeX.`;
+IMPORTANT MATH FORMATTING: 
+1. ALL mathematical expressions, formulas, and numbers MUST use LaTeX wrapped in dollar-sign delimiters.
+2. Use $...$ for inline math and $$...$$ for display equations.
+3. Examples: $\\frac{a}{b}$, $\\sqrt{x}$, $\\sec^2(x)$, $$E = mc^2$$
+4. NEVER escape dollar signs. NEVER use \\$. Always write exactly $ or $$.
+5. NEVER output raw LaTeX (like \\times) outside of dollar signs.
+6. NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2). Always use LaTeX.`;
         messages.unshift({ role: 'system', content: systemInstruction });
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
@@ -146,6 +149,7 @@ NEVER use plain Unicode superscripts (like x² or √x) or raw carets (like x^2)
             });
         }
         catch (error) {
+            console.error('Deepseek API Error:', error.response?.data || error.message);
             res.write(`event: error\ndata: {"error": "${error.message}"}\n\n`);
             res.end();
         }

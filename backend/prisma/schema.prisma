@@ -58,6 +58,9 @@ model User {
 
   // Monetization & Activity Rules
   lastActiveAt           DateTime?
+  currentStreak          Int       @default(0)
+  longestStreak          Int       @default(0)
+  totalActiveDays        Int       @default(0)
   assessmentPassed       Boolean   @default(false)
   monetizationEligibleAt DateTime? // Tracks when the 12-month consistency cycle began
 
@@ -81,6 +84,7 @@ model User {
   videoPlays      VideoPlay[]
   supportMessages SupportMessage[]
   tutorSessions   TutorSession[]
+  activityLogs    UserActivityLog[]
 }
 
 model Badge {
@@ -430,4 +434,16 @@ model VideoPlay {
 
   @@index([userId])
   @@index([lessonId])
+}
+
+model UserActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date // Store just the date (YYYY-MM-DD)
+  timeSpent   Int      @default(0) // Time spent in seconds
+  isMobile    Boolean  @default(true)
+  
+  @@unique([userId, date])
+  @@index([date])
 }

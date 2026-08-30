@@ -9,8 +9,8 @@ export declare class StoreController {
         updatedAt: Date;
         description: string;
         type: import("@prisma/client").$Enums.PowerUpType;
-        icon: string;
         price: import("@prisma/client-runtime-utils").Decimal;
+        icon: string;
         durationDays: number | null;
     }[]>;
     getMyPowerUps(req: any): Promise<({
@@ -21,8 +21,8 @@ export declare class StoreController {
             updatedAt: Date;
             description: string;
             type: import("@prisma/client").$Enums.PowerUpType;
-            icon: string;
             price: import("@prisma/client-runtime-utils").Decimal;
+            icon: string;
             durationDays: number | null;
         };
     } & {

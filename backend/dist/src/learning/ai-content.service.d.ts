@@ -90,8 +90,8 @@ export declare class AiContentService {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }>;
     generateFullSyllabus(subjectId: string, numTopics?: number, userRole?: string): Promise<{
         subject: {

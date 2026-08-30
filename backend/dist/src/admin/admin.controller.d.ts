@@ -2,12 +2,14 @@ import { PayoutsService } from '../payouts/payouts.service';
 import { PrismaService } from '../prisma.service';
 import { MockExamsService } from '../mock-exams/mock-exams.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { UsersService } from '../users/users.service';
 export declare class AdminController {
     private payoutsService;
     private prisma;
     private mockExamsService;
     private notificationsService;
-    constructor(payoutsService: PayoutsService, prisma: PrismaService, mockExamsService: MockExamsService, notificationsService: NotificationsService);
+    private usersService;
+    constructor(payoutsService: PayoutsService, prisma: PrismaService, mockExamsService: MockExamsService, notificationsService: NotificationsService, usersService: UsersService);
     getDashboardStats(): Promise<{
         currentMonthRevenue: number;
         rewardPoolCap: number;
@@ -96,6 +98,19 @@ export declare class AdminController {
         key: string;
         value: string;
     }[]>;
+    getPublicConfig(key: string): Promise<{
+        error: string;
+        key?: undefined;
+        value?: undefined;
+    } | {
+        key: string;
+        value: null;
+        error?: undefined;
+    } | {
+        key: string;
+        value: string;
+        error?: undefined;
+    }>;
     updateConfig(key: string, value: string, description?: string): Promise<{
         id: string;
         updatedAt: Date;
@@ -209,8 +224,8 @@ export declare class AdminController {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }>;
     legacyUpdateMock(id: string, data: any, req: any): Promise<{
         questions: {
@@ -232,8 +247,8 @@ export declare class AdminController {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }>;
     getMock(id: string): Promise<({
         questions: {
@@ -255,8 +270,8 @@ export declare class AdminController {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }) | null>;
     deleteMock(id: string): Promise<{
         id: string;
@@ -266,8 +281,8 @@ export declare class AdminController {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }>;
     patchMock(id: string, data: any, req: any): Promise<{
         questions: {
@@ -289,8 +304,8 @@ export declare class AdminController {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }>;
     approveMock(id: string): Promise<{
         id: string;
@@ -300,8 +315,8 @@ export declare class AdminController {
         description: string | null;
         isActive: boolean;
         title: string;
-        price: import("@prisma/client-runtime-utils").Decimal;
         durationMinutes: number;
+        price: import("@prisma/client-runtime-utils").Decimal;
     }>;
     getSupportMessages(): Promise<({
         user: {
@@ -345,5 +360,199 @@ export declare class AdminController {
     sendEmailBroadcast(data: {
         subject: string;
         body: string;
+        emails?: string[];
     }): Promise<void>;
+    getUserStats(id: string): Promise<{
+        userId: string;
+        email: string;
+        name: string | null;
+        planTier: import("@prisma/client").$Enums.Tier;
+        tier: import("@prisma/client").$Enums.Tier;
+        dateJoined: Date;
+        currentStreak: number;
+        longestStreak: number;
+        lastActiveDate: Date | null;
+        lastLessonCompleted: {
+            lessonName: string;
+            completedAt: Date;
+        } | null;
+        lessonsCompleted: {
+            allTime: number;
+            thisWeek: number;
+            today: number;
+        };
+        lessonCompletionRate: number;
+        missedDays: {
+            total: number;
+            thisWeek: number;
+            thisMonth: number;
+        };
+        streakFreezes: {
+            used: number;
+            remaining: number;
+            total: number;
+        };
+        totalPoints: number;
+        currentLevel: number;
+        rank: number;
+        learnAndEarn: {
+            pointsEarned: number;
+            amountPayable: number;
+            totalEverPaidOut: number;
+            totalEarned: number;
+        };
+        monetization: {
+            eligible: boolean;
+            reason: string;
+        };
+        mockExamHistory: {
+            examTitle: any;
+            score: any;
+            completedAt: any;
+        }[];
+        averageDailyTimeSpent: {
+            seconds: number;
+            minutes: number;
+            hours: number;
+        };
+        badges: {
+            id: any;
+            name: any;
+            icon: any;
+            description: any;
+            color: any;
+            awardedAt: any;
+        }[];
+    }>;
+    getUserAnalytics(id: string): Promise<{
+        lessonsCompleted: number;
+        mockAttempts: number;
+        mockCompleted: number;
+        totalEarned: number;
+        totalPayouts: number;
+        totalPoints: number;
+        supportTickets: number;
+        tutorSessions: number;
+        videoPlays: number;
+        videoPlayBreakdown: {
+            lessonId: string;
+            lessonName: any;
+            count: any;
+        }[];
+        userId: string;
+        email: string;
+        name: string | null;
+        planTier: import("@prisma/client").$Enums.Tier;
+        tier: import("@prisma/client").$Enums.Tier;
+        dateJoined: Date;
+        currentStreak: number;
+        longestStreak: number;
+        lastActiveDate: Date | null;
+        lastLessonCompleted: {
+            lessonName: string;
+            completedAt: Date;
+        } | null;
+        lessonCompletionRate: number;
+        missedDays: {
+            total: number;
+            thisWeek: number;
+            thisMonth: number;
+        };
+        streakFreezes: {
+            used: number;
+            remaining: number;
+            total: number;
+        };
+        currentLevel: number;
+        rank: number;
+        learnAndEarn: {
+            pointsEarned: number;
+            amountPayable: number;
+            totalEverPaidOut: number;
+            totalEarned: number;
+        };
+        monetization: {
+            eligible: boolean;
+            reason: string;
+        };
+        mockExamHistory: {
+            examTitle: any;
+            score: any;
+            completedAt: any;
+        }[];
+        averageDailyTimeSpent: {
+            seconds: number;
+            minutes: number;
+            hours: number;
+        };
+        badges: {
+            id: any;
+            name: any;
+            icon: any;
+            description: any;
+            color: any;
+            awardedAt: any;
+        }[];
+        user: {
+            id: string;
+            name: string | null;
+            createdAt: Date;
+            email: string;
+            lastActiveAt: Date | null;
+        };
+    }>;
+    getCohortOverview(): Promise<{
+        totalRegisteredUsers: number;
+        planTierBreakdown: Record<string, number>;
+        active: {
+            today: number;
+            thisWeek: number;
+            thisMonth: number;
+        };
+        dormantUsers: {
+            last24Hours: number;
+            last3Days: number;
+            last7Days: number;
+        };
+        streakFreezeUsage: {
+            usersWhoUsedFreeze: number;
+            freezesRemaining: number;
+        };
+        learnAndEarn: {
+            eligibleUsers: number;
+            totalAmountOwed: number;
+        };
+        averageStreakLength: number;
+        averageLessonCompletionRate: number;
+        retentionRate: {
+            day1: number;
+            day7: number;
+            day30: number;
+        };
+        newSignupsTrend: {
+            daily: {
+                date: string;
+                count: number;
+            }[];
+            weekly: {
+                period: string;
+                count: number;
+            }[];
+        };
+        atRiskUsers: {
+            userId: string;
+            lastActiveAt: Date | null;
+            currentStreak: number;
+        }[];
+        topPerformers: {
+            userId: string;
+            name: string;
+            avatarUrl: string | null;
+            tier: import("@prisma/client").$Enums.Tier;
+            points: number;
+        }[];
+    }>;
+    exportAnalyticsCsv(): Promise<{
+        csv: string;
+    }>;
 }

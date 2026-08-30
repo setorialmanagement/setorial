@@ -242,4 +242,15 @@ export declare class LearningService {
         rewardPoints: number;
         topicId: string;
     }>;
+    recordVideoPlay(userId: string, lessonId: string): Promise<{
+        success: boolean;
+        deduped: boolean;
+        lastPlayAt: Date;
+        playId?: undefined;
+    } | {
+        success: boolean;
+        deduped: boolean;
+        playId: string;
+        lastPlayAt?: undefined;
+    }>;
 }
