@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { join } from 'path';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -20,6 +22,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { SupportController } from './support/support.controller';
 import { PublicController } from './public/public.controller';
+import { WebController } from './web/web.controller';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -62,6 +65,12 @@ import { PrismaService } from './prisma.service';
       },
     }),
     ScheduleModule.forRoot(),
+    // Serve the static landing site from the workspace `web/` folder
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'web'),
+      serveRoot: '/',
+      exclude: ['/api*', '/admin*', '/auth*', '/_next*'],
+    }),
     AuthModule,
     UsersModule,
     HealthModule,
@@ -76,7 +85,7 @@ import { PrismaService } from './prisma.service';
     StoreModule,
     NotificationsModule,
   ],
-  controllers: [AppController, SupportController, PublicController],
+  controllers: [AppController, SupportController, PublicController, WebController],
   providers: [AppService, PrismaService],
 })
 export class AppModule { }

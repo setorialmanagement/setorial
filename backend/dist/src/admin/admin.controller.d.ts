@@ -533,6 +533,7 @@ export declare class AdminController {
             daily: {
                 date: string;
                 count: number;
+                tiers: Record<string, number>;
             }[];
             weekly: {
                 period: string;

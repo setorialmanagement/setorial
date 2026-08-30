@@ -48,17 +48,33 @@ const s3 = new client_s3_1.S3Client({
 });
 async function uploadLogo() {
     try {
-        const logoPath = path.resolve(__dirname, "../../web/public/logo.png");
-        const fileBuffer = fs.readFileSync(logoPath);
+        const svgPath = path.resolve(__dirname, "../../web/public/logo.svg");
+        const pngPath = path.resolve(__dirname, "../../web/public/logo.png");
+        let filePath = null;
+        let contentType = 'application/octet-stream';
+        if (fs.existsSync(svgPath)) {
+            filePath = svgPath;
+            contentType = 'image/svg+xml';
+        }
+        else if (fs.existsSync(pngPath)) {
+            filePath = pngPath;
+            contentType = 'image/png';
+        }
+        else {
+            console.error('No logo file found at web/public/logo.svg or web/public/logo.png');
+            return;
+        }
+        const fileBuffer = fs.readFileSync(filePath);
+        const fileName = path.basename(filePath);
         const command = new client_s3_1.PutObjectCommand({
             Bucket: process.env.AWS_BUCKET,
-            Key: "public/logo.png",
+            Key: `public/${fileName}`,
             Body: fileBuffer,
-            ContentType: "image/png",
+            ContentType: contentType,
         });
         await s3.send(command);
-        console.log("Logo successfully uploaded to R2.");
-        console.log(`URL should be: ${process.env.AWS_URL}/public/logo.png`);
+        console.log(`Logo successfully uploaded to R2 as public/${fileName}.`);
+        console.log(`URL should be: ${process.env.AWS_URL}/public/${fileName}`);
     }
     catch (e) {
         console.error("Failed to upload logo:", e);

@@ -523,13 +523,20 @@ let AdminController = class AdminController {
         };
         const signups = await this.prisma.user.findMany({
             where: { role: 'STUDENT' },
-            select: { createdAt: true },
+            select: { createdAt: true, tier: true },
             orderBy: { createdAt: 'asc' },
         });
+        const TIERS = ['FREE', 'BRONZE', 'SILVER', 'GOLD'];
         const dailyTrend = Array.from({ length: 30 }, (_, index) => {
             const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (29 - index));
             const key = date.toISOString().slice(0, 10);
-            return { date: key, count: signups.filter(user => user.createdAt && user.createdAt.toISOString().slice(0, 10) === key).length };
+            const dayUsers = signups.filter(user => user.createdAt && user.createdAt.toISOString().slice(0, 10) === key);
+            const tiers = { FREE: 0, BRONZE: 0, SILVER: 0, GOLD: 0 };
+            dayUsers.forEach(u => {
+                const t = u.tier || 'FREE';
+                tiers[t] = (tiers[t] ?? 0) + 1;
+            });
+            return { date: key, count: dayUsers.length, tiers };
         });
         const weeklyTrend = Array.from({ length: 8 }, (_, index) => {
             const start = new Date(now);
