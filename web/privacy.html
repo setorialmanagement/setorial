@@ -93,22 +93,34 @@
             .nav-links { display: none; }
             .section { padding: 20px; }
         }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-white: #111827;
+                --bg-offwhite: #1F2937;
+                --text-dark: #F9FAFB;
+                --text-gray: #D1D5DB;
+                --border-color: #374151;
+            }
+            .section h2, .page-hero h1 { color: #FFFFFF; }
+            .section { background: #1F2937; border-color: #374151; }
+        }
     </style>
 </head>
 <body>
 
     <header>
         <div class="container navbar">
-            <a href="index.html" class="logo">
+            <a href="/home" class="logo">
                 <img src="public/mascot.png" alt="Setorial" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.8);" />
                 Setorial
             </a>
             <nav class="nav-links">
-                <a href="index.html#about">About</a>
-                <a href="index.html#features">Features</a>
-                <a href="index.html#testimonials">Testimonials</a>
-                <a href="terms.html">Terms</a>
-                <a href="privacy.html" class="active">Privacy</a>
+                <a href="/home">About</a>
+                <a href="/home#features">Features</a>
+                <a href="/home#testimonials">Testimonials</a>
+                <a href="/terms">Terms</a>
+                <a href="/privacy" class="active">Privacy</a>
             </nav>
             <a href="index.html#" class="btn btn-white">Get Started</a>
         </div>
@@ -185,9 +197,9 @@
 
     <footer>
         <div>
-            <a href="index.html">Home</a>
-            <a href="terms.html">Terms</a>
-            <a href="privacy.html">Privacy</a>
+            <a href="/home">Home</a>
+            <a href="/terms">Terms</a>
+            <a href="/privacy">Privacy</a>
         </div>
         <p>&copy; 2026 Setorial. All rights reserved.</p>
     </footer>

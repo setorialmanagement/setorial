@@ -9,6 +9,14 @@
     {
       "target": "web-target",
       "public": "web",
+      "cleanUrls": true,
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "/home",
+          "type": 301
+        }
+      ],
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ]

@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setorial — Illuminate Your Path to Learning</title>
+    <meta name="description" content="Setorial is a personalized learning platform for students. Study, earn rewards, and grow with Elia your learning buddy.">
+    <link rel="icon" href="public/mascot.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         /* CSS RESET & VARIABLES */
         :root {
@@ -108,6 +111,20 @@
 
         .btn-outline:hover {
             background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-yellow {
+            background-color: #FFFBEB;
+            color: #111827;
+            border: 2.5px solid #F59E0B;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+        }
+
+        .btn-yellow:hover {
+            background-color: #FEF3C7;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245,158,11,0.35);
         }
 
         .tag {
@@ -392,14 +409,12 @@
         .feature-card h4 { margin-bottom: 12px; font-size: 20px; font-weight: 600; }
         .feature-card p { color: var(--text-gray); font-size: 15px; }
 
-        /* MASCOT SECTION - ELLA */
+        /* MASCOT SECTION */
         .mascot-section {
             background-color: var(--primary-orange);
-            padding: 100px 0;
+            padding: 80px 0;
             color: white;
             overflow: hidden;
-            border-radius: 40px;
-            margin: 0 24px;
         }
 
         .mascot-container {
@@ -412,18 +427,19 @@
         .mascot-text { flex: 1; }
         
         .mascot-text h2 {
-            font-size: 46px;
-            margin-bottom: 24px;
+            font-size: 38px;
+            margin-bottom: 18px;
             font-weight: 700;
             line-height: 1.2;
         }
 
         .mascot-text p {
-            font-size: 18px;
-            opacity: 0.95;
-            margin-bottom: 40px;
-            line-height: 1.8;
+            font-size: 15px;
+            opacity: 0.92;
+            margin-bottom: 36px;
+            line-height: 1.75;
             font-weight: 300;
+            max-width: 480px;
         }
 
         /* --- LION MASCOT PLACEHOLDER --- */
@@ -559,6 +575,19 @@
             .mascot-section { margin: 0; border-radius: 0; padding: 60px 20px; }
             .happy-parents { flex-direction: column; text-align: center; }
         }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-white: #111827;
+                --bg-offwhite: #1F2937;
+                --text-dark: #F9FAFB;
+                --text-gray: #D1D5DB;
+                --border-color: #374151;
+            }
+            .mascot-text h2, .section h2, .feature-card h4, .test-name h4, .hero-text h1 { color: #FFFFFF; }
+            .section, .feature-card, .test-card, .mascot-placeholder { background: #1F2937; border-color: #374151; }
+            .mascot-placeholder { color: #F9FAFB; }
+        }
     </style>
 </head>
 <body>
@@ -570,13 +599,13 @@
                 Setorial
             </div>
             <nav class="nav-links">
-                <a href="#about">About</a>
-                <a href="#features">Features</a>
-                <a href="#testimonials">Testimonials</a>
-                <a href="terms.html">Terms</a>
-                <a href="privacy.html">Privacy</a>
+                <a href="/home#about">About</a>
+                <a href="/home#features">Features</a>
+                <a href="/home#testimonials">Testimonials</a>
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a>
             </nav>
-            <a href="#" class="btn btn-white">Get Started</a>
+            <a href="/home#" class="btn btn-yellow">Get Started</a>
         </div>
     </header>
 
@@ -644,32 +673,32 @@
         
         <div class="features-grid">
             <div class="feature-card animate slide-up delay-1">
-                <div class="feature-icon">💻</div>
+                <div class="feature-icon"><i class="fa-solid fa-laptop"></i></div>
                 <h4>Live Interactive Classes</h4>
                 <p>We combine the best of modern technology to create immersive learning experiences for your children.</p>
             </div>
             <div class="feature-card animate slide-up delay-2">
-                <div class="feature-icon">🎯</div>
+                <div class="feature-icon"><i class="fa-solid fa-bullseye"></i></div>
                 <h4>Personalized Learning</h4>
                 <p>Our modules are tailored to provide a personalized learning experience for every single student.</p>
             </div>
             <div class="feature-card animate slide-up delay-3">
-                <div class="feature-icon">🧩</div>
+                <div class="feature-icon"><i class="fa-solid fa-puzzle-piece"></i></div>
                 <h4>Designed For Young</h4>
                 <p>Our curriculum is tailored to the exact needs of young learners, ensuring they absorb the best education.</p>
             </div>
             <div class="feature-card animate slide-up delay-4">
-                <div class="feature-icon">🎮</div>
+                <div class="feature-icon"><i class="fa-solid fa-gamepad"></i></div>
                 <h4>Interactive Learning</h4>
                 <p>Our platforms are designed to be interactive so that your child won't be bored but rather remain engaged.</p>
             </div>
             <div class="feature-card animate slide-up delay-5">
-                <div class="feature-icon">⏰</div>
+                <div class="feature-icon"><i class="fa-solid fa-clock"></i></div>
                 <h4>Flexible Schedule</h4>
                 <p>Schedules are flexible. They suit your exact lifestyle and fit perfectly into normal learning systems.</p>
             </div>
             <div class="feature-card animate slide-up delay-6">
-                <div class="feature-icon">📊</div>
+                <div class="feature-icon"><i class="fa-solid fa-chart-bar"></i></div>
                 <h4>Progress Tracking</h4>
                 <p>Monitor your child's growth with real-time analytics and detailed performance reports delivered weekly.</p>
             </div>
@@ -680,8 +709,8 @@
         <div class="container mascot-container">
             <div class="mascot-text">
                 <h2 class="animate slide-right">Hello, My name is ELIA</h2>
-                <p class="animate slide-right delay-1">How is everything going, dear learners? I am your learning buddy on Setorial! My goal is to make learning feel fun and exciting. I am super excited to work with you online. I would love to meet you. Download our App now and join me on this exciting learning trip! Can't wait to see you there!</p>
-                <a href="#" class="btn btn-white animate slide-right delay-2">Download app</a>
+                <p class="animate slide-right delay-1">How is everything going, dear learners? I am your learning buddy on Setorial! My goal is to make learning fun and exciting. Download the App and let's start this adventure together!</p>
+                <a href="#" class="btn btn-yellow animate slide-right delay-2">Download app</a>
             </div>
             <div class="mascot-image-wrapper animate slide-left delay-3">
                 <img src="public/mascot.png" alt="Elia the mascot" class="mascot-img" />
@@ -736,7 +765,7 @@
             <h2 class="animate slide-up delay-1">Ready to Get Started?</h2>
             <p class="animate slide-up delay-2">Join thousands of students who are already succeeding<br>with this online learning program!</p>
             <div class="hero-actions animate slide-up delay-3" style="margin-bottom: 0;">
-                <a href="#" class="btn btn-white">Start learning</a>
+                <a href="#" class="btn btn-yellow">Start Learning</a>
                 <a href="#" class="btn btn-outline">Download app</a>
             </div>
         </div>
