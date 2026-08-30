@@ -22,7 +22,6 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { SupportController } from './support/support.controller';
 import { PublicController } from './public/public.controller';
-import { WebController } from './web/web.controller';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -83,7 +82,7 @@ import { PrismaService } from './prisma.service';
     StoreModule,
     NotificationsModule,
   ],
-  controllers: [AppController, SupportController, PublicController, WebController],
+  controllers: [AppController, SupportController, PublicController],
   providers: [AppService, PrismaService],
 })
 export class AppModule { }

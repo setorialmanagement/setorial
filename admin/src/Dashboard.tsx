@@ -870,16 +870,7 @@ export default function AdminDashboard() {
                                 <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Learning Journeys</h2>
                                 <p className="text-sm text-zinc-500 mt-1">Manage subjects, topics, and automatically generate lessons via AI.</p>
                             </div>
-                            <div className="px-6 pb-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                <div className="card p-4">
-                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">Signups (last 30 days)</h4>
-                                    <SignupsTrendChart data={(cohortStats?.newSignupsTrend?.daily ?? [])} />
-                                </div>
-                                <div className="card p-4">
-                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">Retention Curve (D1 / D7 / D30)</h4>
-                                    <RetentionCurveChart retention={cohortStats?.retentionRate ?? {}} />
-                                </div>
-                            </div>
+
                             <button
                                 onClick={handleCreateSubject}
                                 className="btn-primary h-10 px-6 text-sm"
@@ -1149,6 +1140,16 @@ export default function AdminDashboard() {
                                 <div className="card p-4">
                                     <div className="text-xs text-zinc-500">Payout eligible</div>
                                     <div className="mt-2 text-2xl font-semibold text-zinc-900">{cohortStats?.learnAndEarn?.eligibleUsers ?? 0}</div>
+                                </div>
+                            </div>
+                            <div className="px-6 pb-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                <div className="card p-4">
+                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">Signups (last 30 days)</h4>
+                                    <SignupsTrendChart data={(cohortStats?.newSignupsTrend?.daily ?? [])} />
+                                </div>
+                                <div className="card p-4">
+                                    <h4 className="text-sm font-semibold text-zinc-900 mb-3">Retention Curve (D1 / D7 / D30)</h4>
+                                    <RetentionCurveChart retention={cohortStats?.retentionRate ?? {}} />
                                 </div>
                             </div>
                             <div className="px-6 pb-6 grid grid-cols-1 xl:grid-cols-2 gap-6">

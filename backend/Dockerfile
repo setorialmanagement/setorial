@@ -35,8 +35,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 # Include static web site and built admin frontend so controllers can serve them
-COPY --from=builder /app/web ./web
-COPY --from=builder /app/admin/dist ./admin/dist
+# COPY --from=builder /app/web ./web
+# COPY --from=builder /app/admin/dist ./admin/dist
 
 # Copy startup script
 COPY --from=builder /app/startup.sh ./startup.sh
