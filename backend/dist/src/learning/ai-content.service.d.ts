@@ -2,10 +2,10 @@ import { PrismaService } from '../prisma.service';
 import { Queue } from 'bullmq';
 export declare class AiContentService {
     private prisma;
-    private aiQueue;
+    private aiQueue?;
     private readonly logger;
     private readonly deepseekKey;
-    constructor(prisma: PrismaService, aiQueue: Queue);
+    constructor(prisma: PrismaService, aiQueue?: Queue | undefined);
     queueFullSyllabusGeneration(subjectId: string, numTopics: number, userRole?: string): Promise<{
         message: string;
     }>;

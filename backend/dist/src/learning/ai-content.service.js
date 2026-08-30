@@ -36,6 +36,10 @@ let AiContentService = AiContentService_1 = class AiContentService {
         }
     }
     async queueFullSyllabusGeneration(subjectId, numTopics, userRole) {
+        if (!this.aiQueue) {
+            this.logger.warn('Bull queues disabled; cannot queue AI content generation.');
+            throw new Error('Background queue unavailable');
+        }
         await this.aiQueue.add('generate-full-subject', { subjectId, numTopics, userRole }, {
             removeOnComplete: true,
             attempts: 3,
@@ -291,6 +295,7 @@ Respond ONLY with valid JSON:
 exports.AiContentService = AiContentService;
 exports.AiContentService = AiContentService = AiContentService_1 = __decorate([
     (0, common_1.Injectable)(),
+    __param(1, (0, common_1.Optional)()),
     __param(1, (0, bullmq_1.InjectQueue)('ai-content')),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         bullmq_2.Queue])

@@ -15,7 +15,9 @@ import { AiContentProcessor } from './ai-content.processor';
     GamificationModule,
     StoreModule,
     UploadModule,
-    BullModule.registerQueue({ name: 'ai-content' })
+    ...(process.env.DISABLE_BULL === 'true' ? [] : [
+      BullModule.registerQueue({ name: 'ai-content' })
+    ])
   ],
   providers: [LearningService, PrismaService, AiContentService, AiContentProcessor],
   controllers: [LearningController, TutorController],

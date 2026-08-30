@@ -33,6 +33,10 @@ let EngagementCronService = EngagementCronService_1 = class EngagementCronServic
             where: { expoPushToken: { not: null } },
             select: { id: true }
         });
+        if (!this.engagementQueue) {
+            this.logger.warn('Bull queues are disabled; skipping engagement push scheduling.');
+            return;
+        }
         if (users.length === 0) {
             this.logger.log('No users with push tokens found.');
             return;
@@ -56,6 +60,7 @@ __decorate([
 ], EngagementCronService.prototype, "scheduleEngagementPushes", null);
 exports.EngagementCronService = EngagementCronService = EngagementCronService_1 = __decorate([
     (0, common_1.Injectable)(),
+    __param(1, (0, common_1.Optional)()),
     __param(1, (0, bullmq_1.InjectQueue)('engagement-push')),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         bullmq_2.Queue])

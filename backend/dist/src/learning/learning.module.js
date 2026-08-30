@@ -27,7 +27,9 @@ exports.LearningModule = LearningModule = __decorate([
             gamification_module_1.GamificationModule,
             store_module_1.StoreModule,
             upload_module_1.UploadModule,
-            bullmq_1.BullModule.registerQueue({ name: 'ai-content' })
+            ...(process.env.DISABLE_BULL === 'true' ? [] : [
+                bullmq_1.BullModule.registerQueue({ name: 'ai-content' })
+            ])
         ],
         providers: [learning_service_1.LearningService, prisma_service_1.PrismaService, ai_content_service_1.AiContentService, ai_content_processor_1.AiContentProcessor],
         controllers: [learning_controller_1.LearningController, tutor_controller_1.TutorController],

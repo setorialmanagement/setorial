@@ -50,6 +50,7 @@ async function uploadLogo() {
     try {
         const svgPath = path.resolve(__dirname, "../../web/public/logo.svg");
         const pngPath = path.resolve(__dirname, "../../web/public/logo.png");
+        const mobileIcon = path.resolve(__dirname, "../../mobile/assets/images/icon.png");
         let filePath = null;
         let contentType = 'application/octet-stream';
         if (fs.existsSync(svgPath)) {
@@ -60,12 +61,17 @@ async function uploadLogo() {
             filePath = pngPath;
             contentType = 'image/png';
         }
+        else if (fs.existsSync(mobileIcon)) {
+            filePath = mobileIcon;
+            contentType = 'image/png';
+            console.log('Using mobile app icon as logo fallback:', mobileIcon);
+        }
         else {
-            console.error('No logo file found at web/public/logo.svg or web/public/logo.png');
+            console.error('No logo file found at web/public/logo.svg, web/public/logo.png, or mobile/assets/images/icon.png');
             return;
         }
         const fileBuffer = fs.readFileSync(filePath);
-        const fileName = path.basename(filePath);
+        const fileName = path.basename(filePath).endsWith('.svg') ? 'logo.svg' : 'logo.png';
         const command = new client_s3_1.PutObjectCommand({
             Bucket: process.env.AWS_BUCKET,
             Key: `public/${fileName}`,
@@ -75,6 +81,19 @@ async function uploadLogo() {
         await s3.send(command);
         console.log(`Logo successfully uploaded to R2 as public/${fileName}.`);
         console.log(`URL should be: ${process.env.AWS_URL}/public/${fileName}`);
+        const mascotTarget = path.resolve(__dirname, '../../web/public/mascot.png');
+        if (fs.existsSync(mobileIcon)) {
+            const mascBuf = fs.readFileSync(mobileIcon);
+            const mascCmd = new client_s3_1.PutObjectCommand({
+                Bucket: process.env.AWS_BUCKET,
+                Key: `public/mascot.png`,
+                Body: mascBuf,
+                ContentType: 'image/png',
+            });
+            await s3.send(mascCmd);
+            console.log('Mascot uploaded to R2 as public/mascot.png');
+            console.log(`URL should be: ${process.env.AWS_URL}/public/mascot.png`);
+        }
     }
     catch (e) {
         console.error("Failed to upload logo:", e);

@@ -26,6 +26,10 @@ let AutomatedPayoutService = AutomatedPayoutService_1 = class AutomatedPayoutSer
     }
     async triggerMonthlyPayout() {
         this.logger.log('Triggering automated monthly payout...');
+        if (!this.payoutsQueue) {
+            this.logger.warn('Bull queues disabled; skipping automated payout job.');
+            return;
+        }
         const month = new Date().toISOString().slice(0, 7);
         const estimatedRevenue = 1000000;
         await this.payoutsQueue.add('process-payouts', { month, estimatedRevenue }, {
@@ -44,6 +48,7 @@ __decorate([
 ], AutomatedPayoutService.prototype, "triggerMonthlyPayout", null);
 exports.AutomatedPayoutService = AutomatedPayoutService = AutomatedPayoutService_1 = __decorate([
     (0, common_1.Injectable)(),
+    __param(0, (0, common_1.Optional)()),
     __param(0, (0, bullmq_1.InjectQueue)('payouts')),
     __metadata("design:paramtypes", [bullmq_2.Queue])
 ], AutomatedPayoutService);

@@ -4,9 +4,9 @@ import { Queue } from 'bullmq';
 export declare class PayoutsService {
     private prisma;
     private notificationsService;
-    private payoutsQueue;
+    private payoutsQueue?;
     private readonly logger;
-    constructor(prisma: PrismaService, notificationsService: NotificationsService, payoutsQueue: Queue);
+    constructor(prisma: PrismaService, notificationsService: NotificationsService, payoutsQueue?: Queue | undefined);
     simulatePayout(month: string, globalEstimatedRevenue?: number): Promise<{
         month: string;
         globalEstimatedRevenue: number | undefined;

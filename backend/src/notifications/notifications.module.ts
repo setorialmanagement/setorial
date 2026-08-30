@@ -10,9 +10,11 @@ import { EngagementProcessor } from './engagement.processor';
 @Module({
     imports: [
         HttpModule,
-        BullModule.registerQueue({
-            name: 'engagement-push',
-        }),
+        ...(process.env.DISABLE_BULL === 'true' ? [] : [
+            BullModule.registerQueue({
+                name: 'engagement-push',
+            }),
+        ]),
     ],
     providers: [
         NotificationsService, 

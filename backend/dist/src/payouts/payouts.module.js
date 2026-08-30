@@ -19,7 +19,9 @@ exports.PayoutsModule = PayoutsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             prisma_module_1.PrismaModule,
-            bullmq_1.BullModule.registerQueue({ name: 'payouts' })
+            ...(process.env.DISABLE_BULL === 'true' ? [] : [
+                bullmq_1.BullModule.registerQueue({ name: 'payouts' })
+            ])
         ],
         providers: [payouts_service_1.PayoutsService, payouts_processor_1.PayoutsProcessor],
         exports: [payouts_service_1.PayoutsService],

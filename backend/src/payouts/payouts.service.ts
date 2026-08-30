@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { Prisma } from '@prisma/client';
@@ -14,7 +14,7 @@ export class PayoutsService {
     constructor(
         private prisma: PrismaService,
         private notificationsService: NotificationsService,
-        @InjectQueue('payouts') private payoutsQueue: Queue
+        @Optional() @InjectQueue('payouts') private payoutsQueue?: Queue
     ) { }
 
     /**
@@ -279,6 +279,11 @@ export class PayoutsService {
 
         const now = new Date();
         const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        if (!this.payoutsQueue) {
+            this.logger.warn('Bull queues disabled; skipping adding payout job to queue.');
+            return;
+        }
 
         this.logger.log(`⏰ Cron: Adding payout processing job to queue for ${month}`);
         await this.payoutsQueue.add('process-payout', { month });

@@ -22,9 +22,11 @@ exports.NotificationsModule = NotificationsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             axios_1.HttpModule,
-            bullmq_1.BullModule.registerQueue({
-                name: 'engagement-push',
-            }),
+            ...(process.env.DISABLE_BULL === 'true' ? [] : [
+                bullmq_1.BullModule.registerQueue({
+                    name: 'engagement-push',
+                }),
+            ]),
         ],
         providers: [
             notifications_service_1.NotificationsService,

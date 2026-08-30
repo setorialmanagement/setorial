@@ -7,7 +7,9 @@ import { PayoutsProcessor } from './payouts.processor';
 @Module({
   imports: [
     PrismaModule,
-    BullModule.registerQueue({ name: 'payouts' })
+    ...(process.env.DISABLE_BULL === 'true' ? [] : [
+      BullModule.registerQueue({ name: 'payouts' })
+    ])
   ],
   providers: [PayoutsService, PayoutsProcessor],
   exports: [PayoutsService],

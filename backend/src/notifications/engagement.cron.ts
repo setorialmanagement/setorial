@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -10,7 +10,7 @@ export class EngagementCronService {
 
     constructor(
         private readonly prisma: PrismaService,
-        @InjectQueue('engagement-push') private readonly engagementQueue: Queue
+        @Optional() @InjectQueue('engagement-push') private readonly engagementQueue?: Queue
     ) {}
 
     // Runs every day at 17:00 server time (5:00 PM)
@@ -23,6 +23,11 @@ export class EngagementCronService {
             where: { expoPushToken: { not: null } },
             select: { id: true }
         });
+
+        if (!this.engagementQueue) {
+            this.logger.warn('Bull queues are disabled; skipping engagement push scheduling.');
+            return;
+        }
 
         if (users.length === 0) {
             this.logger.log('No users with push tokens found.');

@@ -225,6 +225,10 @@ let PayoutsService = PayoutsService_1 = class PayoutsService {
             return;
         const now = new Date();
         const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        if (!this.payoutsQueue) {
+            this.logger.warn('Bull queues disabled; skipping adding payout job to queue.');
+            return;
+        }
         this.logger.log(`⏰ Cron: Adding payout processing job to queue for ${month}`);
         await this.payoutsQueue.add('process-payout', { month });
     }
@@ -281,6 +285,7 @@ __decorate([
 ], PayoutsService.prototype, "handleMonthlyPayout", null);
 exports.PayoutsService = PayoutsService = PayoutsService_1 = __decorate([
     (0, common_1.Injectable)(),
+    __param(2, (0, common_1.Optional)()),
     __param(2, (0, bullmq_1.InjectQueue)('payouts')),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         notifications_service_1.NotificationsService,

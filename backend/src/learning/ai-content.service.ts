@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import axios from 'axios';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -11,7 +11,7 @@ export class AiContentService {
 
     constructor(
         private prisma: PrismaService,
-        @InjectQueue('ai-content') private aiQueue: Queue
+        @Optional() @InjectQueue('ai-content') private aiQueue?: Queue
     ) {
         this.deepseekKey = process.env.DEEPSEEK_API_KEY ?? '';
         if (!this.deepseekKey) {
@@ -20,6 +20,11 @@ export class AiContentService {
     }
 
     async queueFullSyllabusGeneration(subjectId: string, numTopics: number, userRole?: string) {
+        if (!this.aiQueue) {
+            this.logger.warn('Bull queues disabled; cannot queue AI content generation.');
+            throw new Error('Background queue unavailable');
+        }
+
         await this.aiQueue.add('generate-full-subject', { subjectId, numTopics, userRole }, {
             removeOnComplete: true,
             attempts: 3,

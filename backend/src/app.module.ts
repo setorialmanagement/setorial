@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { join } from 'path';
-import { ServeStaticModule } from '@nestjs/serve-static';
+// ServeStaticModule removed — static assets served by WebController
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -27,26 +27,28 @@ import { PrismaService } from './prisma.service';
 
 @Module({
   imports: [
-    BullModule.forRootAsync({
-      useFactory: () => {
-        const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL;
-        if (redisUrl) {
-          const url = new URL(redisUrl);
+    ...(process.env.DISABLE_BULL === 'true' ? [] : [
+      BullModule.forRootAsync({
+        useFactory: () => {
+          const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL;
+          if (redisUrl) {
+            const url = new URL(redisUrl);
+            return {
+              connection: {
+                host: url.hostname,
+                port: parseInt(url.port || '6379'),
+                username: url.username || undefined,
+                password: url.password || undefined,
+                tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+              }
+            };
+          }
           return {
-            connection: {
-              host: url.hostname,
-              port: parseInt(url.port || '6379'),
-              username: url.username || undefined,
-              password: url.password || undefined,
-              tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
-            }
+            connection: { host: 'localhost', port: 6379 }
           };
         }
-        return {
-          connection: { host: 'localhost', port: 6379 }
-        };
-      }
-    }),
+      })
+    ]),
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => {
@@ -66,11 +68,7 @@ import { PrismaService } from './prisma.service';
     }),
     ScheduleModule.forRoot(),
     // Serve the static landing site from the workspace `web/` folder
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'web'),
-      serveRoot: '/',
-      exclude: ['/api*', '/admin*', '/auth*', '/_next*'],
-    }),
+    // Static assets are served by WebController to avoid path-to-regexp issues
     AuthModule,
     UsersModule,
     HealthModule,

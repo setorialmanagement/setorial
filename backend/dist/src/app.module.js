@@ -8,8 +8,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
-const path_1 = require("path");
-const serve_static_1 = require("@nestjs/serve-static");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const auth_module_1 = require("./auth/auth.module");
@@ -31,6 +29,7 @@ const cache_manager_1 = require("@nestjs/cache-manager");
 const cache_manager_redis_yet_1 = require("cache-manager-redis-yet");
 const support_controller_1 = require("./support/support.controller");
 const public_controller_1 = require("./public/public.controller");
+const web_controller_1 = require("./web/web.controller");
 const prisma_service_1 = require("./prisma.service");
 let AppModule = class AppModule {
 };
@@ -38,26 +37,28 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            bullmq_1.BullModule.forRootAsync({
-                useFactory: () => {
-                    const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL;
-                    if (redisUrl) {
-                        const url = new URL(redisUrl);
+            ...(process.env.DISABLE_BULL === 'true' ? [] : [
+                bullmq_1.BullModule.forRootAsync({
+                    useFactory: () => {
+                        const redisUrl = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL;
+                        if (redisUrl) {
+                            const url = new URL(redisUrl);
+                            return {
+                                connection: {
+                                    host: url.hostname,
+                                    port: parseInt(url.port || '6379'),
+                                    username: url.username || undefined,
+                                    password: url.password || undefined,
+                                    tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
+                                }
+                            };
+                        }
                         return {
-                            connection: {
-                                host: url.hostname,
-                                port: parseInt(url.port || '6379'),
-                                username: url.username || undefined,
-                                password: url.password || undefined,
-                                tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
-                            }
+                            connection: { host: 'localhost', port: 6379 }
                         };
                     }
-                    return {
-                        connection: { host: 'localhost', port: 6379 }
-                    };
-                }
-            }),
+                })
+            ]),
             cache_manager_1.CacheModule.registerAsync({
                 isGlobal: true,
                 useFactory: async () => {
@@ -76,11 +77,6 @@ exports.AppModule = AppModule = __decorate([
                 },
             }),
             schedule_1.ScheduleModule.forRoot(),
-            serve_static_1.ServeStaticModule.forRoot({
-                rootPath: (0, path_1.join)(__dirname, '..', '..', 'web'),
-                serveRoot: '/',
-                exclude: ['/api*', '/admin*', '/auth*', '/_next*'],
-            }),
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             health_module_1.HealthModule,
@@ -95,7 +91,7 @@ exports.AppModule = AppModule = __decorate([
             store_module_1.StoreModule,
             notifications_module_1.NotificationsModule,
         ],
-        controllers: [app_controller_1.AppController, support_controller_1.SupportController, public_controller_1.PublicController],
+        controllers: [app_controller_1.AppController, support_controller_1.SupportController, public_controller_1.PublicController, web_controller_1.WebController],
         providers: [app_service_1.AppService, prisma_service_1.PrismaService],
     })
 ], AppModule);
