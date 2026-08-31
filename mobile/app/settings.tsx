@@ -1,5 +1,5 @@
 import { SoundButton } from '../components/SoundButton';
-import { View, Text, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Switch, Linking } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, User, Bell, Shield, CircleHelp, Volume2, Vibrate, Globe } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -81,8 +81,8 @@ export default function SettingsScreen() {
 
                 {/* Legal Section */}
                 <Animated.Text entering={FadeInUp.delay(580).springify()} className="text-gray-400 font-bold mb-4 uppercase text-xs tracking-widest">Legal</Animated.Text>
-                <SettingRow index={6} label="Terms of Service" onPress={() => router.push('/terms')} />
-                <SettingRow index={7} label="Privacy Policy" onPress={() => router.push('/privacy')} />
+                <SettingRow index={6} label="Terms of Service" onPress={() => Linking.openURL('https://scholarsedgetutorial.com/terms')} />
+                <SettingRow index={7} label="Privacy Policy" onPress={() => Linking.openURL('https://scholarsedgetutorial.com/privacy')} />
 
                 <View className="h-32" />
             </ScrollView>

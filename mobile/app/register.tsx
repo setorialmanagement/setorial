@@ -1,6 +1,6 @@
 import { SoundButton } from '../components/SoundButton';
 import { TactileButton } from '../components/TactileButton';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff, Check, ChevronDown } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -151,7 +151,7 @@ export default function RegisterScreen() {
                             {agreed && <Check size={16} color="#FFF" strokeWidth={3} />}
                         </View>
                         <Text className="text-black dark:text-white text-base">
-                            I agree to Setorial's <Text className="font-bold">Privacy Policy</Text>
+                            I agree to Setorial's <Text className="font-bold" onPress={() => Linking.openURL('https://scholarsedgetutorial.com/privacy')}>Privacy Policy</Text>
                         </Text>
                     </SoundButton>
 

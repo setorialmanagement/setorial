@@ -1,5 +1,5 @@
 import { SoundButton } from '../components/SoundButton';
-import { View, Text, TouchableOpacity, ScrollView, useColorScheme } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, useColorScheme, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Info, HelpCircle, ShieldCheck } from "lucide-react-native";
@@ -29,8 +29,8 @@ export default function AboutScreen() {
                 </View>
 
                 <AboutLink icon={<HelpCircle size={20} color="#64748B" />} label="Help & Support" />
-                <AboutLink icon={<ShieldCheck size={20} color="#64748B" />} label="Privacy Policy" />
-                <AboutLink icon={<Info size={20} color="#64748B" />} label="Terms of Service" />
+                <AboutLink icon={<ShieldCheck size={20} color="#64748B" />} label="Privacy Policy" onPress={() => Linking.openURL('https://scholarsedgetutorial.com/privacy')} />
+                <AboutLink icon={<Info size={20} color="#64748B" />} label="Terms of Service" onPress={() => Linking.openURL('https://scholarsedgetutorial.com/terms')} />
 
                 <View className="mt-20 items-center">
                     <Text className="text-gray-400 text-xs">© 2026 Setorial Inc. All rights reserved.</Text>
@@ -40,9 +40,9 @@ export default function AboutScreen() {
     );
 }
 
-function AboutLink({ icon, label }: { icon: any, label: string }) {
+function AboutLink({ icon, label, onPress }: { icon: any, label: string, onPress?: () => void }) {
     return (
-        <SoundButton activeOpacity={0.8} className="flex-row items-center bg-white dark:bg-[#1E222B] p-5 rounded-2xl mb-4 border-2 border-[#E5E5E5] dark:border-[#272B36] border-b-4">
+        <SoundButton onPress={onPress} activeOpacity={0.8} className="flex-row items-center bg-white dark:bg-[#1E222B] p-5 rounded-2xl mb-4 border-2 border-[#E5E5E5] dark:border-[#272B36] border-b-4">
             <View className="w-10 h-10 rounded-xl bg-[#F5F5F5] dark:bg-[#2A2E39] border-2 border-[#E5E5E5] dark:border-[#272B36] items-center justify-center mr-4">
                 {icon}
             </View>
